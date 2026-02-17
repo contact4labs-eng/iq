@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function TopBar() {
-  const { user, signOut } = useAuth();
-  const companyName = user?.user_metadata?.company_name || "Η εταιρεία μου";
+  const { user, company, signOut } = useAuth();
+  const companyName = company?.company_name || "Η εταιρεία μου";
   const email = user?.email || "";
 
   return (

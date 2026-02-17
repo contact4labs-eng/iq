@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,21 +23,40 @@ const Register = () => {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    
+    // Sign up the user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { company_name: companyName, afm },
         emailRedirectTo: window.location.origin,
       },
     });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Σφάλμα εγγραφής", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Επιτυχής εγγραφή!", description: "Ελέγξτε το email σας για επιβεβαίωση." });
-      navigate("/login");
+    
+    if (authError) {
+      setLoading(false);
+      toast({ title: "Σφάλμα εγγραφής", description: authError.message, variant: "destructive" });
+      return;
     }
+
+    // Create company record linked to the new user
+    if (authData.user) {
+      const { error: companyError } = await supabase
+        .from("companies")
+        .insert({
+          owner_user_id: authData.user.id,
+          company_name: companyName,
+          afm,
+        });
+
+      if (companyError) {
+        console.error("Company creation error:", companyError);
+      }
+    }
+
+    setLoading(false);
+    toast({ title: "Επιτυχής εγγραφή!", description: "Ελέγξτε το email σας για επιβεβαίωση." });
+    navigate("/login");
   };
 
   return (
