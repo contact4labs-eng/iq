@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, BarChart3 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { InvoiceUploadZone } from "@/components/invoices/InvoiceUploadZone";
 import { InvoiceList } from "@/components/invoices/InvoiceList";
+import { InvoiceAnalytics } from "@/components/invoices/InvoiceAnalytics";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const Invoices = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -18,8 +20,27 @@ const Invoices = () => {
           <p className="text-muted-foreground">Ανέβασμα και διαχείριση τιμολογίων</p>
         </div>
 
-        <InvoiceUploadZone onUploadComplete={() => setRefreshKey((k) => k + 1)} />
-        <InvoiceList refreshKey={refreshKey} />
+        <Tabs defaultValue="list">
+          <TabsList>
+            <TabsTrigger value="list" className="gap-1.5">
+              <FileText className="w-4 h-4" />
+              Τιμολόγια
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5">
+              <BarChart3 className="w-4 h-4" />
+              Αναλύσεις
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list" className="space-y-6">
+            <InvoiceUploadZone onUploadComplete={() => setRefreshKey((k) => k + 1)} />
+            <InvoiceList refreshKey={refreshKey} />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <InvoiceAnalytics />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
