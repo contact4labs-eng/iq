@@ -154,7 +154,7 @@ const InvoiceDetail = () => {
       toast({ title: labels[status] || status, description: "Η κατάσταση ενημερώθηκε επιτυχώς." });
       navigate("/invoices");
     } else {
-      toast({ title: "Σφάλμα", description: "Αποτυχία ενημέρωσης κατάστασης.", variant: "destructive" });
+      toast({ title: "Σφάλμα", description: error || "Αποτυχία ενημέρωσης κατάστασης.", variant: "destructive" });
     }
   };
 
