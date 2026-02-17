@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 
 interface Invoice {
   id: string;
@@ -215,8 +215,12 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
                 })
               : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                    Δεν βρέθηκαν τιμολόγια
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <FileText className="w-10 h-10 text-muted-foreground/40" />
+                      <p className="text-muted-foreground font-medium">Δεν υπάρχουν τιμολόγια ακόμα.</p>
+                      <p className="text-sm text-muted-foreground">Ανεβάστε το πρώτο σας!</p>
+                    </div>
                   </td>
                 </tr>
               )}
