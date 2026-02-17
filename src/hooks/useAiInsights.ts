@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface AiInsight {
@@ -30,7 +30,7 @@ export interface QaMessage {
   content: string;
 }
 
-const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dynamic-task`;
+const EDGE_URL = `${SUPABASE_URL}/functions/v1/dynamic-task`;
 
 export function useAiInsights() {
   const { company, session } = useAuth();
