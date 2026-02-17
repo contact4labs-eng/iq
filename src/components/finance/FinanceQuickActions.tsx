@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Wallet } from "lucide-react";
 import { AddRevenueModal } from "./AddRevenueModal";
 import { AddExpenseModal } from "./AddExpenseModal";
+import { CashRegisterModal } from "./CashRegisterModal";
 
 interface FinanceQuickActionsProps {
   onDataChanged?: () => void;
@@ -11,6 +12,9 @@ interface FinanceQuickActionsProps {
 export function FinanceQuickActions({ onDataChanged }: FinanceQuickActionsProps) {
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [cashOpen, setCashOpen] = useState(false);
+
+  const handleSuccess = () => onDataChanged?.();
 
   return (
     <div>
@@ -22,21 +26,14 @@ export function FinanceQuickActions({ onDataChanged }: FinanceQuickActionsProps)
         <Button variant="outline" className="h-12 gap-2" onClick={() => setExpenseOpen(true)}>
           <Plus className="w-4 h-4" /> Έξοδα
         </Button>
-        <Button variant="outline" className="h-12 gap-2" onClick={() => { /* modal later */ }}>
+        <Button variant="outline" className="h-12 gap-2" onClick={() => setCashOpen(true)}>
           <Wallet className="w-4 h-4" /> Ταμείο
         </Button>
       </div>
 
-      <AddRevenueModal
-        open={revenueOpen}
-        onOpenChange={setRevenueOpen}
-        onSuccess={() => onDataChanged?.()}
-      />
-      <AddExpenseModal
-        open={expenseOpen}
-        onOpenChange={setExpenseOpen}
-        onSuccess={() => onDataChanged?.()}
-      />
+      <AddRevenueModal open={revenueOpen} onOpenChange={setRevenueOpen} onSuccess={handleSuccess} />
+      <AddExpenseModal open={expenseOpen} onOpenChange={setExpenseOpen} onSuccess={handleSuccess} />
+      <CashRegisterModal open={cashOpen} onOpenChange={setCashOpen} onSuccess={handleSuccess} />
     </div>
   );
 }
