@@ -49,12 +49,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
+        if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchCompany(session.user.id);
+          setTimeout(() => {
+            if (isMounted) fetchCompany(session.user.id);
+          }, 0);
         } else {
           setCompany(null);
         }
@@ -62,16 +67,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchCompany(session.user.id);
+    const timeoutId = setTimeout(() => {
+      if (isMounted) {
+        console.error("Auth initialization timed out after 5s");
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    }, 5000);
 
-    return () => subscription.unsubscribe();
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchCompany(session.user.id);
+        }
+      } catch (error) {
+        console.error("Error during auth initialization:", error);
+      } finally {
+        if (isMounted) {
+          clearTimeout(timeoutId);
+          setLoading(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
