@@ -158,21 +158,12 @@ const InvoiceDetail = () => {
     }
   };
 
-  if (error && !loading) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/invoices")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Πίσω
-          </Button>
-          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
-            <p className="text-destructive font-medium">{error}</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Show error as toast instead of replacing page content
+  useEffect(() => {
+    if (error && !loading) {
+      toast({ title: "Σφάλμα", description: error, variant: "destructive" });
+    }
+  }, [error, loading]);
 
   const status = invoice ? statusConfig[invoice.status] || { label: invoice.status, className: "bg-muted text-muted-foreground" } : null;
 
