@@ -15,17 +15,17 @@ function formatNum(v: number | null): string {
 export function InvoiceLineItemsTable({ items, onChange }: Props) {
   const updateItem = (index: number, field: keyof LineItem, value: string) => {
     const updated = [...items];
-    const numFields = ["quantity", "unit_price", "vat_rate", "line_total"];
+    const numFields = ["quantity", "unit_price", "tax_rate", "line_total"];
     if (numFields.includes(field)) {
       (updated[index] as unknown as Record<string, unknown>)[field] = value === "" ? null : parseFloat(value);
     } else {
       (updated[index] as unknown as Record<string, unknown>)[field] = value || null;
     }
     // Auto-calc line_total
-    if (["quantity", "unit_price", "vat_rate"].includes(field)) {
+    if (["quantity", "unit_price", "tax_rate"].includes(field)) {
       const qty = updated[index].quantity ?? 0;
       const price = updated[index].unit_price ?? 0;
-      const vat = updated[index].vat_rate ?? 0;
+      const vat = updated[index].tax_rate ?? 0;
       updated[index].line_total = Math.round((qty * price * (1 + vat / 100)) * 100) / 100;
     }
     onChange(updated);
@@ -39,7 +39,7 @@ export function InvoiceLineItemsTable({ items, onChange }: Props) {
         description: null,
         quantity: 1,
         unit_price: 0,
-        vat_rate: 24,
+        tax_rate: 24,
         line_total: 0,
         isNew: true,
       },
@@ -109,8 +109,8 @@ export function InvoiceLineItemsTable({ items, onChange }: Props) {
                   <td className="px-2 py-1.5">
                     <Input
                       type="number"
-                      value={formatNum(item.vat_rate)}
-                      onChange={(e) => updateItem(i, "vat_rate", e.target.value)}
+                      value={formatNum(item.tax_rate)}
+                      onChange={(e) => updateItem(i, "tax_rate", e.target.value)}
                       className="h-8 text-sm text-right border-0 bg-transparent px-1 focus-visible:ring-1"
                     />
                   </td>

@@ -120,7 +120,7 @@ const InvoiceDetail = () => {
       const vatAmount = editedItems.reduce((sum, i) => {
         const qty = i.quantity ?? 0;
         const price = i.unit_price ?? 0;
-        const vat = i.vat_rate ?? 0;
+        const vat = i.tax_rate ?? 0;
         return sum + qty * price * (vat / 100);
       }, 0);
       setForm((f) => ({
