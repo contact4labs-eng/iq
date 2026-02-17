@@ -126,17 +126,15 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
   const updateInvoiceStatus = async (newStatus: string, notes?: string) => {
     if (!invoice) return false;
 
-    // Pre-check: block approval if total_amount is missing or zero
-    if (newStatus === "approved" && (!invoice.total_amount)) {
-      setError("Το τιμολόγιο δεν έχει ποσό. Συμπληρώστε το ποσό πριν εγκρίνετε.");
-      return false;
-    }
-
     setSaving(true);
     setError(null);
     try {
       const updateData: Record<string, unknown> = { status: newStatus };
       if (notes !== undefined) updateData.notes = notes;
+      if (newStatus === "approved") {
+        updateData.reviewed_by = session?.user?.id ?? null;
+        updateData.reviewed_at = new Date().toISOString();
+      }
 
       const { error } = await supabase
         .from("invoices")
