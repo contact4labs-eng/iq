@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Upload, FileUp, CheckCircle, Loader2, AlertCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -92,7 +92,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
         // Step 5: Call edge function
         setStep("processing");
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-invoice`,
+          `${SUPABASE_URL}/functions/v1/process-invoice`,
           {
             method: "POST",
             headers: {
@@ -108,6 +108,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (!response.ok) {
           console.warn("Edge function returned non-OK status:", response.status);
+          toast({ title: "Σφάλμα", description: "Σφάλμα επεξεργασίας τιμολογίου.", variant: "destructive" });
         }
 
         // Step 6: Done
