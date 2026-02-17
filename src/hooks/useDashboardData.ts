@@ -70,7 +70,17 @@ export function useDashboardData() {
         if (weeklyRes.status === "fulfilled" && !weeklyRes.value.error) {
           const w = weeklyRes.value.data;
           const weeklyData = Array.isArray(w) ? w[0] : w;
-          if (weeklyData) setWeeklyKpis(weeklyData as WeeklyKpis);
+          if (weeklyData) {
+            const wd = weeklyData as Record<string, unknown>;
+            setWeeklyKpis({
+              revenue: (wd.revenue as number) ?? 0,
+              expenses: (wd.expenses as number) ?? 0,
+              profit: (wd.profit as number) ?? 0,
+              prev_revenue: (wd.prev_revenue as number) ?? undefined,
+              prev_expenses: (wd.prev_expenses as number) ?? undefined,
+              prev_profit: (wd.prev_profit as number) ?? undefined,
+            });
+          }
         } else {
           console.error("Weekly KPIs error:", weeklyRes.status === "fulfilled" ? weeklyRes.value.error : weeklyRes.reason);
         }
