@@ -125,6 +125,13 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
 
   const updateInvoiceStatus = async (newStatus: string, notes?: string) => {
     if (!invoice) return false;
+
+    // Pre-check: block approval if total_amount is null
+    if (newStatus === "approved" && (invoice.total_amount === null || invoice.total_amount === undefined)) {
+      setError("Το τιμολόγιο δεν έχει ποσό. Συμπληρώστε το ποσό πριν εγκρίνετε.");
+      return false;
+    }
+
     setSaving(true);
     try {
       const updateData: Record<string, unknown> = { status: newStatus };
@@ -135,12 +142,13 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
         .update(updateData)
         .eq("id", invoice.id);
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Άγνωστο σφάλμα βάσης δεδομένων.");
       setInvoice((prev) => prev ? { ...prev, status: newStatus, notes: notes ?? prev.notes } : null);
       return true;
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Σφάλμα κατά την ενημέρωση κατάστασης.";
       console.error("Status update error:", err);
-      setError("Σφάλμα κατά την ενημέρωση κατάστασης.");
+      setError(message);
       return false;
     } finally {
       setSaving(false);
