@@ -1,10 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_EXTERNAL_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY || "";
+const SUPABASE_URL = "https://dumyurixihhincxzyonu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_z4aTLrUmIj69DNG-H2r50g_qp9bAFlD";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing external Supabase configuration. Please set EXTERNAL_SUPABASE_URL and EXTERNAL_SUPABASE_ANON_KEY secrets.");
-}
-
-export const externalSupabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
