@@ -92,7 +92,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
         // Step 5: Call edge function
         setStep("processing");
         const response = await fetch(
-          "https://dumyurixihhincxzyonu.supabase.co/functions/v1/process-invoice",
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-invoice`,
           {
             method: "POST",
             headers: {
