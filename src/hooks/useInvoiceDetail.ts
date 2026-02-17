@@ -7,7 +7,7 @@ export interface LineItem {
   description: string | null;
   quantity: number | null;
   unit_price: number | null;
-  vat_rate: number | null;
+  tax_rate: number | null;
   line_total: number | null;
   isNew?: boolean;
 }
@@ -85,7 +85,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       // Fetch line items
       const { data: items, error: itemsErr } = await supabase
         .from("invoice_line_items")
-        .select("id, description, quantity, unit_price, vat_rate, line_total")
+        .select("id, description, quantity, unit_price, tax_rate, line_total")
         .eq("invoice_id", invoiceId)
         .order("created_at", { ascending: true });
 
@@ -197,7 +197,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
             description: item.description,
             quantity: item.quantity,
             unit_price: item.unit_price,
-            vat_rate: item.vat_rate,
+            tax_rate: item.tax_rate,
             line_total: item.line_total,
           });
         } else {
@@ -207,7 +207,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
               description: item.description,
               quantity: item.quantity,
               unit_price: item.unit_price,
-              vat_rate: item.vat_rate,
+              tax_rate: item.tax_rate,
               line_total: item.line_total,
             })
             .eq("id", item.id);
