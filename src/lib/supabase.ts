@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+// Re-export the auto-generated client, cast to SupabaseClient
+// so it works with tables/functions not in the auto-generated types.
+import { supabase as _supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://dumyurixihhincxzyonu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_z4aTLrUmIj69DNG-H2r50g_qp9bAFlD";
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = _supabase as unknown as SupabaseClient;
