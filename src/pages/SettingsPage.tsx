@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 
 interface CompanyInfo {
-  company_name: string;
+  name: string;
   afm: string;
   email: string;
   phone: string;
@@ -39,7 +39,7 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const companyId = company?.id;
 
-  const [info, setInfo] = useState<CompanyInfo>({ company_name: "", afm: "", email: "", phone: "", address: "" });
+  const [info, setInfo] = useState<CompanyInfo>({ name: "", afm: "", email: "", phone: "", address: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
@@ -48,7 +48,7 @@ const SettingsPage = () => {
     if (!companyId) return;
     supabase
       .from("companies")
-      .select("company_name, afm, email, phone, address")
+      .select("name, afm, email, phone, address")
       .eq("id", companyId)
       .maybeSingle()
       .then(({ data }) => {
@@ -120,7 +120,7 @@ const SettingsPage = () => {
               <div className="space-y-3">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10 rounded" />)}</div>
             ) : (
               <>
-                {field("Επωνυμία", "company_name", "Όνομα εταιρείας")}
+                {field("Επωνυμία", "name", "Όνομα εταιρείας")}
                 {field("ΑΦΜ", "afm", "123456789")}
                 {field("Email", "email", "info@company.gr")}
                 {field("Τηλέφωνο", "phone", "210 1234567")}

@@ -45,7 +45,7 @@ const Register = () => {
         .from("companies")
         .insert({
           owner_user_id: authData.user.id,
-          company_name: companyName,
+          name: companyName,
           afm,
         });
 

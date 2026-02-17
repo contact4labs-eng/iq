@@ -4,9 +4,13 @@ import { supabase } from "@/lib/supabase";
 
 interface Company {
   id: string;
-  company_name: string;
-  afm: string;
-  [key: string]: unknown;
+  name: string;
+  industry: string;
+  currency: string;
+  settings: any;
+  owner_user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {
