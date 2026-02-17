@@ -53,7 +53,7 @@ export interface ProfitPressure {
   top_sources: { source: string; impact: number }[];
 }
 
-export function useFinanceData() {
+export function useFinanceData(refreshKey = 0) {
   const { company } = useAuth();
   const companyId = company?.id;
 
@@ -109,7 +109,7 @@ export function useFinanceData() {
     };
 
     fetchAll();
-  }, [companyId]);
+  }, [companyId, refreshKey]);
 
   return { monthly, daily, weekly, cashFlow, expenseBreakdown, profitPressure, loading, error };
 }

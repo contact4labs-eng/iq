@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useFinanceData } from "@/hooks/useFinanceData";
@@ -11,7 +12,8 @@ import { FinanceQuickActions } from "@/components/finance/FinanceQuickActions";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Finance = () => {
-  const { monthly, daily, weekly, cashFlow, expenseBreakdown, profitPressure, loading, error } = useFinanceData();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { monthly, daily, weekly, cashFlow, expenseBreakdown, profitPressure, loading, error } = useFinanceData(refreshKey);
 
   return (
     <DashboardLayout>
@@ -49,7 +51,7 @@ const Finance = () => {
             <CashFlowChart data={cashFlow} />
             <ExpenseBreakdownChart data={expenseBreakdown} />
             <ProfitPressureCard data={profitPressure} />
-            <FinanceQuickActions />
+            <FinanceQuickActions onDataChanged={() => setRefreshKey((k) => k + 1)} />
           </>
         )}
       </div>
