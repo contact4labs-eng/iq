@@ -30,7 +30,7 @@ export interface QaMessage {
   content: string;
 }
 
-const EDGE_URL = "https://dumyurixihhincxzyonu.supabase.co/functions/v1/dynamic-task";
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dynamic-task`;
 
 export function useAiInsights() {
   const { company, session } = useAuth();
