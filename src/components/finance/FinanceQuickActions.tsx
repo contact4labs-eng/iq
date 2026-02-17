@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Wallet } from "lucide-react";
 import { AddRevenueModal } from "./AddRevenueModal";
+import { AddExpenseModal } from "./AddExpenseModal";
 
 interface FinanceQuickActionsProps {
   onDataChanged?: () => void;
@@ -9,6 +10,7 @@ interface FinanceQuickActionsProps {
 
 export function FinanceQuickActions({ onDataChanged }: FinanceQuickActionsProps) {
   const [revenueOpen, setRevenueOpen] = useState(false);
+  const [expenseOpen, setExpenseOpen] = useState(false);
 
   return (
     <div>
@@ -17,7 +19,7 @@ export function FinanceQuickActions({ onDataChanged }: FinanceQuickActionsProps)
         <Button variant="outline" className="h-12 gap-2" onClick={() => setRevenueOpen(true)}>
           <Plus className="w-4 h-4" /> Έσοδα
         </Button>
-        <Button variant="outline" className="h-12 gap-2" onClick={() => { /* modal later */ }}>
+        <Button variant="outline" className="h-12 gap-2" onClick={() => setExpenseOpen(true)}>
           <Plus className="w-4 h-4" /> Έξοδα
         </Button>
         <Button variant="outline" className="h-12 gap-2" onClick={() => { /* modal later */ }}>
@@ -28,6 +30,11 @@ export function FinanceQuickActions({ onDataChanged }: FinanceQuickActionsProps)
       <AddRevenueModal
         open={revenueOpen}
         onOpenChange={setRevenueOpen}
+        onSuccess={() => onDataChanged?.()}
+      />
+      <AddExpenseModal
+        open={expenseOpen}
+        onOpenChange={setExpenseOpen}
         onSuccess={() => onDataChanged?.()}
       />
     </div>
