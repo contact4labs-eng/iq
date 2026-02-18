@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Users, ShieldCheck, Search } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { SupplierPerformanceSection } from "@/components/invoices/analytics/SupplierPerformance";
 import { PriceVolatilitySection } from "@/components/invoices/analytics/PriceVolatility";
 import { ExecutiveSummarySection } from "@/components/invoices/analytics/ExecutiveSummary";
 import { CostAnalyticsSection } from "@/components/invoices/analytics/CostAnalytics";
+import { PriceTrendAnalysis } from "@/components/analytics/PriceTrendAnalysis";
 import { useInvoiceAnalytics } from "@/hooks/useInvoiceAnalytics";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -155,6 +156,10 @@ const Analytics = () => {
               <Users className="w-4 h-4" />
               {t("analytics.tab_supplier_perf")}
             </TabsTrigger>
+            <TabsTrigger value="price-analysis" className="gap-1.5">
+              <Search className="w-4 h-4" />
+              {t("analytics.tab_price_analysis")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="price-trends" className="space-y-6">
@@ -283,6 +288,10 @@ const Analytics = () => {
             </div>
 
             <SupplierPerformanceSection data={suppliers} priceData={priceVolatility} />
+          </TabsContent>
+
+          <TabsContent value="price-analysis">
+            <PriceTrendAnalysis priceData={priceVolatility} suppliers={suppliers} />
           </TabsContent>
         </Tabs>
       </div>
