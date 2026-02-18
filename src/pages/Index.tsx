@@ -9,12 +9,14 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { AddRevenueModal } from "@/components/finance/AddRevenueModal";
 import { AddExpenseModal } from "@/components/finance/AddExpenseModal";
 import { CashRegisterModal } from "@/components/finance/CashRegisterModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
   const { dailyKpis, weeklyKpis, recentInvoices, loading, error } = useDashboardData();
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <DashboardLayout>
@@ -22,9 +24,9 @@ const Index = () => {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Home className="w-6 h-6 text-accent" />
-            <h1 className="text-2xl font-bold font-display text-foreground">Αρχική</h1>
+            <h1 className="text-2xl font-bold font-display text-foreground">{t("nav.home")}</h1>
           </div>
-          <p className="text-muted-foreground">Κέντρο ελέγχου επιχείρησης</p>
+          <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
         </div>
 
         {error && (
@@ -35,10 +37,10 @@ const Index = () => {
         )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard label="Διαθέσιμα μετρητά" value={dailyKpis?.cash_position ?? null} trend={dailyKpis?.cash_position_trend} loading={loading} />
-          <KpiCard label="Εκκρεμείς πληρωμές" value={dailyKpis?.pending_outgoing ?? null} trend={dailyKpis?.pending_outgoing_trend} loading={loading} />
-          <KpiCard label="Κέρδος MTD" value={dailyKpis?.mtd_profit ?? null} trend={dailyKpis?.mtd_profit_trend} loading={loading} />
-          <KpiCard label="Ληξιπρόθεσμα" value={dailyKpis?.overdue_amount ?? null} trend={dailyKpis?.overdue_trend} loading={loading} isNegativeHighlight />
+          <KpiCard label={t("dashboard.available_cash")} value={dailyKpis?.cash_position ?? null} trend={dailyKpis?.cash_position_trend} loading={loading} />
+          <KpiCard label={t("dashboard.pending_payments")} value={dailyKpis?.pending_outgoing ?? null} trend={dailyKpis?.pending_outgoing_trend} loading={loading} />
+          <KpiCard label={t("dashboard.profit_mtd")} value={dailyKpis?.mtd_profit ?? null} trend={dailyKpis?.mtd_profit_trend} loading={loading} />
+          <KpiCard label={t("dashboard.overdue")} value={dailyKpis?.overdue_amount ?? null} trend={dailyKpis?.overdue_trend} loading={loading} isNegativeHighlight />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -47,7 +49,7 @@ const Index = () => {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">Γρήγορες ενέργειες</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-3">{t("dashboard.quick_actions")}</h3>
           <QuickActions
             onRevenueModal={() => setRevenueOpen(true)}
             onExpenseModal={() => setExpenseOpen(true)}

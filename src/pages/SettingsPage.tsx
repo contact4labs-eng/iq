@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Settings, Save, LogOut, Download, KeyRound, Loader2 } from "lucide-react";
+import { Settings, Save, LogOut, Download, KeyRound, Loader2, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
 const SettingsPage = () => {
   const { user, company, signOut } = useAuth();
   const { toast } = useToast();
+  const { t, language, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const companyId = company?.id;
 
@@ -62,15 +64,15 @@ const SettingsPage = () => {
     setSaving(true);
     const { error } = await supabase.from("companies").update(info).eq("id", companyId);
     setSaving(false);
-    if (error) toast({ title: "Σφάλμα", description: error.message, variant: "destructive" });
-    else toast({ title: "Επιτυχία", description: "Οι ρυθμίσεις αποθηκεύτηκαν" });
+    if (error) toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
+    else toast({ title: t("toast.success"), description: t("toast.settings_saved") });
   };
 
   const handlePasswordReset = async () => {
     if (!user?.email) return;
     const { error } = await supabase.auth.resetPasswordForEmail(user.email);
-    if (error) toast({ title: "Σφάλμα", description: error.message, variant: "destructive" });
-    else toast({ title: "Επιτυχία", description: "Σύνδεσμος αλλαγής κωδικού στάλθηκε στο email σας" });
+    if (error) toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
+    else toast({ title: t("toast.success"), description: t("toast.password_reset") });
   };
 
   const handleSignOut = async () => {
@@ -83,10 +85,10 @@ const SettingsPage = () => {
     setExporting(table);
     const { data, error } = await supabase.from(table).select("*").eq("company_id", companyId);
     setExporting(null);
-    if (error) { toast({ title: "Σφάλμα", description: error.message, variant: "destructive" }); return; }
-    if (!data?.length) { toast({ title: "Κενά δεδομένα", description: "Δεν βρέθηκαν εγγραφές" }); return; }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); return; }
+    if (!data?.length) { toast({ title: t("toast.empty_data"), description: t("toast.no_records") }); return; }
     downloadCsv(filename, data as Record<string, unknown>[]);
-    toast({ title: "Επιτυχία", description: `Εξαγωγή ${filename}` });
+    toast({ title: t("toast.success"), description: `${t("toast.export_success")} ${filename}` });
   };
 
   const field = (label: string, key: keyof CompanyInfo, placeholder: string) => (
@@ -107,26 +109,49 @@ const SettingsPage = () => {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Settings className="w-6 h-6 text-accent" />
-            <h1 className="text-2xl font-bold font-display text-foreground">Ρυθμίσεις</h1>
+            <h1 className="text-2xl font-bold font-display text-foreground">{t("nav.settings")}</h1>
           </div>
-          <p className="text-muted-foreground">Ρυθμίσεις λογαριασμού και επιχείρησης</p>
+          <p className="text-muted-foreground">{t("settings.subtitle")}</p>
         </div>
+
+        {/* Language */}
+        <Card>
+          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Globe className="w-4 h-4" /> {t("settings.language")}</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Button
+                variant={language === "el" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setLanguage("el")}
+              >
+                🇬🇷 Ελληνικά
+              </Button>
+              <Button
+                variant={language === "en" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setLanguage("en")}
+              >
+                🇬🇧 English
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Company Info */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Στοιχεία Επιχείρησης</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{t("settings.company_info")}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
               <div className="space-y-3">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10 rounded" />)}</div>
             ) : (
               <>
-                {field("Επωνυμία", "name", "Όνομα εταιρείας")}
-                {field("ΑΦΜ", "afm", "123456789")}
-                {field("Email", "email", "info@company.gr")}
-                {field("Τηλέφωνο", "phone", "210 1234567")}
-                {field("Διεύθυνση", "address", "Οδός, Πόλη")}
+                {field(t("settings.company_name"), "name", t("settings.company_name_placeholder"))}
+                {field(t("settings.afm"), "afm", "123456789")}
+                {field(t("settings.email"), "email", "info@company.gr")}
+                {field(t("settings.phone"), "phone", "210 1234567")}
+                {field(t("settings.address"), "address", t("settings.address_placeholder"))}
                 <Button onClick={handleSave} disabled={saving} className="gap-1.5">
-                  <Save className="w-4 h-4" /> {saving ? "Αποθήκευση..." : "Αποθήκευση"}
+                  <Save className="w-4 h-4" /> {saving ? t("settings.saving") : t("settings.save")}
                 </Button>
               </>
             )}
@@ -135,19 +160,19 @@ const SettingsPage = () => {
 
         {/* Account */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Λογαριασμός</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{t("settings.account")}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-sm text-muted-foreground">Email</Label>
+              <Label className="text-sm text-muted-foreground">{t("settings.email")}</Label>
               <Input className="mt-1" value={user?.email ?? ""} disabled />
             </div>
             <Separator />
             <div className="flex flex-wrap gap-3">
               <Button variant="outline" onClick={handlePasswordReset} className="gap-1.5">
-                <KeyRound className="w-4 h-4" /> Αλλαγή κωδικού
+                <KeyRound className="w-4 h-4" /> {t("settings.change_password")}
               </Button>
               <Button variant="destructive" onClick={handleSignOut} className="gap-1.5">
-                <LogOut className="w-4 h-4" /> Αποσύνδεση
+                <LogOut className="w-4 h-4" /> {t("settings.sign_out")}
               </Button>
             </div>
           </CardContent>
@@ -155,13 +180,13 @@ const SettingsPage = () => {
 
         {/* Data Export */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Εξαγωγή Δεδομένων</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{t("settings.data_export")}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-3">
               {([
-                ["invoices", "invoices.csv", "Τιμολόγια"],
-                ["expense_entries", "expenses.csv", "Έξοδα"],
-                ["revenue_entries", "revenue.csv", "Έσοδα"],
+                ["invoices", "invoices.csv", t("settings.invoices_csv")],
+                ["expense_entries", "expenses.csv", t("settings.expenses_csv")],
+                ["revenue_entries", "revenue.csv", t("settings.revenue_csv")],
               ] as const).map(([table, file, label]) => (
                 <Button
                   key={table}
@@ -171,7 +196,7 @@ const SettingsPage = () => {
                   onClick={() => handleExport(table, file)}
                 >
                   {exporting === table ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {label} CSV
+                  {label}
                 </Button>
               ))}
             </div>

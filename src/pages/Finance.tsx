@@ -18,6 +18,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, PieChart, Pie, AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 import { useFinanceExtras } from "@/hooks/useFinanceExtras";
 import { ProfitabilityCalendar } from "@/components/finance/ProfitabilityCalendar";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const safe = (v: any): number => (v == null || isNaN(v)) ? 0 : Number(v);
 
@@ -52,6 +53,7 @@ const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, upcomingPayments, loading, error } = useFinanceDashboard(refreshKey);
   const { monthlyPL, expenseBreakdown, monthlyTrends } = useFinanceExtras(refreshKey);
+  const { t } = useLanguage();
 
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
@@ -85,19 +87,19 @@ const Finance = () => {
           <div>
             <div className="flex items-center gap-2.5 mb-0.5">
               <Wallet className="w-6 h-6 text-accent" />
-              <h1 className="text-2xl font-bold font-display text-foreground">Χρήματα</h1>
+              <h1 className="text-2xl font-bold font-display text-foreground">{t("nav.finance")}</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Οικονομική επισκόπηση και ταμειακές ροές</p>
+            <p className="text-sm text-muted-foreground">{t("finance.subtitle")}</p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" className="gap-1.5" onClick={() => setRevenueOpen(true)}>
-              <Plus className="w-4 h-4" /> Έσοδο
+              <Plus className="w-4 h-4" /> {t("finance.add_revenue")}
             </Button>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setExpenseOpen(true)}>
-              <Plus className="w-4 h-4" /> Έξοδο
+              <Plus className="w-4 h-4" /> {t("finance.add_expense")}
             </Button>
             <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => setCashOpen(true)}>
-              <PiggyBank className="w-4 h-4" /> Ταμείο
+              <PiggyBank className="w-4 h-4" /> {t("finance.cash_register")}
             </Button>
           </div>
         </div>
@@ -126,11 +128,11 @@ const Finance = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Wallet className="w-5 h-5 opacity-70" />
-                    <h2 className="text-sm font-semibold opacity-80">Ταμειακό Υπόλοιπο</h2>
+                    <h2 className="text-sm font-semibold opacity-80">{t("finance.cash_balance")}</h2>
                   </div>
                   {cashChangePct !== 0 && (
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cashChangePct > 0 ? "bg-success/20 text-success-foreground" : "bg-destructive/20 text-destructive-foreground"}`}>
-                      {cashChangePct > 0 ? "+" : ""}{cashChangePct.toFixed(1)}% vs προηγ. μήνα
+                      {cashChangePct > 0 ? "+" : ""}{cashChangePct.toFixed(1)}% {t("finance.vs_prev_month")}
                     </span>
                   )}
                 </div>
@@ -139,11 +141,11 @@ const Finance = () => {
                 </p>
                 <div className="flex gap-6 mt-4 pt-3 border-t border-primary-foreground/20">
                   <div>
-                    <p className="text-xs opacity-60">Μετρητά</p>
+                    <p className="text-xs opacity-60">{t("finance.cash_on_hand")}</p>
                     <p className="text-lg font-semibold">{fmtShort(cashOnHand)}</p>
                   </div>
                   <div>
-                    <p className="text-xs opacity-60">Τράπεζα</p>
+                    <p className="text-xs opacity-60">{t("finance.bank")}</p>
                     <p className="text-lg font-semibold">{fmtShort(bankBalance)}</p>
                   </div>
                 </div>
@@ -160,13 +162,13 @@ const Finance = () => {
                       <ArrowDownLeft className="w-4.5 h-4.5 text-success" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-semibold text-foreground">Εισπρακτέα</h2>
-                      <p className="text-xs text-muted-foreground">Εγκεκριμένα τιμολόγια προς είσπραξη</p>
+                      <h2 className="text-sm font-semibold text-foreground">{t("finance.receivables")}</h2>
+                      <p className="text-xs text-muted-foreground">{t("finance.receivables_desc")}</p>
                     </div>
                   </div>
                   <p className="text-3xl font-bold font-display text-success">{fmt(recvTotal)}</p>
                   {recvCount > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">{recvCount} τιμολόγι{recvCount === 1 ? "ο" : "α"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{recvCount} {recvCount === 1 ? t("finance.invoice_singular") : t("finance.invoice_plural")}</p>
                   )}
                 </CardContent>
               </Card>
@@ -179,13 +181,13 @@ const Finance = () => {
                       <ArrowUpRight className="w-4.5 h-4.5 text-warning" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-semibold text-foreground">Πληρωτέα</h2>
-                      <p className="text-xs text-muted-foreground">Προγραμματισμένες πληρωμές σε αναμονή</p>
+                      <h2 className="text-sm font-semibold text-foreground">{t("finance.payables")}</h2>
+                      <p className="text-xs text-muted-foreground">{t("finance.payables_desc")}</p>
                     </div>
                   </div>
                   <p className="text-3xl font-bold font-display text-warning">{fmt(payTotal)}</p>
                   {payCount > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">{payCount} πληρωμ{payCount === 1 ? "ή" : "ές"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{payCount} {payCount === 1 ? t("finance.payment_singular") : t("finance.payment_plural")}</p>
                   )}
                 </CardContent>
               </Card>
@@ -196,7 +198,7 @@ const Finance = () => {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <BarChart3 className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">Ταμειακή Ροή 30 Ημερών</h2>
+                  <h2 className="text-sm font-semibold text-foreground">{t("finance.cash_flow_30d")}</h2>
                 </div>
 
                 {hasChartData ? (
@@ -207,23 +209,23 @@ const Finance = () => {
                         <XAxis dataKey="week" className="text-xs" tickLine={false} axisLine={false} />
                         <YAxis tickFormatter={(v) => fmtShort(v)} className="text-xs" tickLine={false} axisLine={false} />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="inflows" name="Εισροές" radius={[4, 4, 0, 0]} fill="hsl(var(--success))" />
-                        <Bar dataKey="outflows" name="Εκροές" radius={[4, 4, 0, 0]} fill="hsl(var(--destructive))" />
+                        <Bar dataKey="inflows" name={t("finance.inflows")} radius={[4, 4, 0, 0]} fill="hsl(var(--success))" />
+                        <Bar dataKey="outflows" name={t("finance.outflows")} radius={[4, 4, 0, 0]} fill="hsl(var(--destructive))" />
                       </BarChart>
                     </ChartContainer>
                     <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-success inline-block" /> Εισροές
+                        <span className="w-3 h-3 rounded-sm bg-success inline-block" /> {t("finance.inflows")}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> Εκροές
+                        <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> {t("finance.outflows")}
                       </span>
                     </div>
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <BarChart3 className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν δεδομένα ταμειακής ροής</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.no_cash_flow")}</p>
                   </div>
                 )}
               </CardContent>
@@ -235,7 +237,7 @@ const Finance = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <CalendarClock className="w-4 h-4 text-accent" />
-                    <h2 className="text-sm font-semibold text-foreground">Προγραμματισμένες Πληρωμές</h2>
+                    <h2 className="text-sm font-semibold text-foreground">{t("finance.scheduled_payments")}</h2>
                   </div>
                   {upcomingPayments.length > 0 && (
                     <Badge className="bg-accent/15 text-accent border-0">
@@ -249,10 +251,10 @@ const Finance = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">Περιγραφή</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ποσό</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ημερομηνία</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Σε</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.description")}</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.amount")}</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.date")}</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.in_days")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -263,7 +265,7 @@ const Finance = () => {
                             <td className="py-2.5 px-3 text-right text-muted-foreground">{p.due_date}</td>
                             <td className="py-2.5 px-3 text-right">
                               <Badge className="bg-accent/10 text-accent border-0 font-medium">
-                                {safe(p.days_until)} ημέρ{safe(p.days_until) === 1 ? "α" : "ες"}
+                                {safe(p.days_until)} {safe(p.days_until) === 1 ? t("finance.day") : t("finance.days")}
                               </Badge>
                             </td>
                           </tr>
@@ -274,7 +276,7 @@ const Finance = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <CalendarClock className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν προγραμματισμένες πληρωμές</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.no_scheduled")}</p>
                   </div>
                 )}
               </CardContent>
@@ -286,7 +288,7 @@ const Finance = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-destructive" />
-                    <h2 className="text-sm font-semibold text-foreground">Ληξιπρόθεσμα Τιμολόγια</h2>
+                    <h2 className="text-sm font-semibold text-foreground">{t("finance.overdue_invoices")}</h2>
                   </div>
                   {overdueInvoices.length > 0 && (
                     <Badge className="bg-destructive/15 text-destructive border-0">
@@ -300,10 +302,10 @@ const Finance = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">Προμηθευτής</th>
-                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">Αρ. Τιμολογίου</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ποσό</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ημέρες Καθυστέρησης</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.supplier")}</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.invoice_number")}</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.amount")}</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.days_overdue")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -316,7 +318,7 @@ const Finance = () => {
                               <div className="flex items-center gap-1 justify-end">
                                 <Clock className="w-3 h-3 text-destructive/70" />
                                 <span className="text-destructive/80 font-medium">
-                                  {safe(inv.days_overdue)} ημέρ{safe(inv.days_overdue) === 1 ? "α" : "ες"}
+                                  {safe(inv.days_overdue)} {safe(inv.days_overdue) === 1 ? t("finance.day") : t("finance.days")}
                                 </span>
                               </div>
                             </td>
@@ -330,7 +332,7 @@ const Finance = () => {
                     <div className="w-10 h-10 rounded-full bg-success/15 flex items-center justify-center mb-2">
                       <AlertTriangle className="w-5 h-5 text-success" />
                     </div>
-                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν ληξιπρόθεσμα τιμολόγια</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.no_overdue")}</p>
                   </div>
                 )}
               </CardContent>
@@ -344,48 +346,48 @@ const Finance = () => {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Activity className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">Κέρδος & Ζημία Μήνα</h2>
+                  <h2 className="text-sm font-semibold text-foreground">{t("finance.pl_month")}</h2>
                 </div>
                 {monthlyPL ? (
                   <div className="grid grid-cols-3 gap-4">
                     {/* Έσοδα */}
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Έσοδα</p>
+                      <p className="text-xs text-muted-foreground">{t("dashboard.revenue")}</p>
                       <p className="text-xl font-bold text-success">{fmt(safe(monthlyPL.revenue))}</p>
                       {monthlyPL.revenue_change_pct !== 0 && (
                         <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.revenue_change_pct > 0 ? "text-success" : "text-destructive"}`}>
                           {monthlyPL.revenue_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {monthlyPL.revenue_change_pct > 0 ? "+" : ""}{monthlyPL.revenue_change_pct.toFixed(1)}% vs προηγ. μήνα
+                          {monthlyPL.revenue_change_pct > 0 ? "+" : ""}{monthlyPL.revenue_change_pct.toFixed(1)}% {t("finance.vs_prev_month")}
                         </span>
                       )}
                     </div>
                     {/* Έξοδα */}
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Έξοδα</p>
+                      <p className="text-xs text-muted-foreground">{t("dashboard.expenses")}</p>
                       <p className="text-xl font-bold text-destructive">{fmt(safe(monthlyPL.expenses))}</p>
                       {monthlyPL.expenses_change_pct !== 0 && (
                         <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.expenses_change_pct < 0 ? "text-success" : "text-destructive"}`}>
                           {monthlyPL.expenses_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {monthlyPL.expenses_change_pct > 0 ? "+" : ""}{monthlyPL.expenses_change_pct.toFixed(1)}% vs προηγ. μήνα
+                          {monthlyPL.expenses_change_pct > 0 ? "+" : ""}{monthlyPL.expenses_change_pct.toFixed(1)}% {t("finance.vs_prev_month")}
                         </span>
                       )}
                     </div>
                     {/* Καθαρό Κέρδος */}
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Καθαρό Κέρδος</p>
+                      <p className="text-xs text-muted-foreground">{t("finance.net_profit")}</p>
                       <p className={`text-xl font-bold ${safe(monthlyPL.net_profit) >= 0 ? "text-success" : "text-destructive"}`}>
                         {fmt(safe(monthlyPL.net_profit))}
                       </p>
                       {monthlyPL.profit_change_pct !== 0 && (
                         <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.profit_change_pct > 0 ? "text-success" : "text-destructive"}`}>
                           {monthlyPL.profit_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {monthlyPL.profit_change_pct > 0 ? "+" : ""}{monthlyPL.profit_change_pct.toFixed(1)}% vs προηγ. μήνα
+                          {monthlyPL.profit_change_pct > 0 ? "+" : ""}{monthlyPL.profit_change_pct.toFixed(1)}% {t("finance.vs_prev_month")}
                         </span>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-6">Δεν υπάρχουν δεδομένα</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">{t("finance.no_pl_data")}</p>
                 )}
               </CardContent>
             </Card>
@@ -395,7 +397,7 @@ const Finance = () => {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <PieChartIcon className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">Κατανομή Εξόδων</h2>
+                  <h2 className="text-sm font-semibold text-foreground">{t("finance.expense_breakdown")}</h2>
                 </div>
                 {expenseBreakdown.length > 0 ? (
                   <div className="flex flex-col md:flex-row items-center gap-6">
@@ -439,7 +441,7 @@ const Finance = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <PieChartIcon className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν δεδομένα εξόδων</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.no_expense_data")}</p>
                   </div>
                 )}
               </CardContent>
@@ -450,9 +452,9 @@ const Finance = () => {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">Τάσεις 6 Μηνών</h2>
+                  <h2 className="text-sm font-semibold text-foreground">{t("finance.monthly_trends")}</h2>
                 </div>
-                {monthlyTrends.length > 0 && monthlyTrends.some(t => t.revenue > 0 || t.expenses > 0) ? (
+                {monthlyTrends.length > 0 && monthlyTrends.some(tr => tr.revenue > 0 || tr.expenses > 0) ? (
                   <>
                     <ChartContainer config={trendConfig} className="aspect-video max-h-[260px]">
                       <AreaChart data={monthlyTrends}>
@@ -460,23 +462,23 @@ const Finance = () => {
                         <XAxis dataKey="month" className="text-xs" tickLine={false} axisLine={false} />
                         <YAxis tickFormatter={(v) => fmtShort(v)} className="text-xs" tickLine={false} axisLine={false} />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Area type="monotone" dataKey="revenue" name="Έσοδα" stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.15} strokeWidth={2} />
-                        <Area type="monotone" dataKey="expenses" name="Έξοδα" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} strokeWidth={2} />
+                        <Area type="monotone" dataKey="revenue" name={t("dashboard.revenue")} stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.15} strokeWidth={2} />
+                        <Area type="monotone" dataKey="expenses" name={t("dashboard.expenses")} stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} strokeWidth={2} />
                       </AreaChart>
                     </ChartContainer>
                     <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-success inline-block" /> Έσοδα
+                        <span className="w-3 h-3 rounded-sm bg-success inline-block" /> {t("dashboard.revenue")}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> Έξοδα
+                        <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> {t("dashboard.expenses")}
                       </span>
                     </div>
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <TrendingUp className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν αρκετά δεδομένα για τάσεις</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.no_trends")}</p>
                   </div>
                 )}
               </CardContent>

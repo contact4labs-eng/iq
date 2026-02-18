@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface WeeklyKpis {
   revenue: number;
@@ -34,17 +35,19 @@ function ComparisonArrow({ current, previous }: { current: number; previous?: nu
 }
 
 export function WeeklySummary({ data, loading }: WeeklySummaryProps) {
+  const { t } = useLanguage();
+
   const rows = data
     ? [
-        { label: "Έσοδα", value: data.revenue, prev: data.prev_revenue },
-        { label: "Έξοδα", value: data.expenses, prev: data.prev_expenses },
-        { label: "Κέρδος", value: data.profit, prev: data.prev_profit },
+        { label: t("dashboard.revenue"), value: data.revenue, prev: data.prev_revenue },
+        { label: t("dashboard.expenses"), value: data.expenses, prev: data.prev_expenses },
+        { label: t("dashboard.profit"), value: data.profit, prev: data.prev_profit },
       ]
     : [];
 
   return (
     <div className="bg-card border rounded-lg p-5 h-full">
-      <h3 className="text-sm font-semibold text-foreground mb-4">Εβδομαδιαία σύνοψη</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-4">{t("dashboard.weekly_summary")}</h3>
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -67,7 +70,7 @@ export function WeeklySummary({ data, loading }: WeeklySummaryProps) {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Δεν υπάρχουν δεδομένα</p>
+        <p className="text-sm text-muted-foreground">{t("dashboard.no_data")}</p>
       )}
     </div>
   );

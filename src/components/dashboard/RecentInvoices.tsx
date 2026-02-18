@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/contexts/LanguageContext";
 
 interface Invoice {
   id: string;
@@ -16,12 +18,12 @@ interface RecentInvoicesProps {
   loading: boolean;
 }
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  approved: { label: "Εγκρίθηκε", className: "bg-success/15 text-success border-success/30" },
-  extracted: { label: "Εξαγωγή", className: "bg-warning/15 text-warning border-warning/30" },
-  flagged: { label: "Σημαία", className: "bg-warning/20 text-warning border-warning/40" },
-  rejected: { label: "Απορρίφθηκε", className: "bg-destructive/15 text-destructive border-destructive/30" },
-  processing: { label: "Επεξεργασία", className: "bg-info/15 text-info border-info/30" },
+const statusKeys: Record<string, { labelKey: TranslationKey; className: string }> = {
+  approved: { labelKey: "status.approved", className: "bg-success/15 text-success border-success/30" },
+  extracted: { labelKey: "status.extracted", className: "bg-warning/15 text-warning border-warning/30" },
+  flagged: { labelKey: "status.flagged", className: "bg-warning/20 text-warning border-warning/40" },
+  rejected: { labelKey: "status.rejected", className: "bg-destructive/15 text-destructive border-destructive/30" },
+  processing: { labelKey: "status.processing", className: "bg-info/15 text-info border-info/30" },
 };
 
 function formatCurrency(value: number): string {
@@ -42,10 +44,11 @@ function formatDate(dateStr: string): string {
 
 export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <div className="bg-card border rounded-lg p-5 h-full">
-      <h3 className="text-sm font-semibold text-foreground mb-4">Πρόσφατα τιμολόγια</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-4">{t("dashboard.recent_invoices")}</h3>
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -58,10 +61,9 @@ export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
       ) : invoices.length > 0 ? (
         <div className="space-y-1">
           {invoices.map((inv) => {
-            const status = statusConfig[inv.status] || {
-              label: inv.status,
-              className: "bg-muted text-muted-foreground border-border",
-            };
+            const statusConf = statusKeys[inv.status];
+            const label = statusConf ? t(statusConf.labelKey) : inv.status;
+            const className = statusConf?.className || "bg-muted text-muted-foreground border-border";
             return (
               <button
                 key={inv.id}
@@ -70,13 +72,13 @@ export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {inv.supplier_name || "Άγνωστος προμηθευτής"}
+                    {inv.supplier_name || t("dashboard.unknown_supplier")}
                   </p>
                   <p className="text-xs text-muted-foreground">{formatDate(inv.created_at)}</p>
                 </div>
                 <div className="flex items-center gap-2 ml-2 shrink-0">
-                  <Badge variant="outline" className={`text-xs ${status.className}`}>
-                    {status.label}
+                  <Badge variant="outline" className={`text-xs ${className}`}>
+                    {label}
                   </Badge>
                   <span className="text-sm font-semibold text-foreground w-20 text-right">
                     {formatCurrency(inv.total_amount)}
@@ -87,7 +89,7 @@ export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
           })}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Δεν βρέθηκαν τιμολόγια</p>
+        <p className="text-sm text-muted-foreground">{t("dashboard.no_invoices")}</p>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { FileText, Loader2 } from "lucide-react";
 
 const Login = () => {
@@ -13,6 +14,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +22,7 @@ const Login = () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast({ title: "Σφάλμα σύνδεσης", description: error.message, variant: "destructive" });
+      toast({ title: t("toast.login_error"), description: error.message, variant: "destructive" });
     } else {
       navigate("/");
     }
@@ -36,27 +38,27 @@ const Login = () => {
             </div>
             <h1 className="text-2xl font-bold font-display text-foreground">InvoiceIQ</h1>
           </div>
-          <p className="text-muted-foreground">Συνδεθείτε στον λογαριασμό σας</p>
+          <p className="text-muted-foreground">{t("auth.login_title")}</p>
         </div>
 
         <div className="bg-card rounded-lg border p-6 shadow-sm">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input id="email" type="email" placeholder="info@company.gr" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Κωδικός</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Σύνδεση
+              {t("auth.login_button")}
             </Button>
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            Δεν έχετε λογαριασμό;{" "}
-            <Link to="/register" className="text-accent hover:underline font-medium">Εγγραφή</Link>
+            {t("auth.no_account")}{" "}
+            <Link to="/register" className="text-accent hover:underline font-medium">{t("auth.register_link")}</Link>
           </p>
         </div>
       </div>
