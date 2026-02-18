@@ -418,6 +418,15 @@ export const translations = {
 
   // Footer
   "footer.made_with": { el: "Made with", en: "Made with" },
+
+  // Notifications page
+  "notifications.title": { el: "Ειδοποιήσεις", en: "Notifications" },
+  "notifications.subtitle": { el: "Διαχείριση ειδοποιήσεων", en: "Manage notifications" },
+  "notifications.tab_all": { el: "Όλες", en: "All" },
+  "notifications.tab_unread": { el: "Αδιάβαστες", en: "Unread" },
+  "notifications.tab_important": { el: "Σημαντικές", en: "Important" },
+  "notifications.no_notifications": { el: "Δεν υπάρχουν ειδοποιήσεις", en: "No notifications" },
+  "nav.notifications": { el: "Ειδοποιήσεις", en: "Notifications" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

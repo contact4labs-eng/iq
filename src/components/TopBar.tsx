@@ -1,4 +1,5 @@
 import { Bell, LogOut, Sun, Moon, Globe } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,6 +10,7 @@ export function TopBar() {
   const { user, company, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const navigate = useNavigate();
   const companyName = company?.name || t("topbar.my_company");
   const email = user?.email || "";
 
@@ -32,7 +34,7 @@ export function TopBar() {
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={toggleTheme} title={theme === "dark" ? t("topbar.light_theme") : t("topbar.dark_theme")}>
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative" onClick={() => navigate("/notifications")}>
           <Bell className="w-4 h-4" />
         </Button>
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={signOut}>

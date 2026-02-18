@@ -15,6 +15,7 @@ import Finance from "./pages/Finance";
 import AiInsights from "./pages/AiInsights";
 import Analytics from "./pages/Analytics";
 import Alerts from "./pages/Alerts";
+import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
@@ -65,6 +66,7 @@ const App = () => (
               <Route path="/ai-insights" element={<ProtectedRoute><AiInsights /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
               <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
