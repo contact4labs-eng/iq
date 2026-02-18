@@ -2,6 +2,7 @@ import type { SupplierPerformance } from "@/hooks/useInvoiceAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/contexts/LanguageContext";
 
@@ -21,6 +22,33 @@ const riskLabelKeys: Record<string, TranslationKey> = {
   low: "analytics.risk_low",
 };
 
+function calcReliability(s: SupplierPerformance): number {
+  // Score based on: low risk (+40), low dependency (+30), high invoice count (+30)
+  let score = 0;
+  // Risk component (0-40)
+  if (s.risk_level === "low") score += 40;
+  else if (s.risk_level === "medium") score += 20;
+  // Dependency component (0-30): lower dependency = higher score
+  const dep = Math.min(s.dependency_pct ?? 0, 100);
+  score += Math.round((1 - dep / 100) * 30);
+  // Volume component (0-30): more invoices = higher score (cap at 20+)
+  const vol = Math.min(s.invoice_count ?? 0, 20);
+  score += Math.round((vol / 20) * 30);
+  return Math.min(score, 100);
+}
+
+function reliabilityColor(score: number): string {
+  if (score >= 70) return "text-success";
+  if (score >= 40) return "text-warning";
+  return "text-destructive";
+}
+
+function reliabilityBarColor(score: number): string {
+  if (score >= 70) return "[&>div]:bg-success";
+  if (score >= 40) return "[&>div]:bg-warning";
+  return "[&>div]:bg-destructive";
+}
+
 export function SupplierPerformanceSection({ data }: { data: SupplierPerformance[] }) {
   const { t } = useLanguage();
   if (!data.length) return null;
@@ -39,24 +67,37 @@ export function SupplierPerformanceSection({ data }: { data: SupplierPerformance
               <TableHead className="text-right">{t("analytics.col_invoices")}</TableHead>
               <TableHead className="text-right">{t("analytics.col_avg_invoice")}</TableHead>
               <TableHead className="text-right">{t("analytics.col_dependency")}</TableHead>
+              <TableHead>{t("analytics.col_reliability")}</TableHead>
               <TableHead>{t("analytics.col_risk")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((s, i) => (
-              <TableRow key={i}>
-                <TableCell className="font-medium">{s.supplier_name}</TableCell>
-                <TableCell className="text-right">{formatCurrency(s.total_spend)}</TableCell>
-                <TableCell className="text-right">{s.invoice_count}</TableCell>
-                <TableCell className="text-right">{formatCurrency(s.avg_invoice)}</TableCell>
-                <TableCell className="text-right">{(s.dependency_pct ?? 0).toFixed(1)}%</TableCell>
-                <TableCell>
-                  <Badge className={riskColors[s.risk_level] ?? "bg-muted text-muted-foreground"}>
-                    {riskLabelKeys[s.risk_level] ? t(riskLabelKeys[s.risk_level]) : s.risk_level}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
+            {data.map((s, i) => {
+              const reliability = calcReliability(s);
+              return (
+                <TableRow key={i}>
+                  <TableCell className="font-medium">{s.supplier_name}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(s.total_spend)}</TableCell>
+                  <TableCell className="text-right">{s.invoice_count}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(s.avg_invoice)}</TableCell>
+                  <TableCell className="text-right">{(s.dependency_pct ?? 0).toFixed(1)}%</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      <Progress value={reliability} className={`h-2 w-16 bg-muted ${reliabilityBarColor(reliability)}`} />
+                      <span className={`text-sm font-bold ${reliabilityColor(reliability)}`}>
+                        {reliability}
+                      </span>
+                      <span className="text-xs text-muted-foreground">/100</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={riskColors[s.risk_level] ?? "bg-muted text-muted-foreground"}>
+                      {riskLabelKeys[s.risk_level] ? t(riskLabelKeys[s.risk_level]) : s.risk_level}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
