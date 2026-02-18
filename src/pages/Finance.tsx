@@ -219,29 +219,34 @@ const Finance = () => {
                 </div>
 
                 {overdueInvoices.length > 0 ? (
-                  <div className="space-y-2.5">
-                    {overdueInvoices.map((inv) => (
-                      <div
-                        key={inv.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-foreground truncate">{inv.supplier_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {inv.invoice_number} · Λήξη: {inv.due_date}
-                          </p>
-                        </div>
-                        <div className="text-right ml-4 shrink-0">
-                          <p className="text-sm font-bold text-destructive">{fmt(safe(inv.total_amount))}</p>
-                          <div className="flex items-center gap-1 justify-end">
-                            <Clock className="w-3 h-3 text-destructive/70" />
-                            <p className="text-xs text-destructive/70">
-                              {safe(inv.days_overdue)} ημέρ{safe(inv.days_overdue) === 1 ? "α" : "ες"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">Προμηθευτής</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">Αρ. Τιμολογίου</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ποσό</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ημέρες Καθυστέρησης</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overdueInvoices.map((inv) => (
+                          <tr key={inv.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
+                            <td className="py-2.5 px-3 font-medium text-foreground truncate max-w-[200px]">{inv.supplier_name}</td>
+                            <td className="py-2.5 px-3 text-muted-foreground">{inv.invoice_number}</td>
+                            <td className="py-2.5 px-3 text-right font-bold text-destructive">{fmt(safe(inv.total_amount))}</td>
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="flex items-center gap-1 justify-end">
+                                <Clock className="w-3 h-3 text-destructive/70" />
+                                <span className="text-destructive/80 font-medium">
+                                  {safe(inv.days_overdue)} ημέρ{safe(inv.days_overdue) === 1 ? "α" : "ες"}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
