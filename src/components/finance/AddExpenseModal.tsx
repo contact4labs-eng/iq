@@ -88,7 +88,7 @@ export function AddExpenseModal({ open, onOpenChange, onSuccess }: AddExpenseMod
       const { error } = await supabase.from("expense_entries").insert({
         company_id: company.id,
         amount: parsed,
-        description: [description, category].filter(Boolean).join(" — "),
+        description: description || null,
         entry_date: format(date, "yyyy-MM-dd"),
       });
 
@@ -207,90 +207,6 @@ export function AddExpenseModal({ open, onOpenChange, onSuccess }: AddExpenseMod
               </Select>
             </div>
           </div>
-
-          {/* Status toggle */}
-          <div>
-            <Label className="text-sm text-muted-foreground">Κατάσταση</Label>
-            <div className="flex flex-wrap gap-2 mt-1.5">
-              {STATUSES.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setStatus(s.value)}
-                  className={cn(
-                    "px-4 py-1.5 rounded-full text-sm border transition-colors",
-                    status === s.value
-                      ? s.value === "paid"
-                        ? "bg-success text-success-foreground border-success"
-                        : s.value === "overdue"
-                        ? "bg-destructive text-destructive-foreground border-destructive"
-                        : "bg-warning text-warning-foreground border-warning"
-                      : "bg-card text-muted-foreground border-border"
-                  )}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Fixed cost toggle */}
-          <div>
-            <Label className="text-sm text-muted-foreground">Πάγιο κόστος</Label>
-            <div className="flex gap-2 mt-1.5">
-              <button
-                type="button"
-                onClick={() => setIsFixed(true)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm border transition-colors",
-                  isFixed
-                    ? "bg-accent text-accent-foreground border-accent"
-                    : "bg-card text-muted-foreground border-border"
-                )}
-              >
-                Ναι
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsFixed(false)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm border transition-colors",
-                  !isFixed
-                    ? "bg-accent text-accent-foreground border-accent"
-                    : "bg-card text-muted-foreground border-border"
-                )}
-              >
-                Όχι
-              </button>
-            </div>
-          </div>
-
-          {/* Due date — conditional */}
-          {showDueDate && (
-            <div>
-              <Label className="text-sm text-muted-foreground">Ημ. πληρωμής</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full mt-1 justify-start text-left font-normal", !dueDate && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "dd/MM/yyyy") : "Επιλέξτε ημερομηνία"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
 
           {/* Notes */}
           <div>

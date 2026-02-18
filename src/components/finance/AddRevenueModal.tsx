@@ -47,7 +47,6 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
   const [category, setCategory] = useState("Υπηρεσία");
   const [date, setDate] = useState<Date>(new Date());
   const [paymentMethod, setPaymentMethod] = useState("Μετρητά");
-  const [collected, setCollected] = useState(true);
   const [client, setClient] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -58,7 +57,6 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
     setCategory("Υπηρεσία");
     setDate(new Date());
     setPaymentMethod("Μετρητά");
-    setCollected(true);
     setClient("");
     setNotes("");
   };
@@ -76,7 +74,8 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
       const { error } = await supabase.from("revenue_entries").insert({
         company_id: company.id,
         amount: parsed,
-        description: [description, category, client].filter(Boolean).join(" — "),
+        description: description || null,
+        source: category || null,
         entry_date: format(date, "yyyy-MM-dd"),
       });
 
@@ -196,36 +195,6 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
             </div>
           </div>
 
-          {/* Status toggle */}
-          <div>
-            <Label className="text-sm text-muted-foreground">Κατάσταση</Label>
-            <div className="flex gap-2 mt-1.5">
-              <button
-                type="button"
-                onClick={() => setCollected(true)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm border transition-colors",
-                  collected
-                    ? "bg-success text-success-foreground border-success"
-                    : "bg-card text-muted-foreground border-border"
-                )}
-              >
-                Εισπράχθηκε
-              </button>
-              <button
-                type="button"
-                onClick={() => setCollected(false)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm border transition-colors",
-                  !collected
-                    ? "bg-warning text-warning-foreground border-warning"
-                    : "bg-card text-muted-foreground border-border"
-                )}
-              >
-                Εκκρεμεί
-              </button>
-            </div>
-          </div>
 
           {/* Client */}
           <div>
