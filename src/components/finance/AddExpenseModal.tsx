@@ -84,30 +84,29 @@ export function AddExpenseModal({ open, onOpenChange, onSuccess }: AddExpenseMod
     }
 
     setSaving(true);
-    const { error } = await supabase.from("expense_entries").insert({
-      company_id: company.id,
-      amount: parsed,
-      description,
-      category,
-      entry_date: format(date, "yyyy-MM-dd"),
-      payment_method: paymentMethod,
-      status,
-      is_fixed: isFixed,
-      due_date: showDueDate && dueDate ? format(dueDate, "yyyy-MM-dd") : null,
-      notes: notes || null,
-    });
+    try {
+      const { error } = await supabase.from("expense_entries").insert({
+        company_id: company.id,
+        amount: parsed,
+        description: [description, category].filter(Boolean).join(" — "),
+        entry_date: format(date, "yyyy-MM-dd"),
+      });
 
-    setSaving(false);
+      setSaving(false);
 
-    if (error) {
-      toast({ title: "Σφάλμα", description: error.message, variant: "destructive" });
-      return;
+      if (error) {
+        toast({ title: "Σφάλμα", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      toast({ title: "Επιτυχία", description: "Το έξοδο καταχωρήθηκε" });
+      resetForm();
+      onOpenChange(false);
+      onSuccess();
+    } catch (err: unknown) {
+      setSaving(false);
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : "Απρόσμενο σφάλμα", variant: "destructive" });
     }
-
-    toast({ title: "Επιτυχία", description: "Το έξοδο καταχωρήθηκε" });
-    resetForm();
-    onOpenChange(false);
-    onSuccess();
   };
 
   return (

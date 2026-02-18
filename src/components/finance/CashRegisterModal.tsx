@@ -122,15 +122,16 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
     }
 
     if (hasValues && shiftRevenue !== 0) {
-      await supabase.from("revenue_entries").insert({
-        company_id: company.id,
-        amount: shiftRevenue,
-        description: "Ταμείο βάρδιας",
-        category: "cash_register",
-        entry_date: entryDate,
-        payment_method: "cash",
-        status: "collected",
-      });
+      try {
+        await supabase.from("revenue_entries").insert({
+          company_id: company.id,
+          amount: shiftRevenue,
+          description: "Ταμείο βάρδιας",
+          entry_date: entryDate,
+        });
+      } catch (e) {
+        console.error("Revenue insert failed:", e);
+      }
     }
 
     setSaving(false);

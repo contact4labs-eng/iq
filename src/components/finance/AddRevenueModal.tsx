@@ -72,29 +72,29 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
     }
 
     setSaving(true);
-    const { error } = await supabase.from("revenue_entries").insert({
-      company_id: company.id,
-      amount: parsed,
-      description,
-      category,
-      entry_date: format(date, "yyyy-MM-dd"),
-      payment_method: paymentMethod,
-      status: collected ? "collected" : "pending",
-      client_name: client || null,
-      notes: notes || null,
-    });
+    try {
+      const { error } = await supabase.from("revenue_entries").insert({
+        company_id: company.id,
+        amount: parsed,
+        description: [description, category, client].filter(Boolean).join(" — "),
+        entry_date: format(date, "yyyy-MM-dd"),
+      });
 
-    setSaving(false);
+      setSaving(false);
 
-    if (error) {
-      toast({ title: "Σφάλμα", description: error.message, variant: "destructive" });
-      return;
+      if (error) {
+        toast({ title: "Σφάλμα", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      toast({ title: "Επιτυχία", description: "Το έσοδο καταχωρήθηκε" });
+      resetForm();
+      onOpenChange(false);
+      onSuccess();
+    } catch (err: unknown) {
+      setSaving(false);
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : "Απρόσμενο σφάλμα", variant: "destructive" });
     }
-
-    toast({ title: "Επιτυχία", description: "Το έσοδο καταχωρήθηκε" });
-    resetForm();
-    onOpenChange(false);
-    onSuccess();
   };
 
   return (
