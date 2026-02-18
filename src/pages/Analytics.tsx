@@ -282,7 +282,7 @@ const Analytics = () => {
               )}
             </div>
 
-            <SupplierPerformanceSection data={suppliers} />
+            <SupplierPerformanceSection data={suppliers} priceData={priceVolatility} />
           </TabsContent>
         </Tabs>
       </div>
