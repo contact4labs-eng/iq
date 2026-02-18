@@ -30,7 +30,7 @@ const translations = {
   // Quick Actions
   "quick.upload_invoice": { el: "+ Ανέβασε τιμολόγιο", en: "+ Upload Invoice" },
   "quick.add_revenue": { el: "+ Καταχώρηση εσόδων", en: "+ Add Revenue" },
-  "quick.add_expense": { el: "+ Καταχώρηση εξόδων", en: "+ Add Expense" },
+  "quick.add_expense": { el: "+ Καταχώρηση εξόδων", en: "+ Record Expense" },
   "quick.cash_register": { el: "Ταμείο", en: "Cash Register" },
 
   // Invoices page
