@@ -17,6 +17,7 @@ import Analytics from "./pages/Analytics";
 import Alerts from "./pages/Alerts";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
+import AutomationPage from "./pages/AutomationPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/automation" element={<ProtectedRoute><AutomationPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </AuthProvider>
