@@ -1,12 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import type { SupplierPerformance, PriceVolatility } from "@/hooks/useInvoiceAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
-import { ChevronDown, ChevronUp, ArrowUpDown, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip as RechartsTooltip, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from "recharts";
+import { ChevronDown, ChevronUp, ArrowUpDown, Search, GitCompareArrows, X, Trophy, Crown } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/contexts/LanguageContext";
 
@@ -27,47 +29,56 @@ const riskLabelKeys: Record<string, TranslationKey> = {
 };
 
 // --- Score calculation with 4 dimensions ---
-interface ScoreBreakdown {
-  priceStability: number;   // 30%
-  deliveryReliability: number; // 25%
-  costEfficiency: number;   // 25%
-  relationshipValue: number; // 20%
+export interface ScoreBreakdown {
+  priceStability: number;
+  deliveryReliability: number;
+  costEfficiency: number;
+  relationshipValue: number;
   total: number;
   grade: string;
 }
 
-function calcScoreBreakdown(s: SupplierPerformance, allSuppliers: SupplierPerformance[], priceData: PriceVolatility[]): ScoreBreakdown {
-  // Price Stability: based on volatility of products from this supplier
+const DIMENSION_KEYS: (keyof Omit<ScoreBreakdown, "total" | "grade">)[] = [
+  "priceStability", "deliveryReliability", "costEfficiency", "relationshipValue",
+];
+
+const DIMENSION_LABEL_KEYS: Record<string, TranslationKey> = {
+  priceStability: "analytics.dim_price_stability",
+  deliveryReliability: "analytics.dim_delivery",
+  costEfficiency: "analytics.dim_cost_efficiency",
+  relationshipValue: "analytics.dim_relationship",
+};
+
+const RADAR_COLORS = [
+  "hsl(217, 91%, 60%)",   // primary blue
+  "hsl(152, 56%, 45%)",   // green
+  "hsl(38, 92%, 50%)",    // amber
+];
+
+export function calcScoreBreakdown(s: SupplierPerformance, allSuppliers: SupplierPerformance[], priceData: PriceVolatility[]): ScoreBreakdown {
   const supplierProducts = priceData.filter(p => p.supplier_name === s.supplier_name);
   const avgVol = supplierProducts.length > 0
     ? supplierProducts.reduce((sum, p) => sum + (p.volatility ?? 0), 0) / supplierProducts.length
     : 0;
   const priceStability = Math.max(0, Math.min(100, 100 - avgVol * 5));
 
-  // Delivery Reliability: based on risk level and invoice count consistency
   let deliveryReliability = 50;
   if (s.risk_level === "low") deliveryReliability = 85;
   else if (s.risk_level === "medium") deliveryReliability = 55;
   else deliveryReliability = 25;
-  // Bonus for high invoice count (regular orders suggest reliable delivery)
   const maxInvoices = Math.max(...allSuppliers.map(x => x.invoice_count), 1);
   deliveryReliability = Math.min(100, deliveryReliability + (s.invoice_count / maxInvoices) * 15);
 
-  // Cost Efficiency: lower dependency and avg invoice relative to peers = better
   const maxAvg = Math.max(...allSuppliers.map(x => x.avg_invoice), 1);
   const costEfficiency = Math.max(0, Math.min(100, (1 - s.avg_invoice / maxAvg) * 60 + (1 - (s.dependency_pct ?? 0) / 100) * 40));
 
-  // Relationship Value: based on total spend share and invoice frequency
   const totalSpendAll = allSuppliers.reduce((sum, x) => sum + x.total_spend, 0) || 1;
   const spendShare = s.total_spend / totalSpendAll;
   const freqScore = Math.min(s.invoice_count / maxInvoices, 1);
   const relationshipValue = Math.min(100, (spendShare * 50 + freqScore * 50) * 100);
 
   const total = Math.round(
-    priceStability * 0.30 +
-    deliveryReliability * 0.25 +
-    costEfficiency * 0.25 +
-    relationshipValue * 0.20
+    priceStability * 0.30 + deliveryReliability * 0.25 + costEfficiency * 0.25 + relationshipValue * 0.20
   );
 
   let grade = "F";
@@ -78,14 +89,7 @@ function calcScoreBreakdown(s: SupplierPerformance, allSuppliers: SupplierPerfor
   else if (total >= 50) grade = "C";
   else if (total >= 40) grade = "D";
 
-  return {
-    priceStability: Math.round(priceStability),
-    deliveryReliability: Math.round(deliveryReliability),
-    costEfficiency: Math.round(costEfficiency),
-    relationshipValue: Math.round(relationshipValue),
-    total,
-    grade,
-  };
+  return { priceStability: Math.round(priceStability), deliveryReliability: Math.round(deliveryReliability), costEfficiency: Math.round(costEfficiency), relationshipValue: Math.round(relationshipValue), total, grade };
 }
 
 function gradeColor(grade: string): string {
@@ -105,13 +109,13 @@ function gradeBadgeColor(grade: string): string {
 type SortKey = "supplier_name" | "total_spend" | "invoice_count" | "avg_invoice" | "dependency_pct" | "score" | "grade" | "risk_level";
 type SortDir = "asc" | "desc";
 
+// --- Expanded Row (single supplier) ---
 function ExpandedRow({ s, breakdown, t }: { s: SupplierPerformance; breakdown: ScoreBreakdown; t: (key: TranslationKey) => string }) {
-  const radarData = [
-    { dimension: t("analytics.dim_price_stability"), value: breakdown.priceStability, fullMark: 100 },
-    { dimension: t("analytics.dim_delivery"), value: breakdown.deliveryReliability, fullMark: 100 },
-    { dimension: t("analytics.dim_cost_efficiency"), value: breakdown.costEfficiency, fullMark: 100 },
-    { dimension: t("analytics.dim_relationship"), value: breakdown.relationshipValue, fullMark: 100 },
-  ];
+  const radarData = DIMENSION_KEYS.map(k => ({
+    dimension: t(DIMENSION_LABEL_KEYS[k]),
+    value: breakdown[k],
+    fullMark: 100,
+  }));
 
   const dimensions = [
     { label: t("analytics.dim_price_stability"), value: breakdown.priceStability, weight: "30%", color: "bg-primary" },
@@ -122,10 +126,9 @@ function ExpandedRow({ s, breakdown, t }: { s: SupplierPerformance; breakdown: S
 
   return (
     <TableRow className="bg-muted/30 border-b-0">
-      <TableCell colSpan={9} className="p-0">
+      <TableCell colSpan={10} className="p-0">
         <div className="animate-accordion-down overflow-hidden">
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Radar Chart */}
             <div className="flex flex-col items-center">
               <p className="text-sm font-semibold text-foreground mb-2">{t("analytics.score_breakdown")}</p>
               <div className="w-full max-w-[280px] h-[220px]">
@@ -134,20 +137,11 @@ function ExpandedRow({ s, breakdown, t }: { s: SupplierPerformance; breakdown: S
                     <PolarGrid stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                     <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
-                    <Radar
-                      name={s.supplier_name}
-                      dataKey="value"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary))"
-                      fillOpacity={0.25}
-                      strokeWidth={2}
-                    />
+                    <Radar name={s.supplier_name} dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-
-            {/* Score Breakdown Bars */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-1">
                 <span className={`text-2xl font-bold ${gradeColor(breakdown.grade)}`}>{breakdown.grade}</span>
@@ -170,6 +164,156 @@ function ExpandedRow({ s, breakdown, t }: { s: SupplierPerformance; breakdown: S
   );
 }
 
+// --- Comparison Panel ---
+function ComparisonPanel({
+  selected,
+  onClose,
+  t,
+}: {
+  selected: { s: SupplierPerformance; b: ScoreBreakdown }[];
+  onClose: () => void;
+  t: (key: TranslationKey) => string;
+}) {
+  // Build overlaid radar data
+  const radarData = DIMENSION_KEYS.map((k) => {
+    const point: Record<string, unknown> = { dimension: t(DIMENSION_LABEL_KEYS[k]) };
+    selected.forEach(({ s, b }) => {
+      point[s.supplier_name] = b[k];
+    });
+    return point;
+  });
+
+  // Find winner per dimension
+  const dimensionWinners: Record<string, string> = {};
+  for (const k of DIMENSION_KEYS) {
+    let best = "";
+    let bestVal = -1;
+    for (const { s, b } of selected) {
+      if (b[k] > bestVal) { bestVal = b[k]; best = s.supplier_name; }
+    }
+    dimensionWinners[k] = best;
+  }
+
+  // Overall winner
+  const overallWinner = selected.reduce((best, curr) => curr.b.total > best.b.total ? curr : best, selected[0]);
+
+  // Recommendation text
+  const dimLabels = DIMENSION_KEYS.map(k => t(DIMENSION_LABEL_KEYS[k]));
+  const winCounts: Record<string, number> = {};
+  selected.forEach(({ s }) => { winCounts[s.supplier_name] = 0; });
+  DIMENSION_KEYS.forEach(k => { winCounts[dimensionWinners[k]]++; });
+
+  return (
+    <Card className="border-primary/20 bg-primary/5 animate-fade-in">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <GitCompareArrows className="w-5 h-5 text-primary" />
+          {t("analytics.compare_title")}
+        </CardTitle>
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+          <X className="w-4 h-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Overlaid Radar */}
+        <div className="flex justify-center">
+          <div className="w-full max-w-[400px] h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                {selected.map(({ s }, idx) => (
+                  <Radar
+                    key={s.supplier_name}
+                    name={s.supplier_name}
+                    dataKey={s.supplier_name}
+                    stroke={RADAR_COLORS[idx]}
+                    fill={RADAR_COLORS[idx]}
+                    fillOpacity={0.12}
+                    strokeWidth={2}
+                  />
+                ))}
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <RechartsTooltip
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Comparison Table */}
+        <div className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("analytics.col_dimension")}</TableHead>
+                {selected.map(({ s }, idx) => (
+                  <TableHead key={s.supplier_name} className="text-center">
+                    <span style={{ color: RADAR_COLORS[idx] }} className="font-semibold">{s.supplier_name}</span>
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {DIMENSION_KEYS.map((k, di) => {
+                const winner = dimensionWinners[k];
+                return (
+                  <TableRow key={k}>
+                    <TableCell className="font-medium text-sm">{dimLabels[di]}</TableCell>
+                    {selected.map(({ s, b }) => {
+                      const isWinner = s.supplier_name === winner;
+                      return (
+                        <TableCell key={s.supplier_name} className="text-center">
+                          <span className={`font-bold text-sm ${isWinner ? "text-success" : "text-foreground"}`}>
+                            {b[k]}
+                            {isWinner && <Trophy className="inline w-3.5 h-3.5 ml-1 text-success" />}
+                          </span>
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
+              {/* Overall row */}
+              <TableRow className="border-t-2 border-primary/20 bg-muted/30">
+                <TableCell className="font-bold text-sm">{t("analytics.compare_overall")}</TableCell>
+                {selected.map(({ s, b }) => {
+                  const isOverallWinner = s.supplier_name === overallWinner.s.supplier_name;
+                  return (
+                    <TableCell key={s.supplier_name} className="text-center">
+                      <span className={`font-bold text-base ${isOverallWinner ? "text-success" : "text-foreground"}`}>
+                        {b.total}
+                        {isOverallWinner && <Crown className="inline w-4 h-4 ml-1 text-success" />}
+                      </span>
+                      <Badge className={`ml-2 ${gradeBadgeColor(b.grade)}`}>{b.grade}</Badge>
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Recommendation */}
+        <div className="rounded-lg border border-success/20 bg-success/5 p-4">
+          <p className="text-sm font-semibold text-foreground flex items-center gap-2 mb-1">
+            <Crown className="w-4 h-4 text-success" />
+            {t("analytics.compare_recommendation")}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-success">{overallWinner.s.supplier_name}</span>
+            {" "}{t("analytics.compare_rec_text")} ({overallWinner.b.total}/100, {t("analytics.col_grade")}: {overallWinner.b.grade}).
+            {" "}{t("analytics.compare_rec_wins").replace("{count}", String(winCounts[overallWinner.s.supplier_name]))}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// --- Main Component ---
 interface Props {
   data: SupplierPerformance[];
   priceData?: PriceVolatility[];
@@ -181,22 +325,19 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("total_spend");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<Set<number>>(new Set());
 
-  // Pre-compute breakdowns
   const breakdowns = useMemo(() => {
     return data.map((s) => calcScoreBreakdown(s, data, priceData));
   }, [data, priceData]);
 
-  // Filtered + sorted
   const sortedData = useMemo(() => {
     const indexed = data.map((s, i) => ({ s, b: breakdowns[i], i }));
-
-    // Filter by search
     const filtered = search.trim()
       ? indexed.filter(({ s }) => s.supplier_name.toLowerCase().includes(search.toLowerCase()))
       : indexed;
 
-    // Sort
     filtered.sort((a, b) => {
       let aVal: number | string = 0;
       let bVal: number | string = 0;
@@ -233,6 +374,32 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
     }
   }
 
+  function toggleCompareMode() {
+    if (compareMode) {
+      setCompareMode(false);
+      setSelectedForCompare(new Set());
+    } else {
+      setCompareMode(true);
+      setExpandedIdx(null);
+    }
+  }
+
+  function toggleSelection(idx: number) {
+    setSelectedForCompare((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else if (next.size < 3) {
+        next.add(idx);
+      }
+      return next;
+    });
+  }
+
+  const comparisonData = useMemo(() => {
+    return Array.from(selectedForCompare).map(i => ({ s: data[i], b: breakdowns[i] }));
+  }, [selectedForCompare, data, breakdowns]);
+
   function SortableHead({ colKey, children, className }: { colKey: SortKey; children: React.ReactNode; className?: string }) {
     const active = sortKey === colKey;
     return (
@@ -255,86 +422,136 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
   if (!data.length) return null;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <CardTitle className="text-lg">{t("analytics.supplier_perf")}</CardTitle>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder={t("analytics.search_supplier")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8" />
-              <SortableHead colKey="supplier_name">{t("analytics.col_supplier")}</SortableHead>
-              <SortableHead colKey="score">{t("analytics.col_score")}</SortableHead>
-              <SortableHead colKey="grade">{t("analytics.col_grade")}</SortableHead>
-              <SortableHead colKey="total_spend" className="text-right">{t("analytics.col_total_spend")}</SortableHead>
-              <SortableHead colKey="invoice_count" className="text-right">{t("analytics.col_invoices")}</SortableHead>
-              <SortableHead colKey="avg_invoice" className="text-right">{t("analytics.col_avg_invoice")}</SortableHead>
-              <SortableHead colKey="dependency_pct" className="text-right">{t("analytics.col_dependency")}</SortableHead>
-              <SortableHead colKey="risk_level">{t("analytics.col_risk")}</SortableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedData.map(({ s, b, i }) => {
-              const isExpanded = expandedIdx === i;
-              return (
-                <>
-                  <TableRow
-                    key={`row-${i}`}
-                    className={`cursor-pointer transition-colors ${isExpanded ? "bg-muted/40" : "hover:bg-muted/30"}`}
-                    onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                  >
-                    <TableCell className="w-8 px-2">
-                      {isExpanded
-                        ? <ChevronUp className="w-4 h-4 text-primary" />
-                        : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      }
-                    </TableCell>
-                    <TableCell className="font-medium">{s.supplier_name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 min-w-[80px]">
-                        <Progress value={b.total} className={`h-2 w-12 bg-muted ${b.total >= 70 ? "[&>div]:bg-success" : b.total >= 40 ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"}`} />
-                        <span className="text-sm font-bold text-foreground">{b.total}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={gradeBadgeColor(b.grade)}>{b.grade}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(s.total_spend)}</TableCell>
-                    <TableCell className="text-right">{s.invoice_count}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(s.avg_invoice)}</TableCell>
-                    <TableCell className="text-right">{(s.dependency_pct ?? 0).toFixed(1)}%</TableCell>
-                    <TableCell>
-                      <Badge className={riskColors[s.risk_level] ?? "bg-muted text-muted-foreground"}>
-                        {riskLabelKeys[s.risk_level] ? t(riskLabelKeys[s.risk_level]) : s.risk_level}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                  {isExpanded && (
-                    <ExpandedRow key={`expanded-${i}`} s={s} breakdown={b} t={t} />
-                  )}
-                </>
-              );
-            })}
-            {sortedData.length === 0 && (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <CardTitle className="text-lg">{t("analytics.supplier_perf")}</CardTitle>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-56">
+              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder={t("analytics.search_supplier")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+            <Button
+              variant={compareMode ? "default" : "outline"}
+              size="sm"
+              onClick={toggleCompareMode}
+              className="gap-1.5 shrink-0"
+            >
+              {compareMode ? <X className="w-4 h-4" /> : <GitCompareArrows className="w-4 h-4" />}
+              {compareMode ? t("analytics.compare_exit") : t("analytics.compare_btn")}
+            </Button>
+          </div>
+        </CardHeader>
+
+        {compareMode && (
+          <div className="px-6 pb-2">
+            <p className="text-xs text-muted-foreground">
+              {t("analytics.compare_hint")} ({selectedForCompare.size}/3)
+            </p>
+          </div>
+        )}
+
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  {t("analytics.no_data")}
-                </TableCell>
+                {compareMode ? (
+                  <TableHead className="w-10" />
+                ) : (
+                  <TableHead className="w-8" />
+                )}
+                <SortableHead colKey="supplier_name">{t("analytics.col_supplier")}</SortableHead>
+                <SortableHead colKey="score">{t("analytics.col_score")}</SortableHead>
+                <SortableHead colKey="grade">{t("analytics.col_grade")}</SortableHead>
+                <SortableHead colKey="total_spend" className="text-right">{t("analytics.col_total_spend")}</SortableHead>
+                <SortableHead colKey="invoice_count" className="text-right">{t("analytics.col_invoices")}</SortableHead>
+                <SortableHead colKey="avg_invoice" className="text-right">{t("analytics.col_avg_invoice")}</SortableHead>
+                <SortableHead colKey="dependency_pct" className="text-right">{t("analytics.col_dependency")}</SortableHead>
+                <SortableHead colKey="risk_level">{t("analytics.col_risk")}</SortableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {sortedData.map(({ s, b, i }) => {
+                const isExpanded = !compareMode && expandedIdx === i;
+                const isSelected = selectedForCompare.has(i);
+                return (
+                  <Fragment key={`frag-${i}`}>
+                    <TableRow
+                      className={`cursor-pointer transition-colors ${
+                        isSelected ? "bg-primary/10 hover:bg-primary/15" :
+                        isExpanded ? "bg-muted/40" : "hover:bg-muted/30"
+                      }`}
+                      onClick={() => {
+                        if (compareMode) {
+                          toggleSelection(i);
+                        } else {
+                          setExpandedIdx(isExpanded ? null : i);
+                        }
+                      }}
+                    >
+                      <TableCell className="w-10 px-2">
+                        {compareMode ? (
+                          <Checkbox
+                            checked={isSelected}
+                            disabled={!isSelected && selectedForCompare.size >= 3}
+                            onCheckedChange={() => toggleSelection(i)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          isExpanded
+                            ? <ChevronUp className="w-4 h-4 text-primary" />
+                            : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{s.supplier_name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-[80px]">
+                          <Progress value={b.total} className={`h-2 w-12 bg-muted ${b.total >= 70 ? "[&>div]:bg-success" : b.total >= 40 ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"}`} />
+                          <span className="text-sm font-bold text-foreground">{b.total}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={gradeBadgeColor(b.grade)}>{b.grade}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(s.total_spend)}</TableCell>
+                      <TableCell className="text-right">{s.invoice_count}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(s.avg_invoice)}</TableCell>
+                      <TableCell className="text-right">{(s.dependency_pct ?? 0).toFixed(1)}%</TableCell>
+                      <TableCell>
+                        <Badge className={riskColors[s.risk_level] ?? "bg-muted text-muted-foreground"}>
+                          {riskLabelKeys[s.risk_level] ? t(riskLabelKeys[s.risk_level]) : s.risk_level}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && <ExpandedRow s={s} breakdown={b} t={t} />}
+                  </Fragment>
+                );
+              })}
+              {sortedData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                    {t("analytics.no_data")}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Comparison Panel */}
+      {compareMode && comparisonData.length >= 2 && (
+        <ComparisonPanel
+          selected={comparisonData}
+          onClose={toggleCompareMode}
+          t={t}
+        />
+      )}
+    </div>
   );
 }

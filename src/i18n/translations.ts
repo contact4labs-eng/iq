@@ -486,6 +486,17 @@ export const translations = {
   "analytics.rec_consolidate": { el: "Εξετάστε ενοποίηση αγορών — {count} προϊόντα διαθέσιμα από πολλούς προμηθευτές", en: "Consider consolidating purchases — {count} products available from multiple suppliers" },
   "analytics.rec_stale": { el: "Αξιολογήστε τα συμβόλαια με {count} ανενεργούς προμηθευτές", en: "Review contracts with {count} inactive suppliers" },
   "analytics.rec_price_alert": { el: "Παρακολουθήστε αυξήσεις τιμών από: {suppliers}", en: "Monitor price increases from: {suppliers}" },
+
+  // Supplier Comparison
+  "analytics.compare_btn": { el: "Σύγκριση", en: "Compare" },
+  "analytics.compare_exit": { el: "Ακύρωση", en: "Exit" },
+  "analytics.compare_hint": { el: "Επιλέξτε 2-3 προμηθευτές για σύγκριση", en: "Select 2-3 suppliers to compare" },
+  "analytics.compare_title": { el: "Σύγκριση Προμηθευτών", en: "Supplier Comparison" },
+  "analytics.col_dimension": { el: "Διάσταση", en: "Dimension" },
+  "analytics.compare_overall": { el: "Συνολικά", en: "Overall" },
+  "analytics.compare_recommendation": { el: "Σύσταση", en: "Recommendation" },
+  "analytics.compare_rec_text": { el: "είναι ο καλύτερος συνολικά προμηθευτής", en: "is the best overall supplier" },
+  "analytics.compare_rec_wins": { el: "Κερδίζει σε {count} από 4 διαστάσεις.", en: "Wins in {count} out of 4 dimensions." },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
