@@ -95,13 +95,12 @@ export function useFinanceDashboard(refreshKey = 0) {
           .limit(1)
           .maybeSingle();
 
-        // 2. Receivables — approved invoices not yet paid
+        // 2. Receivables — approved invoices (all approved are considered receivable)
         const receivablesPromise = supabase
           .from("invoices")
           .select("total_amount")
           .eq("company_id", companyId)
-          .eq("status", "approved")
-          .neq("payment_status", "paid");
+          .eq("status", "approved");
 
         // 3. Payables — scheduled payments pending
         const payablesPromise = supabase
@@ -126,12 +125,13 @@ export function useFinanceDashboard(refreshKey = 0) {
           .gte("entry_date", thirtyDaysAgoStr)
           .lte("entry_date", todayStr);
 
-        // 6. Overdue invoices
+        // 6. Overdue invoices — approved invoices past due_date
         const overduePromise = supabase
           .from("invoices")
-          .select("id, supplier_name, invoice_number, total_amount, due_date")
+          .select("id, invoice_number, total_amount, due_date, suppliers(name)")
           .eq("company_id", companyId)
-          .eq("payment_status", "overdue")
+          .eq("status", "approved")
+          .lt("due_date", todayStr)
           .order("due_date", { ascending: true })
           .limit(20);
 
@@ -219,7 +219,7 @@ export function useFinanceDashboard(refreshKey = 0) {
             const daysOverdue = Math.max(0, Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
             return {
               id: r.id,
-              supplier_name: r.supplier_name ?? "—",
+              supplier_name: (r.suppliers as any)?.name ?? "—",
               invoice_number: r.invoice_number ?? "—",
               total_amount: safe(r.total_amount),
               due_date: r.due_date,
