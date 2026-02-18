@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Plus, Zap, FolderOpen, Tag, Copy, AlertTriangle, ArrowRight,
-  FileText, Mail, TrendingUp, Pencil, PlayCircle,
+  FileText, Mail, TrendingUp, Pencil, PlayCircle, Search, CheckCircle,
 } from "lucide-react";
 
 interface WorkflowStep {
@@ -78,6 +78,19 @@ const DEMO_WORKFLOWS: Workflow[] = [
     steps: [
       { icon: <FolderOpen className="w-3.5 h-3.5" />, label: "Categorize", description: "Assign category based on rules" },
       { icon: <Zap className="w-3.5 h-3.5" />, label: "Auto-Approve", description: "Automatically approve and close invoice" },
+    ],
+  },
+  {
+    id: 5,
+    name: "Anomaly Detection Pipeline",
+    description: "Scan invoices for unusual amounts and flag or approve automatically",
+    trigger: "New Invoice Uploaded",
+    runs: 12,
+    active: true,
+    steps: [
+      { icon: <Search className="w-3.5 h-3.5" />, label: "Scan Invoice", description: "Extract amount and supplier from new invoice" },
+      { icon: <TrendingUp className="w-3.5 h-3.5" />, label: "Compare with History", description: "Compare amount against supplier historical average" },
+      { icon: <CheckCircle className="w-3.5 h-3.5" />, label: "Flag or Approve", description: "Flag if deviation >50%, otherwise auto-approve" },
     ],
   },
 ];

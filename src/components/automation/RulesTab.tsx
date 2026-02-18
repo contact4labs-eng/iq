@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Plus, ListFilter, Zap, ShieldCheck, Tag, FolderOpen, AlertTriangle, Eye,
+  Copy, Bell, TrendingUp,
 } from "lucide-react";
 
-type Trigger = "new_invoice" | "amount_threshold" | "supplier_match" | "product_match" | "date_pattern";
-type Action = "add_tag" | "set_category" | "send_alert" | "flag_review";
+type Trigger = "new_invoice" | "amount_threshold" | "supplier_match" | "product_match" | "date_pattern" | "invoice_created" | "due_date_approaching" | "invoice_approved";
+type Action = "add_tag" | "set_category" | "send_alert" | "flag_review" | "flag_duplicate" | "send_reminder" | "notify_admin" | "require_approval" | "flag_anomaly";
 
 interface Rule {
   id: number;
@@ -32,6 +33,9 @@ const TRIGGER_ICONS: Record<Trigger, React.ReactNode> = {
   supplier_match: <Eye className="w-4 h-4" />,
   product_match: <FolderOpen className="w-4 h-4" />,
   date_pattern: <ListFilter className="w-4 h-4" />,
+  invoice_created: <Zap className="w-4 h-4" />,
+  due_date_approaching: <Bell className="w-4 h-4" />,
+  invoice_approved: <ShieldCheck className="w-4 h-4" />,
 };
 
 const ACTION_ICONS: Record<Action, React.ReactNode> = {
@@ -39,6 +43,11 @@ const ACTION_ICONS: Record<Action, React.ReactNode> = {
   set_category: <FolderOpen className="w-3.5 h-3.5" />,
   send_alert: <AlertTriangle className="w-3.5 h-3.5" />,
   flag_review: <ShieldCheck className="w-3.5 h-3.5" />,
+  flag_duplicate: <Copy className="w-3.5 h-3.5" />,
+  send_reminder: <Bell className="w-3.5 h-3.5" />,
+  notify_admin: <AlertTriangle className="w-3.5 h-3.5" />,
+  require_approval: <ShieldCheck className="w-3.5 h-3.5" />,
+  flag_anomaly: <TrendingUp className="w-3.5 h-3.5" />,
 };
 
 const DEMO_RULES: Rule[] = [
@@ -46,6 +55,11 @@ const DEMO_RULES: Rule[] = [
   { id: 2, name: "Flag invoices over 1000 EUR as high-value", trigger: "amount_threshold", condition: "1000", action: "flag_review", actionValue: "", active: true, matchCount: 12 },
   { id: 3, name: "Auto-categorize by supplier name pattern", trigger: "supplier_match", condition: "Τρόφιμα", action: "set_category", actionValue: "Food & Beverage", active: false, matchCount: 8 },
   { id: 4, name: "Tag Software subscriptions", trigger: "product_match", condition: "license|subscription|SaaS", action: "add_tag", actionValue: "Software", active: true, matchCount: 19 },
+  { id: 5, name: "Duplicate Invoice Detection", trigger: "invoice_created", condition: "Same supplier + same amount + date within 7 days", action: "flag_duplicate", actionValue: "", active: true, matchCount: 3 },
+  { id: 6, name: "Payment Reminder Workflow", trigger: "due_date_approaching", condition: "Due date within 7 days and status unpaid", action: "send_reminder", actionValue: "", active: true, matchCount: 15 },
+  { id: 7, name: "Budget Threshold Alert", trigger: "invoice_approved", condition: "Monthly category spend exceeds 80% of budget", action: "notify_admin", actionValue: "", active: true, matchCount: 5 },
+  { id: 8, name: "High-Value Approval Workflow", trigger: "invoice_created", condition: "Invoice amount exceeds 5000 EUR", action: "require_approval", actionValue: "", active: true, matchCount: 7 },
+  { id: 9, name: "Anomaly Detection", trigger: "invoice_created", condition: "Amount deviates >50% from supplier average", action: "flag_anomaly", actionValue: "", active: true, matchCount: 4 },
 ];
 
 export function RulesTab() {
