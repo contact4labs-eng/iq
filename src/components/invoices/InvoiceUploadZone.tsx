@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, FileUp, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import { Upload, FileUp, CheckCircle, Loader2, AlertCircle, Camera } from "lucide-react";
 import { supabase, SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
   const [step, setStep] = useState<UploadStep>("idle");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const getFileExtension = (filename: string): string => {
     const ext = filename.split(".").pop()?.toLowerCase() || "";
@@ -145,6 +146,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
     const file = e.target.files?.[0];
     if (file) handleFile(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const stepContent = {
@@ -198,10 +200,31 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
         accept=".pdf,.jpg,.jpeg,.png"
         onChange={onFileChange}
       />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        className="hidden"
+        accept="image/jpeg,image/png"
+        capture="environment"
+        onChange={onFileChange}
+      />
       <div className="flex flex-col items-center gap-2">
         {current.icon}
         <p className="text-sm font-medium text-foreground">{current.text}</p>
         <p className="text-xs text-muted-foreground">{current.sub}</p>
+        {isActive && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              cameraInputRef.current?.click();
+            }}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
+          >
+            <Camera className="w-4 h-4" />
+            Λήψη φωτογραφίας
+          </button>
+        )}
       </div>
     </div>
   );
