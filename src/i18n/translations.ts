@@ -460,6 +460,16 @@ export const translations = {
   "analytics.seasonal_detected": { el: "Εποχική Διακύμανση", en: "Seasonal Pattern" },
   "analytics.supplier_comparison": { el: "Σύγκριση Προμηθευτών", en: "Supplier Comparison" },
   "analytics.supplier_details": { el: "Λεπτομέρειες Προμηθευτών", en: "Supplier Details" },
+
+  // Supplier Performance Enhanced
+  "analytics.search_supplier": { el: "Αναζήτηση προμηθευτή...", en: "Search supplier..." },
+  "analytics.col_score": { el: "Βαθμός", en: "Score" },
+  "analytics.col_grade": { el: "Βαθμίδα", en: "Grade" },
+  "analytics.score_breakdown": { el: "Ανάλυση Βαθμολογίας", en: "Score Breakdown" },
+  "analytics.dim_price_stability": { el: "Σταθερότητα Τιμών", en: "Price Stability" },
+  "analytics.dim_delivery": { el: "Αξιοπιστία Παράδοσης", en: "Delivery Reliability" },
+  "analytics.dim_cost_efficiency": { el: "Αποδοτικότητα Κόστους", en: "Cost Efficiency" },
+  "analytics.dim_relationship": { el: "Αξία Σχέσης", en: "Relationship Value" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
