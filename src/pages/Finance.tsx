@@ -69,7 +69,7 @@ const Finance = () => {
               <Wallet className="w-6 h-6 text-accent" />
               <h1 className="text-2xl font-bold font-display text-foreground">Χρήματα</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Ταμειακή θέση & ροές της επιχείρησής σας</p>
+            <p className="text-sm text-muted-foreground">Οικονομική επισκόπηση και ταμειακές ροές</p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" className="gap-1.5" onClick={() => setRevenueOpen(true)}>
