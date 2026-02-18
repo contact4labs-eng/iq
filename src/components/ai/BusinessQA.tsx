@@ -72,15 +72,18 @@ export function BusinessQA({ messages, loading, onAsk }: BusinessQAProps) {
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {isEmpty && (
-          <div className="flex flex-col items-center justify-center h-full gap-6 animate-fade-in">
-            <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center">
-              <Bot className="w-7 h-7 text-accent" />
+          <div className="flex flex-col gap-4 animate-fade-in">
+            {/* Welcome bubble */}
+            <div className="flex gap-3 justify-start">
+              <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Bot className="w-4 h-4 text-accent" />
+              </div>
+              <div className="max-w-[80%] rounded-2xl rounded-bl-md bg-muted text-foreground px-4 py-3 text-sm">
+                Γεια σας! Είμαι ο AI βοηθός σας. Μπορώ να αναλύσω τα οικονομικά σας δεδομένα, να απαντήσω ερωτήσεις για τιμολόγια, προμηθευτές, έξοδα και έσοδα. Ρωτήστε με ό,τι θέλετε!
+              </div>
             </div>
-            <div className="text-center space-y-1">
-              <h2 className="text-lg font-semibold text-foreground">Τι θέλετε να μάθετε;</h2>
-              <p className="text-sm text-muted-foreground">Ρωτήστε οτιδήποτε για την επιχείρησή σας</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+            {/* Suggestion chips */}
+            <div className="flex flex-wrap gap-2 pl-11">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
