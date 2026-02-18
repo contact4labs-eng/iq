@@ -470,6 +470,22 @@ export const translations = {
   "analytics.dim_delivery": { el: "Αξιοπιστία Παράδοσης", en: "Delivery Reliability" },
   "analytics.dim_cost_efficiency": { el: "Αποδοτικότητα Κόστους", en: "Cost Efficiency" },
   "analytics.dim_relationship": { el: "Αξία Σχέσης", en: "Relationship Value" },
+
+  // Strategic Insights
+  "analytics.leverage_opportunities": { el: "Ευκαιρίες Διαπραγμάτευσης", en: "Leverage Opportunities" },
+  "analytics.leverage_sub": { el: "Προμηθευτές με εξάρτηση >15%", en: "Suppliers with dependency >15%" },
+  "analytics.price_alerts_card": { el: "Ειδοποιήσεις Τιμών", en: "Price Alerts" },
+  "analytics.price_alerts_sub": { el: "Πρόσφατες αυξήσεις τιμών", en: "Recent price increases" },
+  "analytics.alternative_sources": { el: "Εναλλακτικές Πηγές", en: "Alternative Sources" },
+  "analytics.alternative_sources_sub": { el: "Προϊόντα από 2+ προμηθευτές", en: "Products from 2+ suppliers" },
+  "analytics.stale_contracts": { el: "Ανενεργά Συμβόλαια", en: "Stale Contracts" },
+  "analytics.stale_contracts_sub": { el: "Χαμηλή δραστηριότητα τιμολογίων", en: "Low invoice activity" },
+  "analytics.negotiation_tips": { el: "Συστάσεις Διαπραγμάτευσης", en: "Negotiation Recommendations" },
+  "analytics.rec_leverage_multi": { el: "Οι {s1} ({d1}%) και {s2} ({d2}%) έχουν υψηλή εξάρτηση — έχετε διαπραγματευτική ισχύ", en: "{s1} ({d1}%) and {s2} ({d2}%) have high dependency — you have negotiation leverage" },
+  "analytics.rec_leverage_single": { el: "Ο {s1} ({d1}%) έχει υψηλή εξάρτηση — έχετε διαπραγματευτική ισχύ", en: "{s1} ({d1}%) has high dependency — you have negotiation leverage" },
+  "analytics.rec_consolidate": { el: "Εξετάστε ενοποίηση αγορών — {count} προϊόντα διαθέσιμα από πολλούς προμηθευτές", en: "Consider consolidating purchases — {count} products available from multiple suppliers" },
+  "analytics.rec_stale": { el: "Αξιολογήστε τα συμβόλαια με {count} ανενεργούς προμηθευτές", en: "Review contracts with {count} inactive suppliers" },
+  "analytics.rec_price_alert": { el: "Παρακολουθήστε αυξήσεις τιμών από: {suppliers}", en: "Monitor price increases from: {suppliers}" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
