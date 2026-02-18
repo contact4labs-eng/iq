@@ -36,7 +36,31 @@ export interface PriceVolatility {
   level: string;
 }
 
-// Map RPC response field names to our interface
+// Map RPC response field names to our ExecutiveSummary interface
+function mapExecutiveSummary(raw: Record<string, unknown>): ExecutiveSummary {
+  return {
+    total_invoices: (raw.total_invoices as number) ?? 0,
+    total_spend: (raw.total_spend as number) ?? (raw.current_quarter_spend as number) ?? 0,
+    avg_invoice: (raw.avg_invoice as number) ?? (raw.avg_invoice_amount as number) ?? 0,
+    unique_suppliers: (raw.unique_suppliers as number) ?? (raw.total_suppliers as number) ?? 0,
+    invoices_this_month: (raw.invoices_this_month as number) ?? 0,
+    spend_this_month: (raw.spend_this_month as number) ?? (raw.current_month_spend as number) ?? 0,
+  };
+}
+
+// Map RPC response field names to our SupplierPerformance interface
+function mapSupplierPerformance(raw: Record<string, unknown>): SupplierPerformance {
+  return {
+    supplier_name: (raw.supplier_name as string) ?? "",
+    total_spend: (raw.total_spend as number) ?? 0,
+    invoice_count: (raw.invoice_count as number) ?? 0,
+    avg_invoice: (raw.avg_invoice as number) ?? (raw.avg_invoice_amount as number) ?? 0,
+    dependency_pct: (raw.dependency_pct as number) ?? (raw.dependency_percentage as number) ?? 0,
+    risk_level: ((raw.risk_level as string) ?? (raw.dependency_risk as string) ?? "low").toLowerCase(),
+  };
+}
+
+// Map RPC response field names to our PriceVolatility interface
 function mapPriceVolatility(raw: Record<string, unknown>): PriceVolatility {
   return {
     product_name: (raw.product_name as string) ?? "",
@@ -85,11 +109,17 @@ export function useInvoiceAnalytics() {
         if (volRes.error) throw volRes.error;
 
         // Executive summary may return a single row or array with one row
-        const execData = Array.isArray(execRes.data) ? execRes.data[0] : execRes.data;
-        setExecutive(execData as ExecutiveSummary);
-        setSuppliers((suppRes.data ?? []) as SupplierPerformance[]);
-
+        const execRaw = Array.isArray(execRes.data) ? execRes.data[0] : execRes.data;
         const costData = Array.isArray(costRes.data) ? costRes.data[0] : costRes.data;
+        const costRaw = (costData ?? {}) as Record<string, unknown>;
+        
+        // Merge cost analytics fields into executive summary for total_spend and avg_invoice
+        const mergedExec = { ...(execRaw as Record<string, unknown>) };
+        if (!mergedExec.total_spend && costRaw.total_spend) mergedExec.total_spend = costRaw.total_spend;
+        if (!mergedExec.avg_invoice && !mergedExec.avg_invoice_amount && costRaw.avg_invoice_amount) mergedExec.avg_invoice_amount = costRaw.avg_invoice_amount;
+        
+        setExecutive(mapExecutiveSummary(mergedExec));
+        setSuppliers((suppRes.data ?? []).map((s: Record<string, unknown>) => mapSupplierPerformance(s)));
         setCostAnalytics(costData as CostAnalytics);
         setPriceVolatility((volRes.data ?? []).map((r: Record<string, unknown>) => mapPriceVolatility(r)));
       } catch (err: unknown) {
