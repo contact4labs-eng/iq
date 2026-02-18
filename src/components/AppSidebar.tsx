@@ -49,8 +49,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      className="text-sidebar-foreground hover:bg-[rgba(59,130,246,0.08)] hover:text-foreground transition-colors"
+                      activeClassName="bg-[rgba(59,130,246,0.1)] text-white font-medium border-l-2 border-primary"
                     >
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>

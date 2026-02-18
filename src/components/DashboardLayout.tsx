@@ -13,8 +13,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           <main className="flex-1 p-4 md:p-6 overflow-auto animate-fade-in">
             {children}
           </main>
-          <footer className="border-t border-border px-4 py-3 text-center">
-            <span className="text-xs text-muted-foreground">Made with <span className="font-semibold text-accent">InvoiceIQ</span></span>
+          <footer className="border-t border-border px-4 py-3 text-center bg-card/50">
+            <span className="text-xs text-muted-foreground">Made with <span className="font-semibold text-primary">InvoiceIQ</span></span>
           </footer>
         </div>
       </div>

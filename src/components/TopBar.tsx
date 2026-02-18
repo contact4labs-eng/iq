@@ -16,10 +16,10 @@ export function TopBar() {
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm text-muted-foreground hidden md:inline">{email}</span>
-        <Button variant="ghost" size="icon" className="text-topbar-foreground relative">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
           <Bell className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-topbar-foreground" onClick={signOut}>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={signOut}>
           <LogOut className="w-4 h-4" />
         </Button>
       </div>
