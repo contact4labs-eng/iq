@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, AlertTriangle, Plus, PiggyBank, BarChart3, CalendarClock } from "lucide-react";
+import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, AlertTriangle, Plus, PiggyBank, BarChart3, CalendarClock, TrendingUp, TrendingDown, PieChart as PieChartIcon, Activity } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,8 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, PieChart, Pie, AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
+import { useFinanceExtras } from "@/hooks/useFinanceExtras";
 
 const safe = (v: any): number => (v == null || isNaN(v)) ? 0 : Number(v);
 
@@ -32,9 +33,25 @@ const chartConfig: ChartConfig = {
   outflows: { label: "Εκροές", color: "hsl(var(--destructive))" },
 };
 
+const trendConfig: ChartConfig = {
+  revenue: { label: "Έσοδα", color: "hsl(var(--success))" },
+  expenses: { label: "Έξοδα", color: "hsl(var(--destructive))" },
+};
+
+const PIE_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+  "hsl(var(--destructive))",
+  "hsl(var(--muted-foreground))",
+];
+
 const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, upcomingPayments, loading, error } = useFinanceDashboard(refreshKey);
+  const { monthlyPL, expenseBreakdown, monthlyTrends } = useFinanceExtras(refreshKey);
+
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
@@ -313,6 +330,149 @@ const Finance = () => {
                       <AlertTriangle className="w-5 h-5 text-success" />
                     </div>
                     <p className="text-sm text-muted-foreground">Δεν υπάρχουν ληξιπρόθεσμα τιμολόγια</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ─── 7. Μηνιαία Αποτελέσματα (P&L) ─── */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Activity className="w-4 h-4 text-accent" />
+                  <h2 className="text-sm font-semibold text-foreground">Μηνιαία Αποτελέσματα</h2>
+                </div>
+                {monthlyPL ? (
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Έσοδα */}
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Έσοδα</p>
+                      <p className="text-xl font-bold text-success">{fmt(safe(monthlyPL.revenue))}</p>
+                      {monthlyPL.revenue_change_pct !== 0 && (
+                        <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.revenue_change_pct > 0 ? "text-success" : "text-destructive"}`}>
+                          {monthlyPL.revenue_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                          {monthlyPL.revenue_change_pct > 0 ? "+" : ""}{monthlyPL.revenue_change_pct.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    {/* Έξοδα */}
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Έξοδα</p>
+                      <p className="text-xl font-bold text-destructive">{fmt(safe(monthlyPL.expenses))}</p>
+                      {monthlyPL.expenses_change_pct !== 0 && (
+                        <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.expenses_change_pct < 0 ? "text-success" : "text-destructive"}`}>
+                          {monthlyPL.expenses_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                          {monthlyPL.expenses_change_pct > 0 ? "+" : ""}{monthlyPL.expenses_change_pct.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    {/* Καθαρό Κέρδος */}
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Καθαρό Κέρδος</p>
+                      <p className={`text-xl font-bold ${safe(monthlyPL.net_profit) >= 0 ? "text-success" : "text-destructive"}`}>
+                        {fmt(safe(monthlyPL.net_profit))}
+                      </p>
+                      {monthlyPL.profit_change_pct !== 0 && (
+                        <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.profit_change_pct > 0 ? "text-success" : "text-destructive"}`}>
+                          {monthlyPL.profit_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                          {monthlyPL.profit_change_pct > 0 ? "+" : ""}{monthlyPL.profit_change_pct.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-6">Δεν υπάρχουν δεδομένα</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ─── 8. Ανάλυση Εξόδων (Pie Chart) ─── */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <PieChartIcon className="w-4 h-4 text-accent" />
+                  <h2 className="text-sm font-semibold text-foreground">Ανάλυση Εξόδων</h2>
+                </div>
+                {expenseBreakdown.length > 0 ? (
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    <div className="w-[200px] h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={expenseBreakdown}
+                            dataKey="total"
+                            nameKey="category"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            innerRadius={40}
+                            strokeWidth={2}
+                            stroke="hsl(var(--card))"
+                          >
+                            {expenseBreakdown.map((_, i) => (
+                              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v: number) => fmt(v)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      {expenseBreakdown.slice(0, 6).map((cat, i) => (
+                        <div key={cat.category} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                            <span className="text-foreground truncate max-w-[180px]">{cat.category}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold text-foreground">{fmt(cat.total)}</span>
+                            <Badge variant="secondary" className="text-xs">{cat.percentage.toFixed(0)}%</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <PieChartIcon className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν έξοδα αυτό τον μήνα</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ─── 9. Τάσεις 6 Μηνών (Area Chart) ─── */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-4 h-4 text-accent" />
+                  <h2 className="text-sm font-semibold text-foreground">Τάσεις 6 Μηνών</h2>
+                </div>
+                {monthlyTrends.length > 0 ? (
+                  <>
+                    <ChartContainer config={trendConfig} className="aspect-video max-h-[260px]">
+                      <AreaChart data={monthlyTrends}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                        <XAxis dataKey="month" className="text-xs" tickLine={false} axisLine={false} />
+                        <YAxis tickFormatter={(v) => fmtShort(v)} className="text-xs" tickLine={false} axisLine={false} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Area type="monotone" dataKey="revenue" name="Έσοδα" stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.15} strokeWidth={2} />
+                        <Area type="monotone" dataKey="expenses" name="Έξοδα" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} strokeWidth={2} />
+                      </AreaChart>
+                    </ChartContainer>
+                    <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-success inline-block" /> Έσοδα
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> Έξοδα
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <TrendingUp className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν δεδομένα τάσεων</p>
                   </div>
                 )}
               </CardContent>
