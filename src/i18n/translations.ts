@@ -321,6 +321,10 @@ export const translations = {
   "analytics.all_suppliers": { el: "Όλοι οι Προμηθευτές", en: "All Suppliers" },
   "analytics.price_over_time": { el: "Τιμές στο Χρόνο", en: "Prices Over Time" },
   "analytics.filter_supplier": { el: "Φιλτράρισμα Προμηθευτή", en: "Filter by Supplier" },
+  "analytics.trend_increase": { el: "Αύξηση", en: "Increase" },
+  "analytics.trend_decrease": { el: "Μείωση", en: "Decrease" },
+  "analytics.trend_stable": { el: "Σταθερό", en: "Stable" },
+  "analytics.col_trend": { el: "Τάση", en: "Trend" },
 
   // AI Insights
   "ai.title": { el: "AI Ανάλυση", en: "AI Analysis" },
