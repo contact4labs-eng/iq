@@ -35,23 +35,27 @@ export function useAlerts() {
     setLoading(true);
     setError(null);
     try {
-      const [sumRes, listRes] = await Promise.all([
-        supabase.rpc("get_alerts_summary", { p_company_id: companyId }),
-        supabase
-          .from("alerts")
-          .select("*")
-          .eq("company_id", companyId)
-          .order("created_at", { ascending: false }),
-      ]);
-      if (sumRes.error) throw sumRes.error;
-      if (listRes.error) throw listRes.error;
-      const s = Array.isArray(sumRes.data) ? sumRes.data[0] : sumRes.data;
-      setSummary(s as AlertSummary);
-      const rawAlerts = (listRes.data ?? []) as Array<Record<string, unknown>>;
-      setAlerts(rawAlerts.map((a) => ({
+      const { data, error: listErr } = await supabase
+        .from("alerts")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
+      if (listErr) throw listErr;
+      const rawAlerts = (data ?? []) as Array<Record<string, unknown>>;
+      const mapped = rawAlerts.map((a) => ({
         ...a,
-        is_resolved: a.status === "resolved" || a.is_resolved === true,
-      })) as AlertItem[]);
+        is_resolved: a.status === "resolved",
+      })) as AlertItem[];
+      setAlerts(mapped);
+
+      // Compute summary client-side
+      const unresolvedAlerts = mapped.filter((a) => !a.is_resolved);
+      setSummary({
+        critical: unresolvedAlerts.filter((a) => a.severity === "critical").length,
+        high: unresolvedAlerts.filter((a) => a.severity === "high").length,
+        medium: unresolvedAlerts.filter((a) => a.severity === "medium").length,
+        low: unresolvedAlerts.filter((a) => a.severity === "low").length,
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Σφάλμα φόρτωσης ειδοποιήσεων");
     } finally {
