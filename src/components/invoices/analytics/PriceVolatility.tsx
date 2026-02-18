@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-function fmt(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
+function fmt(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
 }
 
 const levelColors: Record<string, string> = {
@@ -50,7 +50,7 @@ export function PriceVolatilitySection({ data }: { data: PriceVolatility[] }) {
                 <TableCell className="text-right">{fmt(p.min_price)}</TableCell>
                 <TableCell className="text-right">{fmt(p.max_price)}</TableCell>
                 <TableCell className="text-right">{fmt(p.latest_price)}</TableCell>
-                <TableCell className="text-right">{p.volatility?.toFixed(1)}%</TableCell>
+                <TableCell className="text-right">{(p.volatility ?? 0).toFixed(1)}%</TableCell>
                 <TableCell>
                   <Badge className={levelColors[p.level] ?? "bg-muted text-muted-foreground"}>
                     {levelLabels[p.level] ?? p.level}

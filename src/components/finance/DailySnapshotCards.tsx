@@ -1,8 +1,8 @@
 import type { DailyKpis } from "@/hooks/useFinanceData";
 import { Card, CardContent } from "@/components/ui/card";
 
-function fmt(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
+function fmt(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
 }
 
 interface DailyCard {

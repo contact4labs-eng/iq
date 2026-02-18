@@ -33,11 +33,11 @@ export function ProfitPressureCard({ data }: { data: ProfitPressure | null }) {
         <div className="flex gap-6 text-sm">
           <div>
             <span className="text-muted-foreground">Τρέχον margin: </span>
-            <span className="font-semibold text-foreground">{data.current_margin?.toFixed(1)}%</span>
+            <span className="font-semibold text-foreground">{(data.current_margin ?? 0).toFixed(1)}%</span>
           </div>
           <div>
             <span className="text-muted-foreground">Προηγ. margin: </span>
-            <span className="font-semibold text-foreground">{data.previous_margin?.toFixed(1)}%</span>
+            <span className="font-semibold text-foreground">{(data.previous_margin ?? 0).toFixed(1)}%</span>
           </div>
         </div>
         {data.top_sources && data.top_sources.length > 0 && (
@@ -47,7 +47,7 @@ export function ProfitPressureCard({ data }: { data: ProfitPressure | null }) {
               {data.top_sources.map((s, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
                   <span className="text-foreground">{s.source}</span>
-                  <span className="text-destructive font-medium">{s.impact?.toFixed(1)}%</span>
+                  <span className="text-destructive font-medium">{(s.impact ?? 0).toFixed(1)}%</span>
                 </div>
               ))}
             </div>

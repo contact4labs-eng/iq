@@ -2,8 +2,8 @@ import type { ExecutiveSummary } from "@/hooks/useInvoiceAnalytics";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, DollarSign, Users, TrendingUp, CalendarDays, Receipt } from "lucide-react";
 
-function formatCurrency(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
+function formatCurrency(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
 }
 
 const stats = [

@@ -15,12 +15,12 @@ interface WeeklySummaryProps {
   loading: boolean;
 }
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | null | undefined): string {
   return new Intl.NumberFormat("el-GR", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2,
-  }).format(value);
+  }).format(value ?? 0);
 }
 
 function ComparisonArrow({ current, previous }: { current: number; previous?: number }) {

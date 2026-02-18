@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-function formatCurrency(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
+function formatCurrency(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
 }
 
 const riskColors: Record<string, string> = {
@@ -46,7 +46,7 @@ export function SupplierPerformanceSection({ data }: { data: SupplierPerformance
                 <TableCell className="text-right">{formatCurrency(s.total_spend)}</TableCell>
                 <TableCell className="text-right">{s.invoice_count}</TableCell>
                 <TableCell className="text-right">{formatCurrency(s.avg_invoice)}</TableCell>
-                <TableCell className="text-right">{s.dependency_pct?.toFixed(1)}%</TableCell>
+                <TableCell className="text-right">{(s.dependency_pct ?? 0).toFixed(1)}%</TableCell>
                 <TableCell>
                   <Badge className={riskColors[s.risk_level] ?? "bg-muted text-muted-foreground"}>
                     {riskLabels[s.risk_level] ?? s.risk_level}

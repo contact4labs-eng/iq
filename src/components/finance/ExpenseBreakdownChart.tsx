@@ -1,8 +1,8 @@
 import type { ExpenseCategory } from "@/hooks/useFinanceData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function fmt(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
+function fmt(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
 }
 
 export function ExpenseBreakdownChart({ data }: { data: ExpenseCategory[] }) {
@@ -28,7 +28,7 @@ export function ExpenseBreakdownChart({ data }: { data: ExpenseCategory[] }) {
             <div className="flex items-center justify-between text-sm">
               <span className="text-foreground font-medium">{item.category}</span>
               <span className="text-muted-foreground">
-                {fmt(item.total)} ({item.percentage?.toFixed(1)}%)
+                {fmt(item.total)} ({(item.percentage ?? 0).toFixed(1)}%)
               </span>
             </div>
             <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
