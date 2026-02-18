@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, Users, ShieldCheck, Search } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Users, ShieldCheck, Search, PieChart } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { SupplierPerformanceSection } from "@/components/invoices/analytics/SupplierPerformance";
@@ -8,6 +8,7 @@ import { ExecutiveSummarySection } from "@/components/invoices/analytics/Executi
 import { CostAnalyticsSection } from "@/components/invoices/analytics/CostAnalytics";
 import { PriceTrendAnalysis } from "@/components/analytics/PriceTrendAnalysis";
 import { StrategicInsights } from "@/components/analytics/StrategicInsights";
+import { ProfitMarginsTab } from "@/components/analytics/ProfitMarginsTab";
 import { useInvoiceAnalytics } from "@/hooks/useInvoiceAnalytics";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -161,6 +162,10 @@ const Analytics = () => {
               <Search className="w-4 h-4" />
               {t("analytics.tab_price_analysis")}
             </TabsTrigger>
+            <TabsTrigger value="profit-margins" className="gap-1.5">
+              <PieChart className="w-4 h-4" />
+              {t("analytics.tab_profit_margins")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="price-trends" className="space-y-6">
@@ -295,6 +300,15 @@ const Analytics = () => {
 
           <TabsContent value="price-analysis">
             <PriceTrendAnalysis priceData={priceVolatility} suppliers={suppliers} />
+          </TabsContent>
+
+          <TabsContent value="profit-margins">
+            <ProfitMarginsTab
+              priceData={priceVolatility}
+              suppliers={suppliers}
+              costAnalytics={costAnalytics}
+              totalSpend={executive?.total_spend ?? 0}
+            />
           </TabsContent>
         </Tabs>
       </div>
