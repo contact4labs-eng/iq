@@ -22,39 +22,57 @@ export interface QaMessage {
 
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/dynamic-task`;
 
+const FALLBACK_ANSWER = "Δεν μπόρεσα να κατανοήσω την ερώτησή σας. Παρακαλώ δοκιμάστε μια ερώτηση σχετικά με τα οικονομικά σας δεδομένα, όπως έξοδα, έσοδα, τιμολόγια ή προμηθευτές.";
+
+function extractAnswer(obj: Record<string, unknown>): string | null {
+  // Try nested insights.answer
+  if (obj.insights && typeof obj.insights === "object") {
+    const ins = obj.insights as Record<string, unknown>;
+    if (typeof ins.answer === "string" && ins.answer.trim()) return ins.answer;
+  }
+  // Try top-level answer
+  if (typeof obj.answer === "string" && obj.answer.trim()) return obj.answer;
+  // Try response
+  if (typeof obj.response === "string" && obj.response.trim()) return obj.response;
+  // Try message
+  if (typeof obj.message === "string" && obj.message.trim()) return obj.message;
+  return null;
+}
+
+function extractDataPoints(obj: Record<string, unknown>): DataPoint[] | undefined {
+  const src = (obj.insights && typeof obj.insights === "object")
+    ? (obj.insights as Record<string, unknown>)
+    : obj;
+  return Array.isArray(src.data_points) && src.data_points.length > 0
+    ? src.data_points
+    : undefined;
+}
+
+function extractFollowUp(obj: Record<string, unknown>): string | undefined {
+  const src = (obj.insights && typeof obj.insights === "object")
+    ? (obj.insights as Record<string, unknown>)
+    : obj;
+  const fu = src.follow_up;
+  return (typeof fu === "string" && fu.trim()) ? fu : undefined;
+}
+
 function parseEdgeResponse(data: unknown): ParsedResponse {
   if (!data || typeof data !== "object") {
-    return { answer: String(data) };
+    return { answer: FALLBACK_ANSWER };
   }
 
   const obj = data as Record<string, unknown>;
+  const answer = extractAnswer(obj);
 
-  // Handle { insights: { answer, data_points, follow_up } }
-  if (obj.insights && typeof obj.insights === "object") {
-    const ins = obj.insights as Record<string, unknown>;
-    return {
-      answer: (ins.answer as string) ?? "",
-      data_points: Array.isArray(ins.data_points) ? ins.data_points : undefined,
-      follow_up: (ins.follow_up as string) ?? undefined,
-    };
+  if (!answer) {
+    return { answer: FALLBACK_ANSWER };
   }
 
-  // Handle { answer: "..." } directly
-  if (typeof obj.answer === "string") {
-    return {
-      answer: obj.answer,
-      data_points: Array.isArray(obj.data_points) ? obj.data_points : undefined,
-      follow_up: (obj.follow_up as string) ?? undefined,
-    };
-  }
-
-  // Handle { response: "..." }
-  if (typeof obj.response === "string") {
-    return { answer: obj.response };
-  }
-
-  // Fallback — don't show raw JSON
-  return { answer: "Δεν ήταν δυνατή η ανάλυση της απάντησης." };
+  return {
+    answer,
+    data_points: extractDataPoints(obj),
+    follow_up: extractFollowUp(obj),
+  };
 }
 
 export function useAiInsights() {
@@ -83,11 +101,17 @@ export function useAiInsights() {
         throw new Error(
           res.status >= 500
             ? "Πρόβλημα σύνδεσης. Ελέγξτε τη σύνδεσή σας."
-            : "Δυστυχώς δεν μπόρεσα να απαντήσω. Δοκιμάστε ξανά ή διατυπώστε διαφορετικά."
+            : "Προέκυψε σφάλμα κατά την επεξεργασία. Παρακαλώ δοκιμάστε ξανά."
         );
       }
 
-      const data = await res.json();
+      let data: unknown;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Προέκυψε σφάλμα κατά την επεξεργασία. Παρακαλώ δοκιμάστε ξανά.");
+      }
+
       const parsed = parseEdgeResponse(data);
 
       setQaMessages((prev) => [
@@ -101,9 +125,9 @@ export function useAiInsights() {
       ]);
     } catch (err) {
       const msg =
-        err instanceof Error && err.message.startsWith("Πρόβλημα")
+        err instanceof Error && (err.message.startsWith("Πρόβλημα") || err.message.startsWith("Προέκυψε"))
           ? err.message
-          : "Δυστυχώς δεν μπόρεσα να απαντήσω. Δοκιμάστε ξανά ή διατυπώστε διαφορετικά.";
+          : "Προέκυψε σφάλμα κατά την επεξεργασία. Παρακαλώ δοκιμάστε ξανά.";
       setQaMessages((prev) => [...prev, { role: "assistant", content: msg }]);
     } finally {
       setQaLoading(false);
