@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import type { QaMessage } from "@/hooks/useAiInsights";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2, MessageCircle } from "lucide-react";
+import { Send, Bot, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 
-const CHIPS = [
-  "Ποιος είναι ο μεγαλύτερος προμηθευτής μου;",
-  "Πώς πάει η ρευστότητά μου;",
-  "Ποιες τιμές αυξήθηκαν;",
-  "Σύγκριση μήνα",
+const SUGGESTIONS = [
+  "Ποια είναι τα top 5 έξοδά μου;",
+  "Πώς πάει η επιχείρηση αυτόν τον μήνα;",
+  "Ποιος προμηθευτής μου κοστίζει περισσότερο;",
+  "Υπάρχουν ληξιπρόθεσμα τιμολόγια;",
+  "Δώσε μου μια ανάλυση εσόδων-εξόδων",
+  "Τι δείχνουν οι τάσεις του τελευταίου 6μηνου;",
 ];
 
 interface BusinessQAProps {
@@ -19,13 +20,43 @@ interface BusinessQAProps {
   onAsk: (q: string) => void;
 }
 
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 px-4 py-3">
+      <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
+      <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
+      <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+    </div>
+  );
+}
+
+function DataPointsTable({ points }: { points: { label: string; value: string | number }[] }) {
+  return (
+    <div className="mt-3 rounded-lg border border-border overflow-hidden">
+      <table className="w-full text-sm">
+        <tbody>
+          {points.map((p, i) => (
+            <tr key={i} className={cn("border-b border-border last:border-0", i % 2 === 0 ? "bg-muted/30" : "bg-background")}>
+              <td className="px-3 py-2 font-medium text-foreground">{p.label}</td>
+              <td className="px-3 py-2 text-right text-muted-foreground">{p.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function BusinessQA({ messages, loading, onAsk }: BusinessQAProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
 
   const submit = () => {
     const q = input.trim();
@@ -34,72 +65,114 @@ export function BusinessQA({ messages, loading, onAsk }: BusinessQAProps) {
     onAsk(q);
   };
 
+  const isEmpty = messages.length === 0;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-accent" /> Ρωτήστε για την επιχείρησή σας
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Chips */}
-        {messages.length === 0 && (
-          <div className="flex flex-wrap gap-2">
-            {CHIPS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => onAsk(c)}
-                disabled={loading}
-                className="px-3 py-1.5 rounded-full text-xs border border-border bg-card text-muted-foreground hover:border-accent/50 transition-colors disabled:opacity-50"
-              >
-                {c}
-              </button>
-            ))}
+    <div className="flex flex-col h-full">
+      {/* Messages area */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        {isEmpty && (
+          <div className="flex flex-col items-center justify-center h-full gap-6 animate-fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center">
+              <Bot className="w-7 h-7 text-accent" />
+            </div>
+            <div className="text-center space-y-1">
+              <h2 className="text-lg font-semibold text-foreground">Τι θέλετε να μάθετε;</h2>
+              <p className="text-sm text-muted-foreground">Ρωτήστε οτιδήποτε για την επιχείρησή σας</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onAsk(s)}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-full text-xs border border-border bg-card text-muted-foreground hover:border-accent/50 hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Messages */}
-        {messages.length > 0 && (
-          <div ref={scrollRef} className="max-h-80 overflow-y-auto space-y-3 pr-1">
-            {messages.map((m, i) => (
-              <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
-                <div
-                  className={cn(
-                    "max-w-[85%] rounded-xl px-4 py-2.5 text-sm",
-                    m.role === "user"
-                      ? "bg-accent text-accent-foreground rounded-br-sm"
-                      : "bg-muted text-foreground rounded-bl-sm"
-                  )}
-                >
-                  {m.content}
-                </div>
+        {messages.map((m, i) => (
+          <div key={i} className={cn("flex gap-3 animate-fade-in", m.role === "user" ? "justify-end" : "justify-start")}>
+            {m.role === "assistant" && (
+              <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Bot className="w-4 h-4 text-accent" />
               </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-xl px-4 py-2.5 rounded-bl-sm">
-                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            <div
+              className={cn(
+                "max-w-[80%] rounded-2xl px-4 py-3 text-sm",
+                m.role === "user"
+                  ? "bg-accent text-accent-foreground rounded-br-md"
+                  : "bg-muted text-foreground rounded-bl-md"
+              )}
+            >
+              {m.role === "assistant" ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2">
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
                 </div>
+              ) : (
+                m.content
+              )}
+              {m.data_points && m.data_points.length > 0 && (
+                <DataPointsTable points={m.data_points} />
+              )}
+            </div>
+            {m.role === "user" && (
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <User className="w-4 h-4 text-primary" />
               </div>
             )}
           </div>
+        ))}
+
+        {/* Follow-up chip from last assistant message */}
+        {!loading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].follow_up && (
+          <div className="flex justify-start pl-11 animate-fade-in">
+            <button
+              type="button"
+              onClick={() => onAsk(messages[messages.length - 1].follow_up!)}
+              className="px-3 py-1.5 rounded-full text-xs border border-accent/30 bg-accent/5 text-accent hover:bg-accent/10 transition-colors"
+            >
+              {messages[messages.length - 1].follow_up}
+            </button>
+          </div>
         )}
 
-        {/* Input */}
-        <div className="flex gap-2">
-          <Input
+        {loading && (
+          <div className="flex gap-3 justify-start animate-fade-in">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+              <Bot className="w-4 h-4 text-accent" />
+            </div>
+            <div className="bg-muted rounded-2xl rounded-bl-md">
+              <TypingDots />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input bar */}
+      <div className="border-t border-border bg-card px-4 py-3">
+        <div className="flex gap-2 max-w-3xl mx-auto">
+          <input
+            ref={inputRef}
+            type="text"
             placeholder="Ρωτήστε κάτι..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
             disabled={loading}
+            className="flex-1 h-10 rounded-xl border border-input bg-background px-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           />
-          <Button size="icon" onClick={submit} disabled={loading || !input.trim()}>
+          <Button size="icon" onClick={submit} disabled={loading || !input.trim()} className="rounded-xl shrink-0">
             <Send className="w-4 h-4" />
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
