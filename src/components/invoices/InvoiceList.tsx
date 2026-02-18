@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/contexts/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,21 +23,30 @@ interface Invoice {
 
 const PAGE_SIZE = 20;
 
-const STATUS_TABS: { key: string; label: string }[] = [
-  { key: "all", label: "Όλα" },
-  { key: "extracted", label: "Εξαγμένα" },
-  { key: "approved", label: "Εγκεκριμένα" },
-  { key: "flagged", label: "Σημαιωμένα" },
-  { key: "rejected", label: "Απορριφθέντα" },
+const STATUS_TAB_KEYS: { key: string; labelKey: TranslationKey }[] = [
+  { key: "all", labelKey: "invoices.filter_all" },
+  { key: "extracted", labelKey: "invoices.filter_extracted" },
+  { key: "approved", labelKey: "invoices.filter_approved" },
+  { key: "flagged", labelKey: "invoices.filter_flagged" },
+  { key: "rejected", labelKey: "invoices.filter_rejected" },
 ];
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  uploaded: { label: "Ανέβηκε", className: "bg-muted text-muted-foreground border-border" },
-  processing: { label: "Επεξεργασία", className: "bg-info/15 text-info border-info/30" },
-  extracted: { label: "Εξαγωγή", className: "bg-warning/15 text-warning border-warning/30" },
-  approved: { label: "Εγκρίθηκε", className: "bg-success/15 text-success border-success/30" },
-  flagged: { label: "Σημαία", className: "bg-warning/20 text-warning border-warning/40" },
-  rejected: { label: "Απορρίφθηκε", className: "bg-destructive/15 text-destructive border-destructive/30" },
+const statusLabelKeys: Record<string, TranslationKey> = {
+  uploaded: "status.uploaded",
+  processing: "status.processing",
+  extracted: "status.extracted",
+  approved: "status.approved",
+  flagged: "status.flagged",
+  rejected: "status.rejected",
+};
+
+const statusClasses: Record<string, string> = {
+  uploaded: "bg-muted text-muted-foreground border-border",
+  processing: "bg-info/15 text-info border-info/30",
+  extracted: "bg-warning/15 text-warning border-warning/30",
+  approved: "bg-success/15 text-success border-success/30",
+  flagged: "bg-warning/20 text-warning border-warning/40",
+  rejected: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
 function formatCurrency(value: number | null): string {
@@ -63,6 +74,7 @@ interface InvoiceListProps {
 export function InvoiceList({ refreshKey }: InvoiceListProps) {
   const { company } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
@@ -115,7 +127,6 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
     fetchInvoices();
   }, [fetchInvoices, refreshKey]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(0);
   }, [activeTab, search]);
@@ -126,7 +137,7 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
     <div className="bg-card border rounded-lg">
       {/* Tabs */}
       <div className="flex items-center gap-1 p-3 border-b overflow-x-auto">
-        {STATUS_TABS.map((tab) => (
+        {STATUS_TAB_KEYS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -136,7 +147,7 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
                 : "text-muted-foreground hover:bg-secondary"
             }`}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
@@ -146,7 +157,7 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Αναζήτηση προμηθευτή ή αριθμού τιμολογίου..."
+            placeholder={t("invoices.search_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -159,12 +170,12 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-secondary/30">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ημερομηνία</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Προμηθευτής</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Αρ. Τιμολογίου</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">Ποσό (€)</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">ΦΠΑ (€)</th>
-              <th className="text-center px-4 py-3 font-medium text-muted-foreground">Κατάσταση</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("invoices.col_date")}</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("invoices.col_supplier")}</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("invoices.col_invoice_number")}</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground">{t("invoices.col_amount")}</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground">{t("invoices.col_vat")}</th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground">{t("invoices.col_status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -180,10 +191,9 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
                 ))
               : invoices.length > 0
               ? invoices.map((inv) => {
-                  const status = statusConfig[inv.status] || {
-                    label: inv.status,
-                    className: "bg-muted text-muted-foreground border-border",
-                  };
+                  const labelKey = statusLabelKeys[inv.status];
+                  const label = labelKey ? t(labelKey) : inv.status;
+                  const className = statusClasses[inv.status] || "bg-muted text-muted-foreground border-border";
                   return (
                     <tr
                       key={inv.id}
@@ -206,8 +216,8 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
                         {formatCurrency(inv.vat_amount)}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <Badge variant="outline" className={`text-xs ${status.className}`}>
-                          {status.label}
+                        <Badge variant="outline" className={`text-xs ${className}`}>
+                          {label}
                         </Badge>
                       </td>
                     </tr>
@@ -218,8 +228,8 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
                   <td colSpan={6} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <FileText className="w-10 h-10 text-muted-foreground/40" />
-                      <p className="text-muted-foreground font-medium">Δεν υπάρχουν τιμολόγια ακόμα.</p>
-                      <p className="text-sm text-muted-foreground">Ανεβάστε το πρώτο σας!</p>
+                      <p className="text-muted-foreground font-medium">{t("invoices.no_invoices_yet")}</p>
+                      <p className="text-sm text-muted-foreground">{t("invoices.upload_first")}</p>
                     </div>
                   </td>
                 </tr>
@@ -232,7 +242,7 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 border-t">
           <span className="text-xs text-muted-foreground">
-            {totalCount} τιμολόγια — Σελίδα {page + 1} / {totalPages}
+            {totalCount} {t("invoices.pagination")} {page + 1} / {totalPages}
           </span>
           <div className="flex items-center gap-1">
             <Button

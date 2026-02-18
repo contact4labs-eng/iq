@@ -30,15 +30,7 @@ function fmtShort(v: number) {
   return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 }
 
-const chartConfig: ChartConfig = {
-  inflows: { label: "Εισροές", color: "hsl(var(--success))" },
-  outflows: { label: "Εκροές", color: "hsl(var(--destructive))" },
-};
-
-const trendConfig: ChartConfig = {
-  revenue: { label: "Έσοδα", color: "hsl(var(--success))" },
-  expenses: { label: "Έξοδα", color: "hsl(var(--destructive))" },
-};
+// Chart configs are created inside the component to use translations
 
 const PIE_COLORS = [
   "hsl(var(--primary))",
@@ -54,6 +46,16 @@ const Finance = () => {
   const { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, upcomingPayments, loading, error } = useFinanceDashboard(refreshKey);
   const { monthlyPL, expenseBreakdown, monthlyTrends } = useFinanceExtras(refreshKey);
   const { t } = useLanguage();
+
+  const chartConfig: ChartConfig = {
+    inflows: { label: t("finance.inflows"), color: "hsl(var(--success))" },
+    outflows: { label: t("finance.outflows"), color: "hsl(var(--destructive))" },
+  };
+
+  const trendConfig: ChartConfig = {
+    revenue: { label: t("dashboard.revenue"), color: "hsl(var(--success))" },
+    expenses: { label: t("dashboard.expenses"), color: "hsl(var(--destructive))" },
+  };
 
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);

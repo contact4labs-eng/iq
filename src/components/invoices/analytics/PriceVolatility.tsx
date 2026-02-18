@@ -2,6 +2,8 @@ import type { PriceVolatility } from "@/hooks/useInvoiceAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/contexts/LanguageContext";
 
 function fmt(v: number | null | undefined) {
   return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
@@ -13,32 +15,33 @@ const levelColors: Record<string, string> = {
   low: "bg-success text-success-foreground",
 };
 
-const levelLabels: Record<string, string> = {
-  high: "Υψηλή",
-  medium: "Μεσαία",
-  low: "Χαμηλή",
+const levelLabelKeys: Record<string, TranslationKey> = {
+  high: "analytics.level_high",
+  medium: "analytics.level_medium",
+  low: "analytics.level_low",
 };
 
 export function PriceVolatilitySection({ data }: { data: PriceVolatility[] }) {
+  const { t } = useLanguage();
   if (!data.length) return null;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Μεταβλητότητα Τιμών</CardTitle>
+        <CardTitle className="text-lg">{t("analytics.price_volatility")}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Προϊόν</TableHead>
-              <TableHead>Προμηθευτής</TableHead>
-              <TableHead className="text-right">Μ.Ο. Τιμής</TableHead>
-              <TableHead className="text-right">Ελάχ.</TableHead>
-              <TableHead className="text-right">Μέγ.</TableHead>
-              <TableHead className="text-right">Τελευταία</TableHead>
-              <TableHead className="text-right">Μεταβλ. %</TableHead>
-              <TableHead>Επίπεδο</TableHead>
+              <TableHead>{t("analytics.col_product")}</TableHead>
+              <TableHead>{t("analytics.col_supplier")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_avg_price")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_min")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_max")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_latest")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_volatility")}</TableHead>
+              <TableHead>{t("analytics.col_level")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -53,7 +56,7 @@ export function PriceVolatilitySection({ data }: { data: PriceVolatility[] }) {
                 <TableCell className="text-right">{(p.volatility ?? 0).toFixed(1)}%</TableCell>
                 <TableCell>
                   <Badge className={levelColors[p.level] ?? "bg-muted text-muted-foreground"}>
-                    {levelLabels[p.level] ?? p.level}
+                    {levelLabelKeys[p.level] ? t(levelLabelKeys[p.level]) : p.level}
                   </Badge>
                 </TableCell>
               </TableRow>

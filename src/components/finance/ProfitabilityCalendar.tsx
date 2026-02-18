@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/contexts/LanguageContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,8 +15,16 @@ function fmt(v: number) {
   return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 }
 
-const MONTH_NAMES = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
-const DAY_NAMES = ["Δευ", "Τρι", "Τετ", "Πεμ", "Παρ", "Σαβ", "Κυρ"];
+const MONTH_KEYS: TranslationKey[] = [
+  "calendar.month_jan", "calendar.month_feb", "calendar.month_mar", "calendar.month_apr",
+  "calendar.month_may", "calendar.month_jun", "calendar.month_jul", "calendar.month_aug",
+  "calendar.month_sep", "calendar.month_oct", "calendar.month_nov", "calendar.month_dec",
+];
+
+const DAY_KEYS: TranslationKey[] = [
+  "calendar.day_mon", "calendar.day_tue", "calendar.day_wed", "calendar.day_thu",
+  "calendar.day_fri", "calendar.day_sat", "calendar.day_sun",
+];
 
 interface DayData {
   revenue: number;
@@ -28,6 +38,7 @@ interface ProfitabilityCalendarProps {
 
 export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarProps) {
   const { company } = useAuth();
+  const { t, language } = useLanguage();
   const companyId = company?.id;
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -49,18 +60,8 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
       setLoading(true);
       try {
         const [revRes, expRes] = await Promise.all([
-          supabase
-            .from("revenue_entries")
-            .select("amount, entry_date")
-            .eq("company_id", companyId)
-            .gte("entry_date", monthStart)
-            .lte("entry_date", monthEnd),
-          supabase
-            .from("expense_entries")
-            .select("amount, entry_date")
-            .eq("company_id", companyId)
-            .gte("entry_date", monthStart)
-            .lte("entry_date", monthEnd),
+          supabase.from("revenue_entries").select("amount, entry_date").eq("company_id", companyId).gte("entry_date", monthStart).lte("entry_date", monthEnd),
+          supabase.from("expense_entries").select("amount, entry_date").eq("company_id", companyId).gte("entry_date", monthStart).lte("entry_date", monthEnd),
         ]);
 
         const map = new Map<string, DayData>();
@@ -94,14 +95,12 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
 
   const calendarDays = useMemo(() => {
     const firstDayOfMonth = new Date(year, month, 1);
-    // Monday = 0, Sunday = 6
     let startDow = firstDayOfMonth.getDay() - 1;
     if (startDow < 0) startDow = 6;
 
     const days: (number | null)[] = [];
     for (let i = 0; i < startDow; i++) days.push(null);
     for (let d = 1; d <= lastDay; d++) days.push(d);
-    // Fill remaining to complete the week
     while (days.length % 7 !== 0) days.push(null);
 
     return days;
@@ -121,20 +120,22 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
     return { revenue: rev, expenses: exp, profit: rev - exp };
   }, [dayMap]);
 
+  const dateLocale = language === "en" ? "en-GB" : "el-GR";
+
   return (
     <Card>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CalendarDays className="w-4 h-4 text-accent" />
-            <h2 className="text-sm font-semibold text-foreground">Ημερολόγιο Κερδοφορίας</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t("calendar.title")}</h2>
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToPrevMonth}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
-              {MONTH_NAMES[month]} {year}
+              {t(MONTH_KEYS[month])} {year}
             </span>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToNextMonth}>
               <ChevronRight className="w-4 h-4" />
@@ -146,16 +147,14 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
           <Skeleton className="h-64 rounded-lg" />
         ) : (
           <>
-            {/* Day headers */}
             <div className="grid grid-cols-7 gap-1 mb-1">
-              {DAY_NAMES.map((d) => (
-                <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-1">
-                  {d}
+              {DAY_KEYS.map((key) => (
+                <div key={key} className="text-center text-xs font-semibold text-muted-foreground py-1">
+                  {t(key)}
                 </div>
               ))}
             </div>
 
-            {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day, i) => {
                 if (day === null) {
@@ -176,14 +175,10 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
                     onClick={() => setSelectedDay(isSelected ? null : dateStr)}
                     className={cn(
                       "aspect-square rounded-md flex flex-col items-center justify-center text-xs transition-all border",
-                      isSelected
-                        ? "border-accent ring-1 ring-accent"
-                        : "border-transparent",
+                      isSelected ? "border-accent ring-1 ring-accent" : "border-transparent",
                       hasData
-                        ? profit > 0
-                          ? "bg-success/15 text-success hover:bg-success/25"
-                          : profit < 0
-                          ? "bg-destructive/15 text-destructive hover:bg-destructive/25"
+                        ? profit > 0 ? "bg-success/15 text-success hover:bg-success/25"
+                          : profit < 0 ? "bg-destructive/15 text-destructive hover:bg-destructive/25"
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
                         : "bg-card text-muted-foreground/50 hover:bg-muted/30",
                       isToday && "ring-1 ring-accent/50"
@@ -200,30 +195,28 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
               })}
             </div>
 
-            {/* Selected day tooltip */}
             {selectedData && selectedDay && (
               <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
                 <p className="text-xs font-semibold text-foreground mb-1.5">
-                  {new Date(selectedDay + "T00:00:00").toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long" })}
+                  {new Date(selectedDay + "T00:00:00").toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}
                 </p>
                 <div className="flex gap-4 text-xs">
-                  <span className="text-success">Έσοδα: {fmt(selectedData.revenue)}</span>
-                  <span className="text-destructive">Έξοδα: {fmt(selectedData.expenses)}</span>
+                  <span className="text-success">{t("dashboard.revenue")}: {fmt(selectedData.revenue)}</span>
+                  <span className="text-destructive">{t("dashboard.expenses")}: {fmt(selectedData.expenses)}</span>
                   <span className={selectedData.profit >= 0 ? "text-success font-semibold" : "text-destructive font-semibold"}>
-                    Κέρδος: {fmt(selectedData.profit)}
+                    {t("dashboard.profit")}: {fmt(selectedData.profit)}
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Month summary */}
             <div className="mt-3 pt-3 border-t border-border flex justify-between text-xs text-muted-foreground">
-              <span>Σύνολο μήνα:</span>
+              <span>{t("calendar.month_total")}</span>
               <div className="flex gap-3">
-                <span className="text-success">Έσοδα: {fmt(monthTotals.revenue)}</span>
-                <span className="text-destructive">Έξοδα: {fmt(monthTotals.expenses)}</span>
+                <span className="text-success">{t("dashboard.revenue")}: {fmt(monthTotals.revenue)}</span>
+                <span className="text-destructive">{t("dashboard.expenses")}: {fmt(monthTotals.expenses)}</span>
                 <span className={cn("font-semibold", monthTotals.profit >= 0 ? "text-success" : "text-destructive")}>
-                  Κέρδος: {fmt(monthTotals.profit)}
+                  {t("dashboard.profit")}: {fmt(monthTotals.profit)}
                 </span>
               </div>
             </div>

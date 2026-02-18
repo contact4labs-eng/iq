@@ -3,6 +3,7 @@ import { Upload, CheckCircle, Loader2, AlertCircle, Camera, FileUp } from "lucid
 import { supabase, SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CameraDialog } from "./CameraDialog";
@@ -10,7 +11,7 @@ import { CameraDialog } from "./CameraDialog";
 type UploadStep = "idle" | "uploading" | "processing" | "done" | "error";
 
 const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_SIZE = 10 * 1024 * 1024;
 
 interface InvoiceUploadZoneProps {
   onUploadComplete: () => void;
@@ -19,6 +20,7 @@ interface InvoiceUploadZoneProps {
 export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) {
   const { company, session } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const isMobile = useIsMobile();
   const [step, setStep] = useState<UploadStep>("idle");
   const [dragOver, setDragOver] = useState(false);
@@ -33,22 +35,21 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
   const handleFile = useCallback(
     async (file: File) => {
       if (!company?.id || !session?.access_token) {
-        toast({ title: "Σφάλμα", description: "Δεν βρέθηκε εταιρεία ή συνεδρία.", variant: "destructive" });
+        toast({ title: t("toast.error"), description: t("upload.no_company"), variant: "destructive" });
         return;
       }
 
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        toast({ title: "Μη αποδεκτός τύπος", description: "Επιτρεπόμενοι τύποι: PDF, JPG, PNG", variant: "destructive" });
+        toast({ title: t("upload.invalid_type"), description: t("upload.accepted_types"), variant: "destructive" });
         return;
       }
 
       if (file.size > MAX_SIZE) {
-        toast({ title: "Πολύ μεγάλο αρχείο", description: "Μέγιστο μέγεθος: 10MB", variant: "destructive" });
+        toast({ title: t("upload.file_too_large"), description: t("upload.max_size"), variant: "destructive" });
         return;
       }
 
       try {
-        // Step 1: Upload to storage
         setStep("uploading");
         const timestamp = Date.now();
         const storagePath = `${company.id}/${timestamp}_${file.name}`;
@@ -57,9 +58,8 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           .from("invoices")
           .upload(storagePath, file);
 
-        if (uploadError) throw new Error(`Σφάλμα αποθήκευσης: ${uploadError.message}`);
+        if (uploadError) throw new Error(uploadError.message);
 
-        // Step 2: Insert into files table
         const ext = getFileExtension(file.name);
         const { data: fileRecord, error: fileError } = await supabase
           .from("files")
@@ -74,9 +74,8 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           .select("id")
           .single();
 
-        if (fileError || !fileRecord) throw new Error(`Σφάλμα καταγραφής αρχείου: ${fileError?.message}`);
+        if (fileError || !fileRecord) throw new Error(fileError?.message);
 
-        // Step 3: Insert into invoices table
         const { error: invoiceError } = await supabase
           .from("invoices")
           .insert({
@@ -87,9 +86,8 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           .select("id")
           .single();
 
-        if (invoiceError) throw new Error(`Σφάλμα δημιουργίας τιμολογίου: ${invoiceError.message}`);
+        if (invoiceError) throw new Error(invoiceError.message);
 
-        // Step 4: Call process-invoice Edge Function
         setStep("processing");
         const response = await fetch(
           `${SUPABASE_URL}/functions/v1/process-invoice`,
@@ -108,26 +106,25 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (!response.ok) {
           console.warn("Edge function returned non-OK status:", response.status);
-          toast({ title: "Σφάλμα", description: "Σφάλμα επεξεργασίας τιμολογίου.", variant: "destructive" });
+          toast({ title: t("toast.error"), description: t("upload.processing_error"), variant: "destructive" });
         }
 
-        // Step 5: Done
         setStep("done");
-        toast({ title: "Επιτυχία!", description: "Το τιμολόγιο ανέβηκε και επεξεργάζεται." });
+        toast({ title: t("upload.success"), description: t("upload.success_desc") });
         onUploadComplete();
         setTimeout(() => setStep("idle"), 3000);
       } catch (err) {
         console.error("Upload error:", err);
         setStep("error");
         toast({
-          title: "Σφάλμα ανεβάσματος",
-          description: err instanceof Error ? err.message : "Παρουσιάστηκε σφάλμα.",
+          title: t("upload.upload_error"),
+          description: err instanceof Error ? err.message : t("modal.unexpected_error"),
           variant: "destructive",
         });
         setTimeout(() => setStep("idle"), 4000);
       }
     },
-    [company, session, toast, onUploadComplete]
+    [company, session, toast, onUploadComplete, t]
   );
 
   const onDrop = useCallback(
@@ -149,10 +146,8 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
   const handleCameraClick = () => {
     if (isMobile) {
-      // Mobile: use native camera input
       cameraInputRef.current?.click();
     } else {
-      // Desktop: open getUserMedia dialog
       setCameraOpen(true);
     }
   };
@@ -162,28 +157,28 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
   const stepContent = {
     idle: {
       icon: <Upload className="w-8 h-8 text-muted-foreground" />,
-      text: "Σύρετε αρχείο εδώ ή χρησιμοποιήστε τα παρακάτω κουμπιά",
-      sub: "PDF, JPG, PNG — μέγιστο 10MB",
+      text: t("upload.drag_text"),
+      sub: t("upload.drag_sub"),
     },
     uploading: {
       icon: <Loader2 className="w-8 h-8 text-accent animate-spin" />,
-      text: "Ανέβασμα...",
-      sub: "Παρακαλώ περιμένετε",
+      text: t("upload.uploading"),
+      sub: t("upload.please_wait"),
     },
     processing: {
       icon: <Loader2 className="w-8 h-8 text-accent animate-spin" />,
-      text: "Επεξεργασία με AI...",
-      sub: "Εξαγωγή δεδομένων τιμολογίου",
+      text: t("upload.ai_processing"),
+      sub: t("upload.extracting_data"),
     },
     done: {
       icon: <CheckCircle className="w-8 h-8 text-success" />,
-      text: "Ολοκληρώθηκε!",
-      sub: "Το τιμολόγιο επεξεργάστηκε επιτυχώς",
+      text: t("upload.done"),
+      sub: t("upload.done_sub"),
     },
     error: {
       icon: <AlertCircle className="w-8 h-8 text-destructive" />,
-      text: "Σφάλμα",
-      sub: "Δοκιμάστε ξανά",
+      text: t("upload.error"),
+      sub: t("upload.try_again"),
     },
   };
 
@@ -202,23 +197,8 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           dragOver ? "border-accent bg-accent/5" : "border-border"
         }`}
       >
-        {/* Regular file picker input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept=".pdf,.jpg,.jpeg,.png"
-          onChange={onFileChange}
-        />
-        {/* Native camera input (mobile fallback) */}
-        <input
-          ref={cameraInputRef}
-          type="file"
-          className="hidden"
-          accept="image/jpeg,image/png"
-          capture="environment"
-          onChange={onFileChange}
-        />
+        <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={onFileChange} />
+        <input ref={cameraInputRef} type="file" className="hidden" accept="image/jpeg,image/png" capture="environment" onChange={onFileChange} />
 
         <div className="flex flex-col items-center gap-3">
           {current.icon}
@@ -227,33 +207,20 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
           {isActive && (
             <div className="flex items-center gap-3 mt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCameraClick}
-              >
+              <Button variant="outline" size="sm" onClick={handleCameraClick}>
                 <Camera className="w-4 h-4 mr-1.5" />
-                Λήψη φωτογραφίας
+                {t("upload.take_photo")}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-              >
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                 <FileUp className="w-4 h-4 mr-1.5" />
-                Επιλογή αρχείου
+                {t("upload.choose_file")}
               </Button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Desktop camera dialog (getUserMedia) */}
-      <CameraDialog
-        open={cameraOpen}
-        onClose={() => setCameraOpen(false)}
-        onCapture={handleFile}
-      />
+      <CameraDialog open={cameraOpen} onClose={() => setCameraOpen(false)} onCapture={handleFile} />
     </>
   );
 }
