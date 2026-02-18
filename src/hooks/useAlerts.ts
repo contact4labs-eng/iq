@@ -14,9 +14,11 @@ export interface AlertItem {
   alert_type: string;
   severity: string;
   title: string;
-  message: string;
+  message: string;       // mapped from DB "description"
+  description: string;
+  recommended_action: string | null;
   status: string;
-  is_resolved: boolean;
+  is_resolved: boolean;  // derived from status === "resolved"
   resolved_at: string | null;
   created_at: string;
 }
@@ -44,6 +46,7 @@ export function useAlerts() {
       const rawAlerts = (data ?? []) as Array<Record<string, unknown>>;
       const mapped = rawAlerts.map((a) => ({
         ...a,
+        message: (a.description as string) ?? "",
         is_resolved: a.status === "resolved",
       })) as AlertItem[];
       setAlerts(mapped);
