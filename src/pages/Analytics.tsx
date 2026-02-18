@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, Users, ShieldCheck, Search, PieChart } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Users, Search, PieChart } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { SupplierPerformanceSection } from "@/components/invoices/analytics/SupplierPerformance";
@@ -7,7 +7,7 @@ import { PriceVolatilitySection } from "@/components/invoices/analytics/PriceVol
 import { ExecutiveSummarySection } from "@/components/invoices/analytics/ExecutiveSummary";
 import { CostAnalyticsSection } from "@/components/invoices/analytics/CostAnalytics";
 import { PriceTrendAnalysis } from "@/components/analytics/PriceTrendAnalysis";
-import { StrategicInsights } from "@/components/analytics/StrategicInsights";
+
 import { ProfitMarginsTab } from "@/components/analytics/ProfitMarginsTab";
 import { useInvoiceAnalytics } from "@/hooks/useInvoiceAnalytics";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -117,23 +117,6 @@ const Analytics = () => {
       : 0;
   const topIncrease = priceVolatility.length > 0
     ? priceVolatility.reduce((max, p) => ((p.volatility ?? 0) > (max.volatility ?? 0) ? p : max), priceVolatility[0])
-    : null;
-
-  // Compute summary stats for Supplier Performance tab
-  const highRiskCount = suppliers.filter((s) => s.risk_level === "high").length;
-  const avgDependency =
-    suppliers.length > 0
-      ? suppliers.reduce((sum, s) => sum + (s.dependency_pct ?? 0), 0) / suppliers.length
-      : 0;
-  const topSupplier = suppliers.length > 0
-    ? suppliers.reduce((max, s) => ((s.dependency_pct ?? 0) > (max.dependency_pct ?? 0) ? s : max), suppliers[0])
-    : null;
-
-  // Find most reliable supplier (lowest risk, most invoices)
-  const reliableSupplier = suppliers.length > 0
-    ? suppliers
-        .filter((s) => s.risk_level === "low")
-        .sort((a, b) => b.invoice_count - a.invoice_count)[0] ?? suppliers.reduce((best, s) => (s.invoice_count > best.invoice_count ? s : best), suppliers[0])
     : null;
 
   return (
@@ -252,49 +235,6 @@ const Analytics = () => {
 
           <TabsContent value="supplier-perf" className="space-y-6">
             {/* Summary cards */}
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mt-4">
-              <SummaryCard
-                label={t("analytics.high_risk_suppliers")}
-                value={String(highRiskCount)}
-                variant={highRiskCount > 0 ? "destructive" : "success"}
-                icon={
-                  <AlertTriangle
-                    className={`w-5 h-5 ${highRiskCount > 0 ? "text-destructive" : "text-success"}`}
-                  />
-                }
-              />
-              <SummaryCard
-                label={t("analytics.avg_dependency")}
-                value={`${avgDependency.toFixed(1)}%`}
-                variant={avgDependency > 30 ? "warning" : "default"}
-                icon={
-                  avgDependency > 30 ? (
-                    <TrendingUp className="w-5 h-5 text-destructive" />
-                  ) : (
-                    <TrendingDown className="w-5 h-5 text-success" />
-                  )
-                }
-              />
-              {reliableSupplier && (
-                <SummaryCard
-                  label={t("analytics.reliable_supplier")}
-                  value={reliableSupplier.supplier_name}
-                  variant="success"
-                  icon={<ShieldCheck className="w-5 h-5 text-success" />}
-                />
-              )}
-              {topSupplier && (
-                <SummaryCard
-                  label={topSupplier.supplier_name}
-                  value={`${(topSupplier.dependency_pct ?? 0).toFixed(1)}%`}
-                  variant={topSupplier.risk_level === "high" ? "destructive" : "warning"}
-                  icon={<TrendingUp className="w-5 h-5 text-destructive" />}
-                />
-              )}
-            </div>
-
-            <StrategicInsights suppliers={suppliers} priceData={priceVolatility} />
-
             <SupplierPerformanceSection data={suppliers} priceData={priceVolatility} />
           </TabsContent>
 

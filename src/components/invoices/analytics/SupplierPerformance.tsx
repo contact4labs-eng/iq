@@ -106,7 +106,7 @@ function gradeBadgeColor(grade: string): string {
   return "bg-destructive text-destructive-foreground";
 }
 
-type SortKey = "supplier_name" | "total_spend" | "invoice_count" | "avg_invoice" | "dependency_pct" | "score" | "grade" | "risk_level";
+type SortKey = "supplier_name" | "total_spend" | "invoice_count" | "avg_invoice" | "dependency_pct" | "score" | "risk_level";
 type SortDir = "asc" | "desc";
 
 // --- Expanded Row (single supplier) ---
@@ -348,7 +348,6 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
         case "avg_invoice": aVal = a.s.avg_invoice; bVal = b.s.avg_invoice; break;
         case "dependency_pct": aVal = a.s.dependency_pct ?? 0; bVal = b.s.dependency_pct ?? 0; break;
         case "score": aVal = a.b.total; bVal = b.b.total; break;
-        case "grade": aVal = a.b.total; bVal = b.b.total; break;
         case "risk_level": {
           const order = { high: 3, medium: 2, low: 1 };
           aVal = order[a.s.risk_level as keyof typeof order] ?? 0;
@@ -467,7 +466,6 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
                 )}
                 <SortableHead colKey="supplier_name">{t("analytics.col_supplier")}</SortableHead>
                 <SortableHead colKey="score">{t("analytics.col_score")}</SortableHead>
-                <SortableHead colKey="grade">{t("analytics.col_grade")}</SortableHead>
                 <SortableHead colKey="total_spend" className="text-right">{t("analytics.col_total_spend")}</SortableHead>
                 <SortableHead colKey="invoice_count" className="text-right">{t("analytics.col_invoices")}</SortableHead>
                 <SortableHead colKey="avg_invoice" className="text-right">{t("analytics.col_avg_invoice")}</SortableHead>
@@ -514,9 +512,6 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
                           <Progress value={b.total} className={`h-2 w-12 bg-muted ${b.total >= 70 ? "[&>div]:bg-success" : b.total >= 40 ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"}`} />
                           <span className="text-sm font-bold text-foreground">{b.total}</span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={gradeBadgeColor(b.grade)}>{b.grade}</Badge>
                       </TableCell>
                       <TableCell className="text-right">{formatCurrency(s.total_spend)}</TableCell>
                       <TableCell className="text-right">{s.invoice_count}</TableCell>
