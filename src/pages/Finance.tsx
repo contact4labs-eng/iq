@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, PieChart, Pie, AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 import { useFinanceExtras } from "@/hooks/useFinanceExtras";
+import { ProfitabilityCalendar } from "@/components/finance/ProfitabilityCalendar";
 
 const safe = (v: any): number => (v == null || isNaN(v)) ? 0 : Number(v);
 
@@ -335,7 +336,10 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 7. Μηνιαία Αποτελέσματα (P&L) ─── */}
+            {/* ─── 7. Ημερολόγιο Κερδοφορίας ─── */}
+            <ProfitabilityCalendar refreshKey={refreshKey} />
+
+            {/* ─── 8. Κέρδος & Ζημία Μήνα (P&L) ─── */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
