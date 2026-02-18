@@ -2,6 +2,8 @@ import type { SupplierPerformance } from "@/hooks/useInvoiceAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/contexts/LanguageContext";
 
 function formatCurrency(v: number | null | undefined) {
   return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
@@ -13,30 +15,31 @@ const riskColors: Record<string, string> = {
   low: "bg-success text-success-foreground",
 };
 
-const riskLabels: Record<string, string> = {
-  high: "Υψηλό",
-  medium: "Μεσαίο",
-  low: "Χαμηλό",
+const riskLabelKeys: Record<string, TranslationKey> = {
+  high: "analytics.risk_high",
+  medium: "analytics.risk_medium",
+  low: "analytics.risk_low",
 };
 
 export function SupplierPerformanceSection({ data }: { data: SupplierPerformance[] }) {
+  const { t } = useLanguage();
   if (!data.length) return null;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Απόδοση Προμηθευτών</CardTitle>
+        <CardTitle className="text-lg">{t("analytics.supplier_perf")}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Προμηθευτής</TableHead>
-              <TableHead className="text-right">Συνολική Δαπάνη</TableHead>
-              <TableHead className="text-right">Τιμολόγια</TableHead>
-              <TableHead className="text-right">Μέσο Τιμολόγιο</TableHead>
-              <TableHead className="text-right">Εξάρτηση %</TableHead>
-              <TableHead>Κίνδυνος</TableHead>
+              <TableHead>{t("analytics.col_supplier")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_total_spend")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_invoices")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_avg_invoice")}</TableHead>
+              <TableHead className="text-right">{t("analytics.col_dependency")}</TableHead>
+              <TableHead>{t("analytics.col_risk")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -49,7 +52,7 @@ export function SupplierPerformanceSection({ data }: { data: SupplierPerformance
                 <TableCell className="text-right">{(s.dependency_pct ?? 0).toFixed(1)}%</TableCell>
                 <TableCell>
                   <Badge className={riskColors[s.risk_level] ?? "bg-muted text-muted-foreground"}>
-                    {riskLabels[s.risk_level] ?? s.risk_level}
+                    {riskLabelKeys[s.risk_level] ? t(riskLabelKeys[s.risk_level]) : s.risk_level}
                   </Badge>
                 </TableCell>
               </TableRow>

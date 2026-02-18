@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CameraDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ export function CameraDialog({ open, onClose, onCapture }: CameraDialogProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const { t } = useLanguage();
 
   const [step, setStep] = useState<CameraStep>("preview");
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
@@ -42,9 +44,9 @@ export function CameraDialog({ open, onClose, onCapture }: CameraDialogProps) {
         videoRef.current.srcObject = stream;
       }
     } catch {
-      setError("Δεν ήταν δυνατή η πρόσβαση στην κάμερα. Ελέγξτε τα δικαιώματα.");
+      setError(t("camera.no_access"));
     }
-  }, []);
+  }, [t]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -101,9 +103,7 @@ export function CameraDialog({ open, onClose, onCapture }: CameraDialogProps) {
 
   const handleUse = () => {
     if (!capturedBlob) return;
-    const file = new File([capturedBlob], `invoice_${Date.now()}.jpg`, {
-      type: "image/jpeg",
-    });
+    const file = new File([capturedBlob], `invoice_${Date.now()}.jpg`, { type: "image/jpeg" });
     onCapture(file);
     onClose();
   };
@@ -114,31 +114,19 @@ export function CameraDialog({ open, onClose, onCapture }: CameraDialogProps) {
         <DialogHeader className="p-4 pb-2">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Camera className="w-5 h-5 text-accent" />
-            Λήψη φωτογραφίας τιμολογίου
+            {t("camera.title")}
           </DialogTitle>
         </DialogHeader>
 
         <div className="relative bg-black aspect-[4/3] w-full">
           {error ? (
             <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-              <p className="text-sm text-destructive-foreground bg-destructive/80 rounded-md px-4 py-3">
-                {error}
-              </p>
+              <p className="text-sm text-destructive-foreground bg-destructive/80 rounded-md px-4 py-3">{error}</p>
             </div>
           ) : step === "preview" ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
+            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           ) : capturedUrl ? (
-            <img
-              src={capturedUrl}
-              alt="Captured invoice"
-              className="w-full h-full object-contain"
-            />
+            <img src={capturedUrl} alt="Captured invoice" className="w-full h-full object-contain" />
           ) : null}
           <canvas ref={canvasRef} className="hidden" />
         </div>
@@ -147,28 +135,28 @@ export function CameraDialog({ open, onClose, onCapture }: CameraDialogProps) {
           {error ? (
             <Button variant="outline" onClick={onClose}>
               <X className="w-4 h-4 mr-1.5" />
-              Κλείσιμο
+              {t("camera.close")}
             </Button>
           ) : step === "preview" ? (
             <>
               <Button variant="outline" onClick={onClose}>
                 <X className="w-4 h-4 mr-1.5" />
-                Ακύρωση
+                {t("camera.cancel")}
               </Button>
               <Button onClick={handleCapture}>
                 <Camera className="w-4 h-4 mr-1.5" />
-                Λήψη
+                {t("camera.capture")}
               </Button>
             </>
           ) : (
             <>
               <Button variant="outline" onClick={handleRetake}>
                 <RotateCcw className="w-4 h-4 mr-1.5" />
-                Επανάληψη
+                {t("camera.retake")}
               </Button>
               <Button onClick={handleUse}>
                 <Check className="w-4 h-4 mr-1.5" />
-                Χρήση
+                {t("camera.use")}
               </Button>
             </>
           )}

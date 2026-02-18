@@ -4,29 +4,18 @@ import { CalendarIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -50,6 +39,7 @@ interface CashRegisterModalProps {
 export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegisterModalProps) {
   const { company } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [startingCash, setStartingCash] = useState("");
   const [endingCash, setEndingCash] = useState("");
@@ -88,13 +78,12 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
   const handleSave = async () => {
     if (!company?.id) return;
     if (!endingCash || isNaN(endVal)) {
-      toast({ title: "Σφάλμα", description: "Εισάγετε έγκυρο τελικό ποσό", variant: "destructive" });
+      toast({ title: t("toast.error"), description: t("cash.ending_error"), variant: "destructive" });
       return;
     }
 
     setSaving(true);
 
-    // Get latest bank_balance
     const { data: latestRow } = await supabase
       .from("cash_positions")
       .select("bank_balance")
@@ -117,7 +106,7 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
 
     if (cpErr) {
       setSaving(false);
-      toast({ title: "Σφάλμα", description: cpErr.message, variant: "destructive" });
+      toast({ title: t("toast.error"), description: cpErr.message, variant: "destructive" });
       return;
     }
 
@@ -126,7 +115,7 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
         await supabase.from("revenue_entries").insert({
           company_id: company.id,
           amount: shiftRevenue,
-          description: "Ταμείο βάρδιας",
+          description: t("cash.shift_desc"),
           entry_date: entryDate,
         });
       } catch (e) {
@@ -135,7 +124,7 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
     }
 
     setSaving(false);
-    toast({ title: "Επιτυχία", description: "Το ταμείο ενημερώθηκε" });
+    toast({ title: t("toast.success"), description: t("cash.success") });
     resetForm();
     onOpenChange(false);
     onSuccess();
@@ -145,65 +134,40 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-display">Ταμείο Βάρδιας</DialogTitle>
+          <DialogTitle className="text-xl font-display">{t("cash.title")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
-          {/* Starting cash */}
           <div>
-            <Label className="text-sm text-muted-foreground">Αρχικό ποσό</Label>
+            <Label className="text-sm text-muted-foreground">{t("cash.starting")}</Label>
             <div className="relative mt-1">
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={startingCash}
-                onChange={(e) => setStartingCash(e.target.value)}
-                className="text-xl font-bold h-12 pr-10"
-              />
+              <Input type="number" step="0.01" min="0" placeholder="0.00" value={startingCash} onChange={(e) => setStartingCash(e.target.value)} className="text-xl font-bold h-12 pr-10" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-muted-foreground">€</span>
             </div>
           </div>
 
-          {/* Ending cash */}
           <div>
-            <Label className="text-sm text-muted-foreground">Τελικό ποσό *</Label>
+            <Label className="text-sm text-muted-foreground">{t("cash.ending")}</Label>
             <div className="relative mt-1">
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={endingCash}
-                onChange={(e) => setEndingCash(e.target.value)}
-                className="text-xl font-bold h-12 pr-10"
-              />
+              <Input type="number" step="0.01" min="0" placeholder="0.00" value={endingCash} onChange={(e) => setEndingCash(e.target.value)} className="text-xl font-bold h-12 pr-10" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-muted-foreground">€</span>
             </div>
           </div>
 
-          {/* Live revenue display */}
           {hasValues && (
             <div className={cn(
               "rounded-lg p-4 text-center border",
-              shiftRevenue >= 0
-                ? "bg-success/10 border-success/30"
-                : "bg-destructive/10 border-destructive/30"
+              shiftRevenue >= 0 ? "bg-success/10 border-success/30" : "bg-destructive/10 border-destructive/30"
             )}>
-              <p className="text-sm text-muted-foreground mb-1">Έσοδα βάρδιας</p>
-              <p className={cn(
-                "text-2xl font-bold font-display",
-                shiftRevenue >= 0 ? "text-success" : "text-destructive"
-              )}>
+              <p className="text-sm text-muted-foreground mb-1">{t("cash.shift_revenue")}</p>
+              <p className={cn("text-2xl font-bold font-display", shiftRevenue >= 0 ? "text-success" : "text-destructive")}>
                 {fmt(shiftRevenue)}
               </p>
             </div>
           )}
 
-          {/* Date */}
           <div>
-            <Label className="text-sm text-muted-foreground">Ημερομηνία</Label>
+            <Label className="text-sm text-muted-foreground">{t("modal.date")}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full mt-1 justify-start text-left font-normal">
@@ -212,40 +176,28 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(d) => d && setDate(d)}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
+                <Calendar mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus className={cn("p-3 pointer-events-auto")} />
               </PopoverContent>
             </Popover>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-              Ακύρωση
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Αποθήκευση..." : "Αποθήκευση"}
-            </Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{t("modal.cancel")}</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? t("modal.saving") : t("modal.save")}</Button>
           </div>
 
-          {/* History */}
           <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Ιστορικό</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">{t("cash.history")}</h3>
             {historyLoading ? (
               <Skeleton className="h-32 rounded-lg" />
             ) : history.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ημ/νία</TableHead>
-                    <TableHead className="text-right">Μετρητά</TableHead>
-                    <TableHead className="text-right">Τράπεζα</TableHead>
-                    <TableHead className="text-right">Σύνολο</TableHead>
+                    <TableHead>{t("cash.col_date")}</TableHead>
+                    <TableHead className="text-right">{t("cash.col_cash")}</TableHead>
+                    <TableHead className="text-right">{t("cash.col_bank")}</TableHead>
+                    <TableHead className="text-right">{t("cash.col_total")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -260,7 +212,7 @@ export function CashRegisterModal({ open, onOpenChange, onSuccess }: CashRegiste
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Δεν υπάρχει ιστορικό</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t("cash.no_history")}</p>
             )}
           </div>
         </div>
