@@ -1,5 +1,7 @@
 import { Home, FileText, Wallet, Brain, Bell, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/contexts/LanguageContext";
 import {
   Sidebar,
   SidebarContent,
@@ -12,17 +14,18 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navItems = [
-  { title: "Αρχική", url: "/", icon: Home },
-  { title: "Τιμολόγια", url: "/invoices", icon: FileText },
-  { title: "Χρήματα", url: "/finance", icon: Wallet },
-  { title: "AI Ανάλυση", url: "/ai-insights", icon: Brain },
-  { title: "Ειδοποιήσεις", url: "/alerts", icon: Bell },
-  { title: "Ρυθμίσεις", url: "/settings", icon: Settings },
+const navItems: { titleKey: TranslationKey; url: string; icon: typeof Home }[] = [
+  { titleKey: "nav.home", url: "/", icon: Home },
+  { titleKey: "nav.invoices", url: "/invoices", icon: FileText },
+  { titleKey: "nav.finance", url: "/finance", icon: Wallet },
+  { titleKey: "nav.ai", url: "/ai-insights", icon: Brain },
+  { titleKey: "nav.alerts", url: "/alerts", icon: Bell },
+  { titleKey: "nav.settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { t } = useLanguage();
   const collapsed = state === "collapsed";
 
   return (
@@ -44,8 +47,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
+                  <SidebarMenuButton asChild tooltip={t(item.titleKey)}>
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
@@ -53,7 +56,7 @@ export function AppSidebar() {
                       activeClassName="bg-[rgba(59,130,246,0.1)] text-white font-medium border-l-2 border-primary"
                     >
                       <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

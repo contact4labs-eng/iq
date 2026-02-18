@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Send, Bot, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/contexts/LanguageContext";
 
-const SUGGESTIONS = [
-  "Ποια είναι τα top 5 έξοδά μου;",
-  "Πώς πάει η επιχείρηση αυτόν τον μήνα;",
-  "Ποιος προμηθευτής μου κοστίζει περισσότερο;",
-  "Υπάρχουν ληξιπρόθεσμα τιμολόγια;",
-  "Δώσε μου μια ανάλυση εσόδων-εξόδων",
-  "Τι δείχνουν οι τάσεις του τελευταίου 6μηνου;",
+const SUGGESTION_KEYS: TranslationKey[] = [
+  "ai.suggestion_1",
+  "ai.suggestion_2",
+  "ai.suggestion_3",
+  "ai.suggestion_4",
+  "ai.suggestion_5",
+  "ai.suggestion_6",
 ];
 
 interface BusinessQAProps {
@@ -51,6 +53,7 @@ export function BusinessQA({ messages, loading, onAsk }: BusinessQAProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -73,26 +76,24 @@ export function BusinessQA({ messages, loading, onAsk }: BusinessQAProps) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {isEmpty && (
           <div className="flex flex-col gap-4 animate-fade-in">
-            {/* Welcome bubble */}
             <div className="flex gap-3 justify-start">
               <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="w-4 h-4 text-accent" />
               </div>
               <div className="max-w-[80%] rounded-2xl rounded-bl-md bg-muted text-foreground px-4 py-3 text-sm">
-                Γεια σας! Είμαι ο AI βοηθός σας. Μπορώ να αναλύσω τα οικονομικά σας δεδομένα, να απαντήσω ερωτήσεις για τιμολόγια, προμηθευτές, έξοδα και έσοδα. Ρωτήστε με ό,τι θέλετε!
+                {t("ai.welcome")}
               </div>
             </div>
-            {/* Suggestion chips */}
             <div className="flex flex-wrap gap-2 pl-11">
-              {SUGGESTIONS.map((s) => (
+              {SUGGESTION_KEYS.map((key) => (
                 <button
-                  key={s}
+                  key={key}
                   type="button"
-                  onClick={() => onAsk(s)}
+                  onClick={() => onAsk(t(key))}
                   disabled={loading}
                   className="px-3 py-1.5 rounded-full text-xs border border-border bg-card text-muted-foreground hover:border-accent/50 hover:text-foreground transition-colors disabled:opacity-50"
                 >
-                  {s}
+                  {t(key)}
                 </button>
               ))}
             </div>
@@ -133,7 +134,6 @@ export function BusinessQA({ messages, loading, onAsk }: BusinessQAProps) {
           </div>
         ))}
 
-        {/* Follow-up chip from last assistant message */}
         {!loading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].follow_up && (
           <div className="flex justify-start pl-11 animate-fade-in">
             <button
@@ -164,7 +164,7 @@ export function BusinessQA({ messages, loading, onAsk }: BusinessQAProps) {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Ρωτήστε κάτι..."
+            placeholder={t("ai.placeholder")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}

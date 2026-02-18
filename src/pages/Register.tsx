@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { FileText, Loader2 } from "lucide-react";
 
 const Register = () => {
@@ -15,16 +16,16 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (afm.length !== 9 || !/^\d+$/.test(afm)) {
-      toast({ title: "Μη έγκυρο ΑΦΜ", description: "Το ΑΦΜ πρέπει να αποτελείται από 9 ψηφία.", variant: "destructive" });
+      toast({ title: t("toast.invalid_afm"), description: t("toast.afm_digits"), variant: "destructive" });
       return;
     }
     setLoading(true);
     
-    // Sign up the user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -35,11 +36,10 @@ const Register = () => {
     
     if (authError) {
       setLoading(false);
-      toast({ title: "Σφάλμα εγγραφής", description: authError.message, variant: "destructive" });
+      toast({ title: t("toast.register_error"), description: authError.message, variant: "destructive" });
       return;
     }
 
-    // Create company record linked to the new user
     if (authData.user) {
       const { error: companyError } = await supabase
         .from("companies")
@@ -55,7 +55,7 @@ const Register = () => {
     }
 
     setLoading(false);
-    toast({ title: "Επιτυχής εγγραφή!", description: "Ελέγξτε το email σας για επιβεβαίωση." });
+    toast({ title: t("toast.register_success"), description: t("toast.check_email") });
     navigate("/login");
   };
 
@@ -69,35 +69,35 @@ const Register = () => {
             </div>
             <h1 className="text-2xl font-bold font-display text-foreground">InvoiceIQ</h1>
           </div>
-          <p className="text-muted-foreground">Δημιουργήστε τον λογαριασμό σας</p>
+          <p className="text-muted-foreground">{t("auth.register_title")}</p>
         </div>
 
         <div className="bg-card rounded-lg border p-6 shadow-sm">
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="company">Επωνυμία Επιχείρησης</Label>
-              <Input id="company" placeholder="Η εταιρεία σας" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+              <Label htmlFor="company">{t("auth.company_name")}</Label>
+              <Input id="company" placeholder={t("auth.company_placeholder")} value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="afm">ΑΦΜ</Label>
+              <Label htmlFor="afm">{t("settings.afm")}</Label>
               <Input id="afm" placeholder="123456789" maxLength={9} value={afm} onChange={(e) => setAfm(e.target.value.replace(/\D/g, ""))} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input id="email" type="email" placeholder="info@company.gr" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Κωδικός</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <Input id="password" type="password" placeholder="••••••••" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Εγγραφή
+              {t("auth.register_button")}
             </Button>
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            Έχετε ήδη λογαριασμό;{" "}
-            <Link to="/login" className="text-accent hover:underline font-medium">Σύνδεση</Link>
+            {t("auth.has_account")}{" "}
+            <Link to="/login" className="text-accent hover:underline font-medium">{t("auth.login_link")}</Link>
           </p>
         </div>
       </div>
