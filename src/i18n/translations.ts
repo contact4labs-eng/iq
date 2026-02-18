@@ -604,6 +604,9 @@ export const translations = {
   "automation.action_notify_admin": { el: "Ειδοποίηση Διαχειριστή", en: "Notify Admin" },
   "automation.action_require_approval": { el: "Απαίτηση Έγκρισης", en: "Require Approval" },
   "automation.action_flag_anomaly": { el: "Σημαίωση Ανωμαλίας", en: "Flag Anomaly" },
+
+  // Responsive nav
+  "nav.more": { el: "Περισσότερα", en: "More" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
