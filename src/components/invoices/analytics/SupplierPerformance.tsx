@@ -469,8 +469,6 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
                 <SortableHead colKey="total_spend" className="text-right">{t("analytics.col_total_spend")}</SortableHead>
                 <SortableHead colKey="invoice_count" className="text-right">{t("analytics.col_invoices")}</SortableHead>
                 <SortableHead colKey="avg_invoice" className="text-right">{t("analytics.col_avg_invoice")}</SortableHead>
-                <SortableHead colKey="dependency_pct" className="text-right">{t("analytics.col_dependency")}</SortableHead>
-                <SortableHead colKey="risk_level">{t("analytics.col_risk")}</SortableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -516,12 +514,6 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
                       <TableCell className="text-right">{formatCurrency(s.total_spend)}</TableCell>
                       <TableCell className="text-right">{s.invoice_count}</TableCell>
                       <TableCell className="text-right">{formatCurrency(s.avg_invoice)}</TableCell>
-                      <TableCell className="text-right">{(s.dependency_pct ?? 0).toFixed(1)}%</TableCell>
-                      <TableCell>
-                        <Badge className={riskColors[s.risk_level] ?? "bg-muted text-muted-foreground"}>
-                          {riskLabelKeys[s.risk_level] ? t(riskLabelKeys[s.risk_level]) : s.risk_level}
-                        </Badge>
-                      </TableCell>
                     </TableRow>
                     {isExpanded && <ExpandedRow s={s} breakdown={b} t={t} />}
                   </Fragment>
