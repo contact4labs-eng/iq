@@ -6,6 +6,60 @@
 
 @layer base {
   :root {
+    /* Light premium SaaS theme */
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 92%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 189 95% 43%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 87%;
+    --input: 220 13% 87%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 9% 46%;
+    --sidebar-primary: 222 47% 11%;
+    --sidebar-primary-foreground: 217 91% 60%;
+    --sidebar-accent: 217 91% 60%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 13% 87%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar-muted: 220 9% 46%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    --topbar-background: 0 0% 100%;
+    --topbar-foreground: 222 47% 11%;
+    --topbar-border: 220 13% 87%;
+  }
+
+  .dark {
     /* Dark premium SaaS theme */
     --background: 225 20% 7%;
     --foreground: 210 20% 98%;
@@ -35,8 +89,6 @@
     --input: 218 14% 26%;
     --ring: 217 91% 60%;
 
-    --radius: 0.5rem;
-
     --sidebar-background: 225 25% 8%;
     --sidebar-foreground: 218 11% 65%;
     --sidebar-primary: 0 0% 100%;
@@ -58,40 +110,6 @@
     --topbar-foreground: 210 20% 98%;
     --topbar-border: 218 14% 26%;
   }
-
-  .dark {
-    --background: 225 20% 7%;
-    --foreground: 210 20% 98%;
-    --card: 230 15% 12%;
-    --card-foreground: 210 20% 98%;
-    --popover: 230 15% 12%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 16%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 220 12% 18%;
-    --muted-foreground: 218 11% 65%;
-    --accent: 189 95% 43%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 218 14% 26%;
-    --input: 218 14% 26%;
-    --ring: 217 91% 60%;
-    --sidebar-background: 225 25% 8%;
-    --sidebar-foreground: 218 11% 65%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 40% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 218 14% 26%;
-    --sidebar-ring: 217 91% 60%;
-    --sidebar-muted: 220 9% 46%;
-    --topbar-background: 230 15% 12%;
-    --topbar-foreground: 210 20% 98%;
-    --topbar-border: 218 14% 26%;
-  }
 }
 
 @layer base {
@@ -108,6 +126,9 @@
 /* Card glass effect */
 @layer components {
   .glass-card {
+    @apply bg-card/80 border border-border shadow-md;
+  }
+  .dark .glass-card {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
