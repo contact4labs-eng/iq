@@ -310,6 +310,13 @@ export const translations = {
   "analytics.level_high": { el: "Υψηλή", en: "High" },
   "analytics.level_medium": { el: "Μεσαία", en: "Medium" },
   "analytics.level_low": { el: "Χαμηλή", en: "Low" },
+  "analytics.tab_price_trends": { el: "Τάσεις Τιμών", en: "Price Trends" },
+  "analytics.tab_supplier_perf": { el: "Απόδοση Προμηθευτών", en: "Supplier Performance" },
+  "analytics.price_alerts": { el: "Ειδοπ. Τιμών", en: "Price Alerts" },
+  "analytics.high_volatility_items": { el: "Υψηλή Μεταβλητότητα", en: "High Volatility" },
+  "analytics.high_risk_suppliers": { el: "Υψηλού Ρίσκου", en: "High Risk" },
+  "analytics.avg_volatility": { el: "Μ.Ο. Μεταβλητότητας", en: "Avg Volatility" },
+  "analytics.avg_dependency": { el: "Μ.Ο. Εξάρτησης", en: "Avg Dependency" },
 
   // AI Insights
   "ai.title": { el: "AI Ανάλυση", en: "AI Analysis" },
