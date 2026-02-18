@@ -325,6 +325,7 @@ export const translations = {
   "analytics.trend_decrease": { el: "Μείωση", en: "Decrease" },
   "analytics.trend_stable": { el: "Σταθερό", en: "Stable" },
   "analytics.col_trend": { el: "Τάση", en: "Trend" },
+  "analytics.col_reliability": { el: "Αξιοπιστία", en: "Reliability" },
 
   // AI Insights
   "ai.title": { el: "AI Ανάλυση", en: "AI Analysis" },
