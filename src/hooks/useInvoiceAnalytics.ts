@@ -113,10 +113,27 @@ export function useInvoiceAnalytics() {
         const costData = Array.isArray(costRes.data) ? costRes.data[0] : costRes.data;
         const costRaw = (costData ?? {}) as Record<string, unknown>;
         
-        // Merge cost analytics fields into executive summary for total_spend and avg_invoice
-        const mergedExec = { ...(execRaw as Record<string, unknown>) };
-        if (!mergedExec.total_spend && costRaw.total_spend) mergedExec.total_spend = costRaw.total_spend;
-        if (!mergedExec.avg_invoice && !mergedExec.avg_invoice_amount && costRaw.avg_invoice_amount) mergedExec.avg_invoice_amount = costRaw.avg_invoice_amount;
+        // Merge cost analytics fields into executive summary
+        const mergedExec: Record<string, unknown> = { ...(execRaw as Record<string, unknown>) };
+        
+        // total_spend from cost_analytics if not in exec summary
+        if (mergedExec.total_spend == null && costRaw.total_spend != null) {
+          mergedExec.total_spend = costRaw.total_spend;
+        }
+        // avg_invoice from cost_analytics avg_invoice_amount
+        if (mergedExec.avg_invoice == null && mergedExec.avg_invoice_amount == null && costRaw.avg_invoice_amount != null) {
+          mergedExec.avg_invoice_amount = costRaw.avg_invoice_amount;
+        }
+        // invoices_this_month: derive from cost_analytics monthly_trends
+        if (mergedExec.invoices_this_month == null) {
+          const monthlyTrends = (costRaw.monthly_trends as Array<{ month: string; invoice_count?: number }>) ?? [];
+          const now = new Date();
+          const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+          const thisMonth = monthlyTrends.find((m) => m.month?.startsWith(currentMonthStr));
+          if (thisMonth) {
+            mergedExec.invoices_this_month = thisMonth.invoice_count ?? 0;
+          }
+        }
         
         setExecutive(mapExecutiveSummary(mergedExec));
         setSuppliers((suppRes.data ?? []).map((s: Record<string, unknown>) => mapSupplierPerformance(s)));
