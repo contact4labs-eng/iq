@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Wallet, Plus, TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight, BarChart3, PiggyBank, Receipt, AlertTriangle } from "lucide-react";
+import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, AlertTriangle, Plus, PiggyBank, BarChart3 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useFinanceData } from "@/hooks/useFinanceData";
+import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,92 +15,67 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
 
 const safe = (v: any): number => (v == null || isNaN(v)) ? 0 : Number(v);
 
 function fmt(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
-}
-
-function fmtDetailed(v: number) {
   return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
 }
 
-function PctBadge({ pct }: { pct: number }) {
-  if (pct > 0) return <Badge className="bg-success/15 text-success border-0 gap-0.5 font-medium"><TrendingUp className="w-3 h-3" />+{pct.toFixed(1)}%</Badge>;
-  if (pct < 0) return <Badge className="bg-destructive/15 text-destructive border-0 gap-0.5 font-medium"><TrendingDown className="w-3 h-3" />{pct.toFixed(1)}%</Badge>;
-  return <Badge className="bg-muted text-muted-foreground border-0 gap-0.5"><Minus className="w-3 h-3" />0%</Badge>;
+function fmtShort(v: number) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 }
 
 const chartConfig: ChartConfig = {
-  revenue: { label: "Έσοδα", color: "hsl(var(--success))" },
-  expenses: { label: "Έξοδα", color: "hsl(var(--destructive))" },
-  net_flow: { label: "Καθαρή Ροή", color: "hsl(var(--accent))" },
-};
-
-const pressureLabels: Record<string, string> = { CRITICAL: "Κρίσιμο", HIGH: "Υψηλό", MEDIUM: "Μεσαίο", LOW: "Χαμηλό" };
-const pressureColors: Record<string, string> = {
-  CRITICAL: "bg-destructive text-destructive-foreground",
-  HIGH: "bg-warning text-warning-foreground",
-  MEDIUM: "bg-accent/20 text-accent",
-  LOW: "bg-success/15 text-success",
+  inflows: { label: "Εισροές", color: "hsl(var(--success))" },
+  outflows: { label: "Εκροές", color: "hsl(var(--destructive))" },
 };
 
 const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { monthly, daily, weekly, cashFlow, expenseBreakdown, profitPressure, loading, error } = useFinanceData(refreshKey);
+  const { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, loading, error } = useFinanceDashboard(refreshKey);
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
 
   const onDataChanged = () => setRefreshKey((k) => k + 1);
 
-  const mRevenue = safe(monthly?.revenue_total);
-  const mExpenses = safe(monthly?.expenses_total);
-  const mProfit = safe(monthly?.net_profit);
-  const mMargin = safe(monthly?.margin_pct);
-  const mRevGrowth = safe(monthly?.revenue_growth_rate);
-  const mExpGrowth = safe(monthly?.expense_growth_rate);
+  const totalCash = safe(cashPosition?.total_cash);
+  const cashOnHand = safe(cashPosition?.cash_on_hand);
+  const bankBalance = safe(cashPosition?.bank_balance);
+  const recvTotal = safe(receivables?.total);
+  const recvCount = safe(receivables?.count);
+  const payTotal = safe(payables?.total);
+  const payCount = safe(payables?.count);
 
-  const dCash = safe(daily?.cash_position);
-  const dPending = safe(daily?.pending_outgoing);
-  const dOverdue = safe(daily?.overdue_amount);
-  const dTodayRev = safe(daily?.today_revenue);
-  const dTodayExp = safe(daily?.today_expenses);
-  const dTodayProfit = safe(daily?.today_profit);
+  const hasChartData = weeklyCashFlow.some((w) => w.inflows > 0 || w.outflows > 0);
 
-  const wThisRev = safe(weekly?.this_week_revenue);
-  const wThisExp = safe(weekly?.this_week_expenses);
-  const wThisProfit = safe(weekly?.this_week_profit);
-  const wRevPct = safe(weekly?.revenue_change_pct);
-  const wExpPct = safe(weekly?.expenses_change_pct);
-  const wProfitPct = safe(weekly?.profit_change_pct);
-
-  const ppLevel = profitPressure?.pressure_level?.toUpperCase() ?? "";
-  const ppCurrent = safe(profitPressure?.current_margin);
-  const ppPrevious = safe(profitPressure?.previous_margin);
-
-  const maxExpense = expenseBreakdown.length > 0 ? Math.max(...expenseBreakdown.map((d) => safe(d.total))) : 1;
+  // Transform data for grouped bar chart
+  const chartData = weeklyCashFlow.map((w) => ({
+    week: w.week,
+    inflows: safe(w.inflows),
+    outflows: safe(w.outflows),
+  }));
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header + Quick Actions */}
+        {/* ─── Header + Quick Actions ─── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 mb-0.5">
               <Wallet className="w-6 h-6 text-accent" />
               <h1 className="text-2xl font-bold font-display text-foreground">Χρήματα</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Οικονομική επισκόπηση της επιχείρησής σας</p>
+            <p className="text-sm text-muted-foreground">Ταμειακή θέση & ροές της επιχείρησής σας</p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" className="gap-1.5" onClick={() => setRevenueOpen(true)}>
-              <ArrowUpRight className="w-4 h-4" /> Έσοδο
+              <Plus className="w-4 h-4" /> Έσοδο
             </Button>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setExpenseOpen(true)}>
-              <ArrowDownRight className="w-4 h-4" /> Έξοδο
+              <Plus className="w-4 h-4" /> Έξοδο
             </Button>
             <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => setCashOpen(true)}>
               <PiggyBank className="w-4 h-4" /> Ταμείο
@@ -116,243 +91,168 @@ const Finance = () => {
 
         {loading ? (
           <div className="space-y-4">
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
-            </div>
-            <Skeleton className="h-64 rounded-lg" />
+            <Skeleton className="h-36 rounded-lg" />
             <div className="grid gap-4 md:grid-cols-2">
-              <Skeleton className="h-48 rounded-lg" />
-              <Skeleton className="h-48 rounded-lg" />
+              <Skeleton className="h-28 rounded-lg" />
+              <Skeleton className="h-28 rounded-lg" />
             </div>
+            <Skeleton className="h-72 rounded-lg" />
+            <Skeleton className="h-48 rounded-lg" />
           </div>
         ) : (
           <>
-            {/* ─── Hero KPI Strip ─── */}
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-              {/* Monthly Profit */}
-              <Card className="bg-primary text-primary-foreground col-span-2 lg:col-span-1">
-                <CardContent className="p-5">
-                  <p className="text-xs opacity-70 mb-1">Κέρδος Μήνα</p>
-                  <p className="text-3xl font-bold font-display">{fmt(mProfit)}</p>
-                  <p className="text-xs opacity-60 mt-1">{mMargin.toFixed(1)}% margin</p>
-                </CardContent>
-              </Card>
-
-              {/* Revenue */}
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-muted-foreground">Έσοδα</p>
-                    <PctBadge pct={mRevGrowth} />
-                  </div>
-                  <p className="text-2xl font-bold font-display text-foreground">{fmt(mRevenue)}</p>
-                </CardContent>
-              </Card>
-
-              {/* Expenses */}
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-muted-foreground">Έξοδα</p>
-                    <PctBadge pct={mExpGrowth} />
-                  </div>
-                  <p className="text-2xl font-bold font-display text-foreground">{fmt(mExpenses)}</p>
-                </CardContent>
-              </Card>
-
-              {/* Cash Position */}
-              <Card>
-                <CardContent className="p-5">
-                  <p className="text-xs text-muted-foreground mb-1">Ταμείο</p>
-                  <p className="text-2xl font-bold font-display text-foreground">{fmt(dCash)}</p>
-                  {dOverdue > 0 && (
-                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> {fmt(dOverdue)} ληξιπρόθεσμα
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* ─── Today Strip ─── */}
-            <Card>
-              <CardContent className="p-5">
+            {/* ─── 1. Ταμειακό Υπόλοιπο ─── */}
+            <Card className="bg-primary text-primary-foreground">
+              <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <Receipt className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">Σήμερα</h2>
+                  <Wallet className="w-5 h-5 opacity-70" />
+                  <h2 className="text-sm font-semibold opacity-80">Ταμειακό Υπόλοιπο</h2>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <p className="text-4xl font-bold font-display tracking-tight">
+                  {fmt(totalCash)}
+                </p>
+                <div className="flex gap-6 mt-4 pt-3 border-t border-primary-foreground/20">
                   <div>
-                    <p className="text-xs text-muted-foreground">Έσοδα</p>
-                    <p className="text-lg font-bold text-foreground">{fmtDetailed(dTodayRev)}</p>
+                    <p className="text-xs opacity-60">Μετρητά</p>
+                    <p className="text-lg font-semibold">{fmtShort(cashOnHand)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Έξοδα</p>
-                    <p className="text-lg font-bold text-foreground">{fmtDetailed(dTodayExp)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Κέρδος</p>
-                    <p className={`text-lg font-bold ${dTodayProfit >= 0 ? "text-success" : "text-destructive"}`}>
-                      {fmtDetailed(dTodayProfit)}
-                    </p>
+                    <p className="text-xs opacity-60">Τράπεζα</p>
+                    <p className="text-lg font-semibold">{fmtShort(bankBalance)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* ─── Two-Column: Weekly + Pressure ─── */}
+            {/* ─── 2 & 3. Εισπρακτέα + Πληρωτέα ─── */}
             <div className="grid gap-4 md:grid-cols-2">
-              {/* Weekly */}
+              {/* Receivables */}
               <Card>
                 <CardContent className="p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <BarChart3 className="w-4 h-4 text-accent" />
-                    <h2 className="text-sm font-semibold text-foreground">Εβδομάδα</h2>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-9 h-9 rounded-full bg-success/15 flex items-center justify-center">
+                      <ArrowDownLeft className="w-4.5 h-4.5 text-success" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-foreground">Εισπρακτέα</h2>
+                      <p className="text-xs text-muted-foreground">Εγκεκριμένα τιμολόγια προς είσπραξη</p>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    {[
-                      { label: "Έσοδα", value: wThisRev, pct: wRevPct },
-                      { label: "Έξοδα", value: wThisExp, pct: wExpPct },
-                      { label: "Κέρδος", value: wThisProfit, pct: wProfitPct },
-                    ].map((r) => (
-                      <div key={r.label} className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">{r.label}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-foreground">{fmt(r.value)}</span>
-                          <PctBadge pct={r.pct} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-3xl font-bold font-display text-success">{fmt(recvTotal)}</p>
+                  {recvCount > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">{recvCount} τιμολόγι{recvCount === 1 ? "ο" : "α"}</p>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Profit Pressure */}
+              {/* Payables */}
               <Card>
                 <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-foreground">Πίεση Κερδοφορίας</h2>
-                    {ppLevel && (
-                      <Badge className={pressureColors[ppLevel] ?? "bg-muted text-muted-foreground"}>
-                        {pressureLabels[ppLevel] ?? ppLevel}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex gap-6 text-sm mb-3">
-                    <div>
-                      <span className="text-muted-foreground">Τώρα: </span>
-                      <span className="font-semibold text-foreground">{ppCurrent.toFixed(1)}%</span>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-9 h-9 rounded-full bg-warning/15 flex items-center justify-center">
+                      <ArrowUpRight className="w-4.5 h-4.5 text-warning" />
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Πριν: </span>
-                      <span className="font-semibold text-foreground">{ppPrevious.toFixed(1)}%</span>
+                      <h2 className="text-sm font-semibold text-foreground">Πληρωτέα</h2>
+                      <p className="text-xs text-muted-foreground">Προγραμματισμένες πληρωμές σε αναμονή</p>
                     </div>
                   </div>
-                  {profitPressure?.top_sources && profitPressure.top_sources.length > 0 && (
-                    <div className="space-y-1.5 border-t border-border pt-3">
-                      {profitPressure.top_sources.map((s, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{s.source}</span>
-                          <span className="text-destructive font-medium">{safe(s.impact).toFixed(1)}%</span>
-                        </div>
-                      ))}
-                    </div>
+                  <p className="text-3xl font-bold font-display text-warning">{fmt(payTotal)}</p>
+                  {payCount > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">{payCount} πληρωμ{payCount === 1 ? "ή" : "ές"}</p>
                   )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* ─── Cash Flow Chart ─── */}
-            {cashFlow.length > 0 && (
-              <Card>
-                <CardContent className="p-5">
-                  <h2 className="text-sm font-semibold text-foreground mb-4">Ταμειακή Ροή (6 μήνες)</h2>
-                  <ChartContainer config={chartConfig} className="aspect-video max-h-[280px]">
-                    <AreaChart data={cashFlow}>
-                      <defs>
-                        <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
-                          <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="gradExpenses" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.2} />
-                          <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis dataKey="month" className="text-xs" />
-                      <YAxis tickFormatter={(v) => fmt(v)} className="text-xs" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Area type="monotone" dataKey="revenue" stroke="hsl(var(--success))" fill="url(#gradRevenue)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" fill="url(#gradExpenses)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="net_flow" stroke="hsl(var(--accent))" fill="transparent" strokeWidth={2} strokeDasharray="5 5" />
-                    </AreaChart>
-                  </ChartContainer>
-                  <div className="flex items-center justify-center gap-5 mt-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded bg-success inline-block" /> Έσοδα</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded bg-destructive inline-block" /> Έξοδα</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded bg-accent inline-block" style={{ borderTop: "1px dashed" }} /> Καθαρή Ροή</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* ─── 4. Ταμειακή Ροή 30 Ημερών ─── */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="w-4 h-4 text-accent" />
+                  <h2 className="text-sm font-semibold text-foreground">Ταμειακή Ροή 30 Ημερών</h2>
+                </div>
 
-            {/* ─── Expense Breakdown ─── */}
-            {expenseBreakdown.length > 0 && (
-              <Card>
-                <CardContent className="p-5">
-                  <h2 className="text-sm font-semibold text-foreground mb-4">Έξοδα ανά κατηγορία</h2>
+                {hasChartData ? (
+                  <>
+                    <ChartContainer config={chartConfig} className="aspect-video max-h-[260px]">
+                      <BarChart data={chartData} barGap={4} barCategoryGap="20%">
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                        <XAxis dataKey="week" className="text-xs" tickLine={false} axisLine={false} />
+                        <YAxis tickFormatter={(v) => fmtShort(v)} className="text-xs" tickLine={false} axisLine={false} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="inflows" name="Εισροές" radius={[4, 4, 0, 0]} fill="hsl(var(--success))" />
+                        <Bar dataKey="outflows" name="Εκροές" radius={[4, 4, 0, 0]} fill="hsl(var(--destructive))" />
+                      </BarChart>
+                    </ChartContainer>
+                    <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-success inline-block" /> Εισροές
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> Εκροές
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <BarChart3 className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν δεδομένα ταμειακής ροής</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ─── 5. Ληξιπρόθεσμα Τιμολόγια ─── */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-destructive" />
+                    <h2 className="text-sm font-semibold text-foreground">Ληξιπρόθεσμα Τιμολόγια</h2>
+                  </div>
+                  {overdueInvoices.length > 0 && (
+                    <Badge className="bg-destructive/15 text-destructive border-0">
+                      {overdueInvoices.length}
+                    </Badge>
+                  )}
+                </div>
+
+                {overdueInvoices.length > 0 ? (
                   <div className="space-y-2.5">
-                    {expenseBreakdown.map((item) => (
-                      <div key={item.category}>
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-foreground">{item.category}</span>
-                          <span className="text-muted-foreground">{fmtDetailed(safe(item.total))} · {safe(item.percentage).toFixed(0)}%</span>
+                    {overdueInvoices.map((inv) => (
+                      <div
+                        key={inv.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{inv.supplier_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {inv.invoice_number} · Λήξη: {inv.due_date}
+                          </p>
                         </div>
-                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-accent transition-all"
-                            style={{ width: `${(safe(item.total) / maxExpense) * 100}%` }}
-                          />
+                        <div className="text-right ml-4 shrink-0">
+                          <p className="text-sm font-bold text-destructive">{fmt(safe(inv.total_amount))}</p>
+                          <div className="flex items-center gap-1 justify-end">
+                            <Clock className="w-3 h-3 text-destructive/70" />
+                            <p className="text-xs text-destructive/70">
+                              {safe(inv.days_overdue)} ημέρ{safe(inv.days_overdue) === 1 ? "α" : "ες"}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* ─── Pending / Overdue strip ─── */}
-            {(dPending > 0 || dOverdue > 0) && (
-              <div className="grid gap-3 grid-cols-2">
-                {dPending > 0 && (
-                  <Card>
-                    <CardContent className="p-5 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center">
-                        <Receipt className="w-5 h-5 text-warning" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Εκκρεμείς πληρωμές</p>
-                        <p className="text-lg font-bold text-foreground">{fmt(dPending)}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="w-10 h-10 rounded-full bg-success/15 flex items-center justify-center mb-2">
+                      <AlertTriangle className="w-5 h-5 text-success" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν ληξιπρόθεσμα τιμολόγια</p>
+                  </div>
                 )}
-                {dOverdue > 0 && (
-                  <Card>
-                    <CardContent className="p-5 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center">
-                        <AlertTriangle className="w-5 h-5 text-destructive" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Ληξιπρόθεσμα</p>
-                        <p className="text-lg font-bold text-destructive">{fmt(dOverdue)}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
