@@ -426,6 +426,7 @@ export const translations = {
   "notifications.tab_unread": { el: "Αδιάβαστες", en: "Unread" },
   "notifications.tab_important": { el: "Σημαντικές", en: "Important" },
   "notifications.no_notifications": { el: "Δεν υπάρχουν ειδοποιήσεις", en: "No notifications" },
+  "notifications.mark_all_read": { el: "Σήμανση όλων ως αναγνωσμένα", en: "Mark all as read" },
   "nav.notifications": { el: "Ειδοποιήσεις", en: "Notifications" },
 } as const;
 

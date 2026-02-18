@@ -46,6 +46,14 @@ const NotificationsPage = () => {
     else toast({ title: t("toast.success"), description: t("toast.alert_resolved") });
   };
 
+  const handleMarkAllRead = async () => {
+    const unresolvedIds = unreadAlerts.map((a) => a.id);
+    for (const id of unresolvedIds) {
+      await resolveAlert(id);
+    }
+    toast({ title: t("toast.success"), description: t("toast.alert_resolved") });
+  };
+
   const renderAlertList = (list: typeof alerts) => {
     if (list.length === 0) {
       return (
@@ -121,6 +129,7 @@ const NotificationsPage = () => {
           </div>
         ) : (
           <Tabs defaultValue="all">
+            <div className="flex items-center justify-between flex-wrap gap-2">
             <TabsList>
               <TabsTrigger value="all" className="gap-1.5">
                 <Bell className="w-4 h-4" />
@@ -138,6 +147,13 @@ const NotificationsPage = () => {
                 <Badge variant="secondary" className="ml-1 text-[10px]">{importantAlerts.length}</Badge>
               </TabsTrigger>
             </TabsList>
+            {unreadAlerts.length > 0 && (
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleMarkAllRead}>
+                <CheckCircle className="w-3.5 h-3.5" />
+                {t("notifications.mark_all_read")}
+              </Button>
+            )}
+            </div>
 
             <TabsContent value="all" className="mt-4">
               {renderAlertList(allAlerts)}
