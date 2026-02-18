@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
+const safe = (v: unknown): number => (v == null || isNaN(Number(v))) ? 0 : Number(v);
+
 export interface MonthlyKpis {
   net_profit: number;
   margin_pct: number;
@@ -94,13 +96,23 @@ export function useFinanceData(refreshKey = 0) {
           if (r.error) throw r.error;
         }
 
+        const pickSafe = (d: unknown) => {
+          const raw = Array.isArray(d) ? d[0] : d;
+          if (!raw || typeof raw !== "object") return null;
+          const obj = raw as Record<string, unknown>;
+          const safed: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(obj)) {
+            safed[k] = typeof v === "number" || (typeof v === "string" && !isNaN(Number(v))) ? safe(v) : v;
+          }
+          return safed;
+        };
         const pick = (d: unknown) => (Array.isArray(d) ? d[0] : d);
-        setMonthly(pick(mRes.data) as MonthlyKpis);
-        setDaily(pick(dRes.data) as DailyKpis);
-        setWeekly(pick(wRes.data) as WeeklyKpis);
+        setMonthly(pickSafe(mRes.data) as unknown as MonthlyKpis);
+        setDaily(pickSafe(dRes.data) as unknown as DailyKpis);
+        setWeekly(pickSafe(wRes.data) as unknown as WeeklyKpis);
         setCashFlow((cfRes.data ?? []) as CashFlowPoint[]);
         setExpenseBreakdown((ebRes.data ?? []) as ExpenseCategory[]);
-        setProfitPressure(pick(ppRes.data) as ProfitPressure);
+        setProfitPressure(pickSafe(ppRes.data) as unknown as ProfitPressure);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Σφάλμα φόρτωσης οικονομικών δεδομένων");
       } finally {

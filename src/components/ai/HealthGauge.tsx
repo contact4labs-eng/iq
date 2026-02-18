@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
 
 interface HealthGaugeProps {
-  score: number;
+  score: number | null | undefined;
 }
 
 export function HealthGauge({ score }: HealthGaugeProps) {
-  const clamp = Math.max(0, Math.min(100, score));
+  const safeScore = (score == null || isNaN(score)) ? 0 : Number(score);
+  const clamp = Math.max(0, Math.min(100, safeScore));
   const angle = (clamp / 100) * 180;
   const color =
     clamp < 40 ? "text-destructive" : clamp < 60 ? "text-warning" : clamp < 75 ? "text-[hsl(50,80%,50%)]" : "text-success";

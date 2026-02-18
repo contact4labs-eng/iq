@@ -15,6 +15,7 @@ export interface AlertItem {
   severity: string;
   title: string;
   message: string;
+  status: string;
   is_resolved: boolean;
   resolved_at: string | null;
   created_at: string;
@@ -46,7 +47,11 @@ export function useAlerts() {
       if (listRes.error) throw listRes.error;
       const s = Array.isArray(sumRes.data) ? sumRes.data[0] : sumRes.data;
       setSummary(s as AlertSummary);
-      setAlerts((listRes.data ?? []) as AlertItem[]);
+      const rawAlerts = (listRes.data ?? []) as Array<Record<string, unknown>>;
+      setAlerts(rawAlerts.map((a) => ({
+        ...a,
+        is_resolved: a.status === "resolved" || a.is_resolved === true,
+      })) as AlertItem[]);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Σφάλμα φόρτωσης ειδοποιήσεων");
     } finally {
@@ -59,11 +64,11 @@ export function useAlerts() {
   const resolveAlert = async (alertId: string) => {
     const { error } = await supabase
       .from("alerts")
-      .update({ is_resolved: true, resolved_at: new Date().toISOString() })
+      .update({ status: "resolved", resolved_at: new Date().toISOString() } as Record<string, unknown>)
       .eq("id", alertId);
     if (!error) {
       setAlerts((prev) =>
-        prev.map((a) => (a.id === alertId ? { ...a, is_resolved: true, resolved_at: new Date().toISOString() } : a))
+        prev.map((a) => (a.id === alertId ? { ...a, status: "resolved", is_resolved: true, resolved_at: new Date().toISOString() } : a))
       );
     }
     return error;

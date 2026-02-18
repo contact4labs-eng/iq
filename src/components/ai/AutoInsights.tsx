@@ -17,7 +17,7 @@ export function AutoInsights({ data }: { data: FullAnalysisResponse }) {
       {/* Health Score */}
       <Card>
         <CardContent className="flex justify-center py-8">
-          <HealthGauge score={data.health_score} />
+          <HealthGauge score={data.health_score ?? 0} />
         </CardContent>
       </Card>
 
