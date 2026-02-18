@@ -594,6 +594,16 @@ export const translations = {
   "automation.log_invoice": { el: "Τιμολόγιο", en: "Invoice" },
   "automation.log_action": { el: "Ενέργεια", en: "Action Taken" },
   "automation.log_empty": { el: "Δεν βρέθηκαν εγγραφές", en: "No log entries found" },
+
+  // New automation triggers & actions
+  "automation.trigger_invoice_created": { el: "Δημιουργία Τιμολογίου", en: "Invoice Created" },
+  "automation.trigger_due_date_approaching": { el: "Πλησιάζει Λήξη", en: "Due Date Approaching" },
+  "automation.trigger_invoice_approved": { el: "Έγκριση Τιμολογίου", en: "Invoice Approved" },
+  "automation.action_flag_duplicate": { el: "Σημαίωση Διπλότυπου", en: "Flag Duplicate" },
+  "automation.action_send_reminder": { el: "Αποστολή Υπενθύμισης", en: "Send Reminder" },
+  "automation.action_notify_admin": { el: "Ειδοποίηση Διαχειριστή", en: "Notify Admin" },
+  "automation.action_require_approval": { el: "Απαίτηση Έγκρισης", en: "Require Approval" },
+  "automation.action_flag_anomaly": { el: "Σημαίωση Ανωμαλίας", en: "Flag Anomaly" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

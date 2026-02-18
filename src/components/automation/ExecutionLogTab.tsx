@@ -25,6 +25,11 @@ const DEMO_LOG: LogEntry[] = [
   { id: 6, timestamp: "2026-02-16 11:20", ruleName: "Tag Software subscriptions", invoiceRef: "INV-2026-0133", actionTaken: "Add Tag: Software", status: "success" },
   { id: 7, timestamp: "2026-02-15 10:00", ruleName: "Tag invoices from ΔΕΚΟ as Utilities", invoiceRef: "INV-2026-0130", actionTaken: "Set Category: Utilities", status: "success" },
   { id: 8, timestamp: "2026-02-14 15:30", ruleName: "Auto-categorize by supplier", invoiceRef: "INV-2026-0128", actionTaken: "Set Category: Services", status: "failed" },
+  { id: 9, timestamp: "2026-02-18 15:10", ruleName: "Duplicate Invoice Detection", invoiceRef: "INV-2026-0143", actionTaken: "Flag Duplicate", status: "success" },
+  { id: 10, timestamp: "2026-02-18 12:00", ruleName: "Payment Reminder Workflow", invoiceRef: "INV-2026-0138", actionTaken: "Send Reminder", status: "success" },
+  { id: 11, timestamp: "2026-02-17 17:30", ruleName: "Budget Threshold Alert", invoiceRef: "INV-2026-0140", actionTaken: "Notify Admin", status: "success" },
+  { id: 12, timestamp: "2026-02-17 10:45", ruleName: "High-Value Approval Workflow", invoiceRef: "INV-2026-0141", actionTaken: "Require Approval", status: "failed" },
+  { id: 13, timestamp: "2026-02-16 14:20", ruleName: "Anomaly Detection", invoiceRef: "INV-2026-0136", actionTaken: "Flag Anomaly", status: "success" },
 ];
 
 export function ExecutionLogTab() {
