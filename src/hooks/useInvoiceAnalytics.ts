@@ -36,6 +36,20 @@ export interface PriceVolatility {
   level: string;
 }
 
+// Map RPC response field names to our interface
+function mapPriceVolatility(raw: Record<string, unknown>): PriceVolatility {
+  return {
+    product_name: (raw.product_name as string) ?? "",
+    supplier_name: (raw.supplier_name as string) ?? "",
+    avg_price: (raw.avg_price as number) ?? 0,
+    min_price: (raw.min_price as number) ?? 0,
+    max_price: (raw.max_price as number) ?? 0,
+    latest_price: (raw.latest_price as number) ?? raw.avg_price as number ?? 0,
+    volatility: (raw.volatility as number) ?? (raw.volatility_score as number) ?? 0,
+    level: (raw.level as string) ?? (raw.volatility_level as string)?.toLowerCase() ?? "low",
+  };
+}
+
 export function useInvoiceAnalytics() {
   const { company } = useAuth();
   const companyId = company?.id;
@@ -74,7 +88,7 @@ export function useInvoiceAnalytics() {
 
         const costData = Array.isArray(costRes.data) ? costRes.data[0] : costRes.data;
         setCostAnalytics(costData as CostAnalytics);
-        setPriceVolatility((volRes.data ?? []) as PriceVolatility[]);
+        setPriceVolatility((volRes.data ?? []).map((r: Record<string, unknown>) => mapPriceVolatility(r)));
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Σφάλμα φόρτωσης αναλύσεων";
         setError(message);

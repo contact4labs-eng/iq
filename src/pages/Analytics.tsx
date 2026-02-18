@@ -113,7 +113,7 @@ const Analytics = () => {
       ? priceVolatility.reduce((sum, p) => sum + (p.volatility ?? 0), 0) / priceVolatility.length
       : 0;
   const topIncrease = priceVolatility.length > 0
-    ? priceVolatility.reduce((max, p) => (p.volatility > max.volatility ? p : max), priceVolatility[0])
+    ? priceVolatility.reduce((max, p) => ((p.volatility ?? 0) > (max.volatility ?? 0) ? p : max), priceVolatility[0])
     : null;
 
   // Compute summary stats for Supplier Performance tab
@@ -123,7 +123,7 @@ const Analytics = () => {
       ? suppliers.reduce((sum, s) => sum + (s.dependency_pct ?? 0), 0) / suppliers.length
       : 0;
   const topSupplier = suppliers.length > 0
-    ? suppliers.reduce((max, s) => (s.dependency_pct > max.dependency_pct ? s : max), suppliers[0])
+    ? suppliers.reduce((max, s) => ((s.dependency_pct ?? 0) > (max.dependency_pct ?? 0) ? s : max), suppliers[0])
     : null;
 
   // Find most reliable supplier (lowest risk, most invoices)
@@ -185,7 +185,7 @@ const Analytics = () => {
               {topIncrease && (
                 <SummaryCard
                   label={topIncrease.supplier_name}
-                  value={`${topIncrease.volatility.toFixed(1)}%`}
+                  value={`${(topIncrease.volatility ?? 0).toFixed(1)}%`}
                   variant={topIncrease.level === "high" ? "destructive" : "warning"}
                   icon={<TrendingUp className="w-5 h-5 text-destructive" />}
                 />
@@ -275,7 +275,7 @@ const Analytics = () => {
               {topSupplier && (
                 <SummaryCard
                   label={topSupplier.supplier_name}
-                  value={`${topSupplier.dependency_pct.toFixed(1)}%`}
+                  value={`${(topSupplier.dependency_pct ?? 0).toFixed(1)}%`}
                   variant={topSupplier.risk_level === "high" ? "destructive" : "warning"}
                   icon={<TrendingUp className="w-5 h-5 text-destructive" />}
                 />
