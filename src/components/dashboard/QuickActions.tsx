@@ -40,7 +40,7 @@ export function QuickActions({ onRevenueModal, onExpenseModal, onCashModal }: Qu
         <Button
           key={action.label}
           variant="outline"
-          className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-secondary/60 transition-colors"
+          className="h-auto py-4 flex flex-col items-center gap-2 border-border hover:bg-[rgba(255,255,255,0.05)] transition-colors"
           onClick={action.onClick}
         >
           <action.icon className="w-5 h-5 text-accent" />

@@ -46,7 +46,7 @@ export function KpiCard({ label, value, trend, loading, isNegativeHighlight }: K
   const isNegative = isNegativeHighlight && value !== null && value > 0;
 
   return (
-    <div className="bg-card border rounded-lg p-5">
+    <div className="bg-card border border-border rounded-lg p-5 shadow-[0_4px_6px_rgba(0,0,0,0.3)]">
       <p className="text-sm text-muted-foreground mb-1">{label}</p>
       {loading ? (
         <Skeleton className="h-8 w-32 mt-1" />
