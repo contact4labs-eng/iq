@@ -90,7 +90,12 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
         .order("created_at", { ascending: true });
 
       if (itemsErr) throw itemsErr;
-      setLineItems(items || []);
+      setLineItems(
+        (items || []).map((i) => ({
+          ...i,
+          tax_rate: i.tax_rate ?? 24,
+        }))
+      );
 
       // Fetch file
       if (inv.file_id) {
@@ -231,6 +236,26 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
     }
   };
 
+  const deleteInvoice = async () => {
+    if (!invoice) return false;
+    setSaving(true);
+    setError(null);
+    try {
+      // Delete line items first
+      await supabase.from("invoice_line_items").delete().eq("invoice_id", invoice.id);
+      // Delete invoice
+      const { error: delErr } = await supabase.from("invoices").delete().eq("id", invoice.id);
+      if (delErr) throw delErr;
+      return true;
+    } catch (err) {
+      console.error("Delete error:", err);
+      setError("Σφάλμα κατά τη διαγραφή του τιμολογίου.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     invoice,
     lineItems,
@@ -241,6 +266,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
     error,
     updateInvoiceStatus,
     saveInvoiceEdits,
+    deleteInvoice,
     refetch: fetchInvoice,
   };
 }
