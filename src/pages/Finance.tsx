@@ -340,7 +340,7 @@ const Finance = () => {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Activity className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">Μηνιαία Αποτελέσματα</h2>
+                  <h2 className="text-sm font-semibold text-foreground">Κέρδος & Ζημία Μήνα</h2>
                 </div>
                 {monthlyPL ? (
                   <div className="grid grid-cols-3 gap-4">
@@ -351,7 +351,7 @@ const Finance = () => {
                       {monthlyPL.revenue_change_pct !== 0 && (
                         <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.revenue_change_pct > 0 ? "text-success" : "text-destructive"}`}>
                           {monthlyPL.revenue_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {monthlyPL.revenue_change_pct > 0 ? "+" : ""}{monthlyPL.revenue_change_pct.toFixed(1)}%
+                          {monthlyPL.revenue_change_pct > 0 ? "+" : ""}{monthlyPL.revenue_change_pct.toFixed(1)}% vs προηγ. μήνα
                         </span>
                       )}
                     </div>
@@ -362,7 +362,7 @@ const Finance = () => {
                       {monthlyPL.expenses_change_pct !== 0 && (
                         <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.expenses_change_pct < 0 ? "text-success" : "text-destructive"}`}>
                           {monthlyPL.expenses_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {monthlyPL.expenses_change_pct > 0 ? "+" : ""}{monthlyPL.expenses_change_pct.toFixed(1)}%
+                          {monthlyPL.expenses_change_pct > 0 ? "+" : ""}{monthlyPL.expenses_change_pct.toFixed(1)}% vs προηγ. μήνα
                         </span>
                       )}
                     </div>
@@ -375,7 +375,7 @@ const Finance = () => {
                       {monthlyPL.profit_change_pct !== 0 && (
                         <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${monthlyPL.profit_change_pct > 0 ? "text-success" : "text-destructive"}`}>
                           {monthlyPL.profit_change_pct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {monthlyPL.profit_change_pct > 0 ? "+" : ""}{monthlyPL.profit_change_pct.toFixed(1)}%
+                          {monthlyPL.profit_change_pct > 0 ? "+" : ""}{monthlyPL.profit_change_pct.toFixed(1)}% vs προηγ. μήνα
                         </span>
                       )}
                     </div>
@@ -391,7 +391,7 @@ const Finance = () => {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <PieChartIcon className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">Ανάλυση Εξόδων</h2>
+                  <h2 className="text-sm font-semibold text-foreground">Κατανομή Εξόδων</h2>
                 </div>
                 {expenseBreakdown.length > 0 ? (
                   <div className="flex flex-col md:flex-row items-center gap-6">
@@ -435,7 +435,7 @@ const Finance = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <PieChartIcon className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν έξοδα αυτό τον μήνα</p>
+                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν δεδομένα εξόδων</p>
                   </div>
                 )}
               </CardContent>
@@ -448,7 +448,7 @@ const Finance = () => {
                   <TrendingUp className="w-4 h-4 text-accent" />
                   <h2 className="text-sm font-semibold text-foreground">Τάσεις 6 Μηνών</h2>
                 </div>
-                {monthlyTrends.length > 0 ? (
+                {monthlyTrends.length > 0 && monthlyTrends.some(t => t.revenue > 0 || t.expenses > 0) ? (
                   <>
                     <ChartContainer config={trendConfig} className="aspect-video max-h-[260px]">
                       <AreaChart data={monthlyTrends}>
@@ -472,7 +472,7 @@ const Finance = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <TrendingUp className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν δεδομένα τάσεων</p>
+                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν αρκετά δεδομένα για τάσεις</p>
                   </div>
                 )}
               </CardContent>
