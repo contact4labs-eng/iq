@@ -7,6 +7,7 @@ import { PriceVolatilitySection } from "@/components/invoices/analytics/PriceVol
 import { ExecutiveSummarySection } from "@/components/invoices/analytics/ExecutiveSummary";
 import { CostAnalyticsSection } from "@/components/invoices/analytics/CostAnalytics";
 import { PriceTrendAnalysis } from "@/components/analytics/PriceTrendAnalysis";
+import { StrategicInsights } from "@/components/analytics/StrategicInsights";
 import { useInvoiceAnalytics } from "@/hooks/useInvoiceAnalytics";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -286,6 +287,8 @@ const Analytics = () => {
                 />
               )}
             </div>
+
+            <StrategicInsights suppliers={suppliers} priceData={priceVolatility} />
 
             <SupplierPerformanceSection data={suppliers} priceData={priceVolatility} />
           </TabsContent>
