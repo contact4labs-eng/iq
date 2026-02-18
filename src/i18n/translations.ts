@@ -317,6 +317,10 @@ export const translations = {
   "analytics.high_risk_suppliers": { el: "Υψηλού Ρίσκου", en: "High Risk" },
   "analytics.avg_volatility": { el: "Μ.Ο. Μεταβλητότητας", en: "Avg Volatility" },
   "analytics.avg_dependency": { el: "Μ.Ο. Εξάρτησης", en: "Avg Dependency" },
+  "analytics.reliable_supplier": { el: "Αξιόπιστος Προμηθευτής", en: "Reliable Supplier" },
+  "analytics.all_suppliers": { el: "Όλοι οι Προμηθευτές", en: "All Suppliers" },
+  "analytics.price_over_time": { el: "Τιμές στο Χρόνο", en: "Prices Over Time" },
+  "analytics.filter_supplier": { el: "Φιλτράρισμα Προμηθευτή", en: "Filter by Supplier" },
 
   // AI Insights
   "ai.title": { el: "AI Ανάλυση", en: "AI Analysis" },
