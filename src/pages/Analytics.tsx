@@ -1,4 +1,6 @@
-import { TrendingUp, TrendingDown, AlertTriangle, Users } from "lucide-react";
+import { useState, useMemo } from "react";
+import { TrendingUp, TrendingDown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { SupplierPerformanceSection } from "@/components/invoices/analytics/SupplierPerformance";
 import { PriceVolatilitySection } from "@/components/invoices/analytics/PriceVolatility";
@@ -7,8 +9,18 @@ import { CostAnalyticsSection } from "@/components/invoices/analytics/CostAnalyt
 import { useInvoiceAnalytics } from "@/hooks/useInvoiceAnalytics";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const CHART_COLORS = [
+  "hsl(207, 90%, 54%)",
+  "hsl(152, 56%, 45%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(0, 72%, 51%)",
+  "hsl(270, 50%, 55%)",
+  "hsl(180, 60%, 45%)",
+];
 
 function SummaryCard({
   label,
@@ -43,6 +55,30 @@ function SummaryCard({
 const Analytics = () => {
   const { t } = useLanguage();
   const { executive, suppliers, costAnalytics, priceVolatility, loading, error } = useInvoiceAnalytics();
+  const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
+
+  // Derive unique supplier names from price volatility data
+  const supplierNames = useMemo(() => {
+    const names = new Set(priceVolatility.map((p) => p.supplier_name));
+    return Array.from(names).sort();
+  }, [priceVolatility]);
+
+  // Filter price data by selected supplier
+  const filteredPriceData = useMemo(() => {
+    if (selectedSupplier === "all") return priceVolatility;
+    return priceVolatility.filter((p) => p.supplier_name === selectedSupplier);
+  }, [priceVolatility, selectedSupplier]);
+
+  // Build chart data: products as data points with avg/min/max/latest
+  const chartData = useMemo(() => {
+    return filteredPriceData.map((p) => ({
+      name: p.product_name.length > 20 ? p.product_name.slice(0, 18) + "…" : p.product_name,
+      avg: p.avg_price,
+      min: p.min_price,
+      max: p.max_price,
+      latest: p.latest_price,
+    }));
+  }, [filteredPriceData]);
 
   if (error) {
     return (
@@ -88,6 +124,13 @@ const Analytics = () => {
       : 0;
   const topSupplier = suppliers.length > 0
     ? suppliers.reduce((max, s) => (s.dependency_pct > max.dependency_pct ? s : max), suppliers[0])
+    : null;
+
+  // Find most reliable supplier (lowest risk, most invoices)
+  const reliableSupplier = suppliers.length > 0
+    ? suppliers
+        .filter((s) => s.risk_level === "low")
+        .sort((a, b) => b.invoice_count - a.invoice_count)[0] ?? suppliers.reduce((best, s) => (s.invoice_count > best.invoice_count ? s : best), suppliers[0])
     : null;
 
   return (
@@ -149,13 +192,56 @@ const Analytics = () => {
               )}
             </div>
 
-            <PriceVolatilitySection data={priceVolatility} />
+            {/* Price Trends Chart with Supplier Filter */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg">{t("analytics.price_over_time")}</CardTitle>
+                <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={t("analytics.all_suppliers")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("analytics.all_suppliers")}</SelectItem>
+                    {supplierNames.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="name" className="text-xs" tick={{ fontSize: 11 }} />
+                      <YAxis className="text-xs" tickFormatter={(v) => `€${v}`} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                        labelStyle={{ color: "hsl(var(--foreground))" }}
+                        formatter={(value: number) => [`€${value.toFixed(2)}`, undefined]}
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="avg" stroke={CHART_COLORS[0]} name="Avg" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="latest" stroke={CHART_COLORS[1]} name="Latest" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="min" stroke={CHART_COLORS[2]} name="Min" strokeDasharray="5 5" strokeWidth={1} dot={false} />
+                      <Line type="monotone" dataKey="max" stroke={CHART_COLORS[3]} name="Max" strokeDasharray="5 5" strokeWidth={1} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-muted-foreground text-sm text-center py-12">{t("analytics.no_data")}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <PriceVolatilitySection data={filteredPriceData} />
             <CostAnalyticsSection data={costAnalytics} />
           </TabsContent>
 
           <TabsContent value="supplier-perf" className="space-y-6">
             {/* Summary cards */}
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 mt-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mt-4">
               <SummaryCard
                 label={t("analytics.high_risk_suppliers")}
                 value={String(highRiskCount)}
@@ -178,6 +264,14 @@ const Analytics = () => {
                   )
                 }
               />
+              {reliableSupplier && (
+                <SummaryCard
+                  label={t("analytics.reliable_supplier")}
+                  value={reliableSupplier.supplier_name}
+                  variant="success"
+                  icon={<ShieldCheck className="w-5 h-5 text-success" />}
+                />
+              )}
               {topSupplier && (
                 <SummaryCard
                   label={topSupplier.supplier_name}
