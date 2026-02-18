@@ -17,8 +17,8 @@ const PIE_COLORS = [
   "hsl(180, 60%, 45%)",
 ];
 
-function formatCurrency(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(v);
+function formatCurrency(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(v ?? 0);
 }
 
 const pieConfig: ChartConfig = { total: { label: "Δαπάνη" } };

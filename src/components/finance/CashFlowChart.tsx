@@ -14,8 +14,8 @@ const chartConfig: ChartConfig = {
   net_flow: { label: "Καθαρή Ροή", color: "hsl(207, 90%, 54%)" },
 };
 
-function fmt(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(v);
+function fmt(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(v ?? 0);
 }
 
 export function CashFlowChart({ data }: { data: CashFlowPoint[] }) {

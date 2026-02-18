@@ -2,8 +2,8 @@ import type { WeeklyKpis } from "@/hooks/useFinanceData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
-function fmt(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
+function fmt(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
 }
 
 function Change({ pct }: { pct: number | undefined | null }) {

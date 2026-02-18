@@ -2,8 +2,8 @@ import type { MonthlyKpis } from "@/hooks/useFinanceData";
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
-function fmt(v: number) {
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
+function fmt(v: number | null | undefined) {
+  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v ?? 0);
 }
 
 function GrowthArrow({ rate, label }: { rate: number | undefined | null; label: string }) {

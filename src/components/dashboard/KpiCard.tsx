@@ -9,28 +9,29 @@ interface KpiCardProps {
   isNegativeHighlight?: boolean;
 }
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | null | undefined): string {
   return new Intl.NumberFormat("el-GR", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2,
-  }).format(value);
+  }).format(value ?? 0);
 }
 
-function TrendIcon({ trend }: { trend?: number }) {
+function TrendIcon({ trend }: { trend?: number | null }) {
   if (trend === undefined || trend === null) return null;
-  if (trend > 0)
+  const val = trend ?? 0;
+  if (val > 0)
     return (
       <span className="inline-flex items-center gap-0.5 text-xs text-success">
         <TrendingUp className="w-3.5 h-3.5" />
-        +{trend.toFixed(1)}%
+        +{val.toFixed(1)}%
       </span>
     );
-  if (trend < 0)
+  if (val < 0)
     return (
       <span className="inline-flex items-center gap-0.5 text-xs text-destructive">
         <TrendingDown className="w-3.5 h-3.5" />
-        {trend.toFixed(1)}%
+        {val.toFixed(1)}%
       </span>
     );
   return (
