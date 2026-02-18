@@ -6,11 +6,12 @@ function fmt(v: number) {
   return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(v);
 }
 
-function Change({ pct }: { pct: number }) {
-  if (pct > 0)
-    return <span className="inline-flex items-center gap-0.5 text-xs text-success"><TrendingUp className="w-3 h-3" /> +{pct.toFixed(1)}%</span>;
-  if (pct < 0)
-    return <span className="inline-flex items-center gap-0.5 text-xs text-destructive"><TrendingDown className="w-3 h-3" /> {pct.toFixed(1)}%</span>;
+function Change({ pct }: { pct: number | undefined | null }) {
+  const val = pct ?? 0;
+  if (val > 0)
+    return <span className="inline-flex items-center gap-0.5 text-xs text-success"><TrendingUp className="w-3 h-3" /> +{val.toFixed(1)}%</span>;
+  if (val < 0)
+    return <span className="inline-flex items-center gap-0.5 text-xs text-destructive"><TrendingDown className="w-3 h-3" /> {val.toFixed(1)}%</span>;
   return <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground"><Minus className="w-3 h-3" /> 0%</span>;
 }
 
