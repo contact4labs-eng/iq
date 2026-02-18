@@ -47,7 +47,11 @@ const SettingsPage = () => {
   const [exporting, setExporting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     supabase
       .from("companies")
       .select("name, afm, email, phone, address")
