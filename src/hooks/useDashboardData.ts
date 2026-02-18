@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
+const safe = (v: unknown): number => (v == null || isNaN(Number(v))) ? 0 : Number(v);
+
 interface DailyKpis {
   cash_position: number;
   pending_outgoing: number;
@@ -62,7 +64,19 @@ export function useDashboardData() {
           const d = dailyRes.value.data;
           // Handle both single object and array response
           const kpiData = Array.isArray(d) ? d[0] : d;
-          if (kpiData) setDailyKpis(kpiData as DailyKpis);
+          if (kpiData) {
+            const kd = kpiData as Record<string, unknown>;
+            setDailyKpis({
+              cash_position: safe(kd.cash_position),
+              pending_outgoing: safe(kd.pending_outgoing),
+              mtd_profit: safe(kd.mtd_profit),
+              overdue_amount: safe(kd.overdue_amount),
+              cash_position_trend: kd.cash_position_trend != null ? safe(kd.cash_position_trend) : undefined,
+              pending_outgoing_trend: kd.pending_outgoing_trend != null ? safe(kd.pending_outgoing_trend) : undefined,
+              mtd_profit_trend: kd.mtd_profit_trend != null ? safe(kd.mtd_profit_trend) : undefined,
+              overdue_trend: kd.overdue_trend != null ? safe(kd.overdue_trend) : undefined,
+            });
+          }
         } else {
           console.error("Daily KPIs error:", dailyRes.status === "fulfilled" ? dailyRes.value.error : dailyRes.reason);
         }
@@ -73,12 +87,12 @@ export function useDashboardData() {
           if (weeklyData) {
             const wd = weeklyData as Record<string, unknown>;
             setWeeklyKpis({
-              revenue: (wd.revenue as number) ?? 0,
-              expenses: (wd.expenses as number) ?? 0,
-              profit: (wd.profit as number) ?? 0,
-              prev_revenue: (wd.prev_revenue as number) ?? undefined,
-              prev_expenses: (wd.prev_expenses as number) ?? undefined,
-              prev_profit: (wd.prev_profit as number) ?? undefined,
+              revenue: safe(wd.revenue),
+              expenses: safe(wd.expenses),
+              profit: safe(wd.profit),
+              prev_revenue: wd.prev_revenue != null ? safe(wd.prev_revenue) : undefined,
+              prev_expenses: wd.prev_expenses != null ? safe(wd.prev_expenses) : undefined,
+              prev_profit: wd.prev_profit != null ? safe(wd.prev_profit) : undefined,
             });
           }
         } else {
