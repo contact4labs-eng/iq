@@ -4,6 +4,7 @@ export const translations = {
   "nav.invoices": { el: "Τιμολόγια", en: "Invoices" },
   "nav.finance": { el: "Χρήματα", en: "Finance" },
   "nav.ai": { el: "AI Ανάλυση", en: "AI Analysis" },
+  "nav.analytics": { el: "Αναλύσεις", en: "Analytics" },
   "nav.alerts": { el: "Ειδοποιήσεις", en: "Alerts" },
   "nav.settings": { el: "Ρυθμίσεις", en: "Settings" },
 
