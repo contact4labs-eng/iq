@@ -74,8 +74,7 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
       const { error } = await supabase.from("revenue_entries").insert({
         company_id: company.id,
         amount: parsed,
-        description: description || null,
-        source: category || null,
+        description: [description, category, client].filter(Boolean).join(" — "),
         entry_date: format(date, "yyyy-MM-dd"),
       });
 
