@@ -497,6 +497,24 @@ export const translations = {
   "analytics.compare_recommendation": { el: "Σύσταση", en: "Recommendation" },
   "analytics.compare_rec_text": { el: "είναι ο καλύτερος συνολικά προμηθευτής", en: "is the best overall supplier" },
   "analytics.compare_rec_wins": { el: "Κερδίζει σε {count} από 4 διαστάσεις.", en: "Wins in {count} out of 4 dimensions." },
+
+  // Profit & Margins
+  "analytics.tab_profit_margins": { el: "Κέρδος & Περιθώρια", en: "Profit & Margins" },
+  "analytics.pm_total_cost": { el: "Εκτιμώμενο Συνολικό Κόστος", en: "Estimated Total Cost" },
+  "analytics.pm_highest_product": { el: "Ακριβότερο Προϊόν", en: "Highest Cost Product" },
+  "analytics.pm_cost_trend": { el: "Τάση Κόστους", en: "Cost Trend" },
+  "analytics.pm_trend_increasing": { el: "Αυξητική", en: "Increasing" },
+  "analytics.pm_trend_decreasing": { el: "Μειωτική", en: "Decreasing" },
+  "analytics.pm_trend_stable": { el: "Σταθερή", en: "Stable" },
+  "analytics.pm_cost_breakdown": { el: "Ανάλυση Κόστους", en: "Cost Breakdown" },
+  "analytics.pm_product_costs": { el: "Κόστος ανά Προϊόν", en: "Product Costs" },
+  "analytics.pm_unit_cost": { el: "Κόστος Μονάδας", en: "Unit Cost" },
+  "analytics.pm_cost_change": { el: "Μεταβολή %", en: "Cost Change %" },
+  "analytics.pm_impact": { el: "Επίπτωση", en: "Impact" },
+  "analytics.pm_simulator": { el: "Προσομοιωτής Περιθωρίου", en: "Margin Impact Simulator" },
+  "analytics.pm_target_margin": { el: "Στόχος Περιθωρίου", en: "Target Margin" },
+  "analytics.pm_required_revenue": { el: "Απαιτούμενο Έσοδο", en: "Required Revenue" },
+  "analytics.pm_margin_gap": { el: "Περιθώριο", en: "Margin Gap" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
