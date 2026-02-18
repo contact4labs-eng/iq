@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useInvoiceDetail, LineItem, InvoiceData } from "@/hooks/useInvoiceDetail";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { InvoiceDocPreview } from "@/components/invoices/InvoiceDocPreview";
 import { InvoiceLineItemsTable } from "@/components/invoices/InvoiceLineItemsTable";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, FileText, CalendarIcon, Check, Flag, X, Save } from "lucide-react";
+import { ArrowLeft, FileText, CalendarIcon, Check, Flag, X, Save, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { el } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -82,6 +83,7 @@ const InvoiceDetail = () => {
     error,
     updateInvoiceStatus,
     saveInvoiceEdits,
+    deleteInvoice,
   } = useInvoiceDetail(id);
 
   // Editable state
@@ -113,15 +115,10 @@ const InvoiceDetail = () => {
   useEffect(() => {
     if (editedItems.length > 0) {
       const subtotal = editedItems.reduce((sum, i) => {
-        const qty = i.quantity ?? 0;
-        const price = i.unit_price ?? 0;
-        return sum + qty * price;
+        return sum + (i.quantity ?? 0) * (i.unit_price ?? 0);
       }, 0);
       const vatAmount = editedItems.reduce((sum, i) => {
-        const qty = i.quantity ?? 0;
-        const price = i.unit_price ?? 0;
-        const vat = i.tax_rate ?? 0;
-        return sum + qty * price * (vat / 100);
+        return sum + (i.quantity ?? 0) * (i.unit_price ?? 0) * ((i.tax_rate ?? 24) / 100);
       }, 0);
       setForm((f) => ({
         ...f,
@@ -158,6 +155,16 @@ const InvoiceDetail = () => {
     }
   };
 
+  const handleDelete = async () => {
+    const ok = await deleteInvoice();
+    if (ok) {
+      toast({ title: "Διαγράφηκε", description: "Το τιμολόγιο διαγράφηκε επιτυχώς." });
+      navigate("/invoices");
+    } else {
+      toast({ title: "Σφάλμα", description: "Αποτυχία διαγραφής τιμολογίου.", variant: "destructive" });
+    }
+  };
+
   // Show error as toast instead of replacing page content
   useEffect(() => {
     if (error && !loading) {
@@ -183,6 +190,29 @@ const InvoiceDetail = () => {
             <Badge variant="outline" className={`ml-2 ${status.className}`}>
               {status.label}
             </Badge>
+          )}
+          {!loading && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="ml-auto text-destructive hover:text-destructive" disabled={saving}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Διαγραφή τιμολογίου</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το τιμολόγιο; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Διαγραφή
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
 
