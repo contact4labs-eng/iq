@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, AlertTriangle, Plus, PiggyBank, BarChart3 } from "lucide-react";
+import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, AlertTriangle, Plus, PiggyBank, BarChart3, CalendarClock } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +34,7 @@ const chartConfig: ChartConfig = {
 
 const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, loading, error } = useFinanceDashboard(refreshKey);
+  const { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, upcomingPayments, loading, error } = useFinanceDashboard(refreshKey);
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
@@ -203,7 +203,58 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 5. Ληξιπρόθεσμα Τιμολόγια ─── */}
+            {/* ─── 5. Προγραμματισμένες Πληρωμές ─── */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="w-4 h-4 text-accent" />
+                    <h2 className="text-sm font-semibold text-foreground">Προγραμματισμένες Πληρωμές</h2>
+                  </div>
+                  {upcomingPayments.length > 0 && (
+                    <Badge className="bg-accent/15 text-accent border-0">
+                      {upcomingPayments.length}
+                    </Badge>
+                  )}
+                </div>
+
+                {upcomingPayments.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">Περιγραφή</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ποσό</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Ημερομηνία</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">Σε</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {upcomingPayments.map((p) => (
+                          <tr key={p.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
+                            <td className="py-2.5 px-3 font-medium text-foreground truncate max-w-[200px]">{p.description}</td>
+                            <td className="py-2.5 px-3 text-right font-bold text-foreground">{fmt(safe(p.amount))}</td>
+                            <td className="py-2.5 px-3 text-right text-muted-foreground">{p.due_date}</td>
+                            <td className="py-2.5 px-3 text-right">
+                              <Badge className="bg-accent/10 text-accent border-0 font-medium">
+                                {safe(p.days_until)} ημέρ{safe(p.days_until) === 1 ? "α" : "ες"}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <CalendarClock className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Δεν υπάρχουν προγραμματισμένες πληρωμές</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ─── 6. Ληξιπρόθεσμα Τιμολόγια ─── */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
