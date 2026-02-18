@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, FileUp, CheckCircle, Loader2, AlertCircle, Camera } from "lucide-react";
+import { Upload, CheckCircle, Loader2, AlertCircle, Camera, FileUp } from "lucide-react";
 import { supabase, SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { CameraDialog } from "./CameraDialog";
 
 type UploadStep = "idle" | "uploading" | "processing" | "done" | "error";
 
@@ -18,12 +20,12 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
   const { toast } = useToast();
   const [step, setStep] = useState<UploadStep>("idle");
   const [dragOver, setDragOver] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const getFileExtension = (filename: string): string => {
-    const ext = filename.split(".").pop()?.toLowerCase() || "";
-    return ext;
+    return filename.split(".").pop()?.toLowerCase() || "";
   };
 
   const handleFile = useCallback(
@@ -44,7 +46,6 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
       }
 
       try {
-        // Step 1: Upload to storage
         setStep("uploading");
         const timestamp = Date.now();
         const storagePath = `${company.id}/${timestamp}_${file.name}`;
@@ -55,12 +56,6 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (uploadError) throw new Error(`Σφάλμα αποθήκευσης: ${uploadError.message}`);
 
-        // Step 2: Get public URL
-        const { data: urlData } = supabase.storage
-          .from("invoices")
-          .getPublicUrl(storagePath);
-
-        // Step 3: Insert into files table
         const ext = getFileExtension(file.name);
         const { data: fileRecord, error: fileError } = await supabase
           .from("files")
@@ -77,8 +72,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (fileError || !fileRecord) throw new Error(`Σφάλμα καταγραφής αρχείου: ${fileError?.message}`);
 
-        // Step 4: Insert into invoices table
-        const { data: invoiceRecord, error: invoiceError } = await supabase
+        const { error: invoiceError } = await supabase
           .from("invoices")
           .insert({
             company_id: company.id,
@@ -90,7 +84,6 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (invoiceError) throw new Error(`Σφάλμα δημιουργίας τιμολογίου: ${invoiceError.message}`);
 
-        // Step 5: Call edge function
         setStep("processing");
         const response = await fetch(
           `${SUPABASE_URL}/functions/v1/process-invoice`,
@@ -112,11 +105,9 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           toast({ title: "Σφάλμα", description: "Σφάλμα επεξεργασίας τιμολογίου.", variant: "destructive" });
         }
 
-        // Step 6: Done
         setStep("done");
         toast({ title: "Επιτυχία!", description: "Το τιμολόγιο ανέβηκε και επεξεργάζεται." });
         onUploadComplete();
-
         setTimeout(() => setStep("idle"), 3000);
       } catch (err) {
         console.error("Upload error:", err);
@@ -149,10 +140,12 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
+  const isActive = step === "idle";
+
   const stepContent = {
     idle: {
       icon: <Upload className="w-8 h-8 text-muted-foreground" />,
-      text: "Σύρετε ή κάντε κλικ για ανέβασμα τιμολογίου",
+      text: "Σύρετε αρχείο εδώ ή χρησιμοποιήστε τα παρακάτω κουμπιά",
       sub: "PDF, JPG, PNG — μέγιστο 10MB",
     },
     uploading: {
@@ -178,54 +171,70 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
   };
 
   const current = stepContent[step];
-  const isActive = step === "idle";
 
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        if (isActive) setDragOver(true);
-      }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={isActive ? onDrop : undefined}
-      onClick={isActive ? () => fileInputRef.current?.click() : undefined}
-      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-        isActive ? "cursor-pointer hover:border-accent/50 hover:bg-accent/5" : "cursor-default"
-      } ${dragOver ? "border-accent bg-accent/5" : "border-border"}`}
-    >
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        accept=".pdf,.jpg,.jpeg,.png"
-        onChange={onFileChange}
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        className="hidden"
-        accept="image/jpeg,image/png"
-        capture="environment"
-        onChange={onFileChange}
-      />
-      <div className="flex flex-col items-center gap-2">
-        {current.icon}
-        <p className="text-sm font-medium text-foreground">{current.text}</p>
-        <p className="text-xs text-muted-foreground">{current.sub}</p>
-        {isActive && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              cameraInputRef.current?.click();
-            }}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
-          >
-            <Camera className="w-4 h-4" />
-            Λήψη φωτογραφίας
-          </button>
-        )}
+    <>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (isActive) setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={isActive ? onDrop : undefined}
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          dragOver ? "border-accent bg-accent/5" : "border-border"
+        }`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.jpg,.jpeg,.png"
+          onChange={onFileChange}
+        />
+        {/* Native camera input for mobile fallback */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          className="hidden"
+          accept="image/jpeg,image/png"
+          capture="environment"
+          onChange={onFileChange}
+        />
+
+        <div className="flex flex-col items-center gap-3">
+          {current.icon}
+          <p className="text-sm font-medium text-foreground">{current.text}</p>
+          <p className="text-xs text-muted-foreground">{current.sub}</p>
+
+          {isActive && (
+            <div className="flex items-center gap-3 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCameraOpen(true)}
+              >
+                <Camera className="w-4 h-4 mr-1.5" />
+                Λήψη φωτογραφίας
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FileUp className="w-4 h-4 mr-1.5" />
+                Επιλογή αρχείου
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <CameraDialog
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={handleFile}
+      />
+    </>
   );
 }
