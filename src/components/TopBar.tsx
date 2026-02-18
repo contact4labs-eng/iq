@@ -1,10 +1,12 @@
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function TopBar() {
   const { user, company, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const companyName = company?.name || "Η εταιρεία μου";
   const email = user?.email || "";
 
@@ -16,6 +18,9 @@ export function TopBar() {
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm text-muted-foreground hidden md:inline">{email}</span>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={toggleTheme} title={theme === "dark" ? "Φωτεινό θέμα" : "Σκοτεινό θέμα"}>
+          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
           <Bell className="w-4 h-4" />
         </Button>
