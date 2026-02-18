@@ -35,6 +35,15 @@ export interface OverdueInvoice {
   days_overdue: number;
 }
 
+export interface UpcomingPayment {
+  id: string;
+  description: string;
+  amount: number;
+  due_date: string;
+  days_until: number;
+  status: string;
+}
+
 export function useFinanceDashboard(refreshKey = 0) {
   const { company } = useAuth();
   const companyId = company?.id;
@@ -44,6 +53,7 @@ export function useFinanceDashboard(refreshKey = 0) {
   const [payables, setPayables] = useState<PayablesData | null>(null);
   const [weeklyCashFlow, setWeeklyCashFlow] = useState<WeeklyCashFlow[]>([]);
   const [overdueInvoices, setOverdueInvoices] = useState<OverdueInvoice[]>([]);
+  const [upcomingPayments, setUpcomingPayments] = useState<UpcomingPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,8 +120,18 @@ export function useFinanceDashboard(refreshKey = 0) {
           .order("due_date", { ascending: true })
           .limit(20);
 
-        const [cashRes, recvRes, payRes, revRes, expRes, overdueRes] = await Promise.all([
-          cashPromise, receivablesPromise, payablesPromise, revenuePromise, expensePromise, overduePromise,
+        // 7. Upcoming scheduled payments
+        const upcomingPromise = supabase
+          .from("scheduled_payments")
+          .select("id, description, amount, due_date, status")
+          .eq("company_id", companyId)
+          .eq("status", "pending")
+          .gte("due_date", todayStr)
+          .order("due_date", { ascending: true })
+          .limit(20);
+
+        const [cashRes, recvRes, payRes, revRes, expRes, overdueRes, upcomingRes] = await Promise.all([
+          cashPromise, receivablesPromise, payablesPromise, revenuePromise, expensePromise, overduePromise, upcomingPromise,
         ]);
 
         // Process cash position
@@ -187,6 +207,23 @@ export function useFinanceDashboard(refreshKey = 0) {
             };
           })
         );
+
+        // Process upcoming payments
+        const upcomingRows = (upcomingRes.data ?? []) as any[];
+        setUpcomingPayments(
+          upcomingRows.map((r) => {
+            const due = new Date(r.due_date);
+            const daysUntil = Math.max(0, Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+            return {
+              id: r.id,
+              description: r.description ?? "—",
+              amount: safe(r.amount),
+              due_date: r.due_date,
+              days_until: daysUntil,
+              status: r.status ?? "pending",
+            };
+          })
+        );
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Σφάλμα φόρτωσης δεδομένων");
       } finally {
@@ -197,5 +234,5 @@ export function useFinanceDashboard(refreshKey = 0) {
     fetchAll();
   }, [companyId, refreshKey]);
 
-  return { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, loading, error };
+  return { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, upcomingPayments, loading, error };
 }
