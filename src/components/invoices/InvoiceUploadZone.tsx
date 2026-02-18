@@ -4,6 +4,7 @@ import { supabase, SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CameraDialog } from "./CameraDialog";
 
 type UploadStep = "idle" | "uploading" | "processing" | "done" | "error";
@@ -18,6 +19,7 @@ interface InvoiceUploadZoneProps {
 export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) {
   const { company, session } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<UploadStep>("idle");
   const [dragOver, setDragOver] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -46,6 +48,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
       }
 
       try {
+        // Step 1: Upload to storage
         setStep("uploading");
         const timestamp = Date.now();
         const storagePath = `${company.id}/${timestamp}_${file.name}`;
@@ -56,6 +59,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (uploadError) throw new Error(`Σφάλμα αποθήκευσης: ${uploadError.message}`);
 
+        // Step 2: Insert into files table
         const ext = getFileExtension(file.name);
         const { data: fileRecord, error: fileError } = await supabase
           .from("files")
@@ -72,6 +76,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (fileError || !fileRecord) throw new Error(`Σφάλμα καταγραφής αρχείου: ${fileError?.message}`);
 
+        // Step 3: Insert into invoices table
         const { error: invoiceError } = await supabase
           .from("invoices")
           .insert({
@@ -84,6 +89,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
 
         if (invoiceError) throw new Error(`Σφάλμα δημιουργίας τιμολογίου: ${invoiceError.message}`);
 
+        // Step 4: Call process-invoice Edge Function
         setStep("processing");
         const response = await fetch(
           `${SUPABASE_URL}/functions/v1/process-invoice`,
@@ -105,6 +111,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           toast({ title: "Σφάλμα", description: "Σφάλμα επεξεργασίας τιμολογίου.", variant: "destructive" });
         }
 
+        // Step 5: Done
         setStep("done");
         toast({ title: "Επιτυχία!", description: "Το τιμολόγιο ανέβηκε και επεξεργάζεται." });
         onUploadComplete();
@@ -138,6 +145,16 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
     if (file) handleFile(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
+  };
+
+  const handleCameraClick = () => {
+    if (isMobile) {
+      // Mobile: use native camera input
+      cameraInputRef.current?.click();
+    } else {
+      // Desktop: open getUserMedia dialog
+      setCameraOpen(true);
+    }
   };
 
   const isActive = step === "idle";
@@ -185,6 +202,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           dragOver ? "border-accent bg-accent/5" : "border-border"
         }`}
       >
+        {/* Regular file picker input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -192,7 +210,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
           accept=".pdf,.jpg,.jpeg,.png"
           onChange={onFileChange}
         />
-        {/* Native camera input for mobile fallback */}
+        {/* Native camera input (mobile fallback) */}
         <input
           ref={cameraInputRef}
           type="file"
@@ -212,7 +230,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCameraOpen(true)}
+                onClick={handleCameraClick}
               >
                 <Camera className="w-4 h-4 mr-1.5" />
                 Λήψη φωτογραφίας
@@ -230,6 +248,7 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
         </div>
       </div>
 
+      {/* Desktop camera dialog (getUserMedia) */}
       <CameraDialog
         open={cameraOpen}
         onClose={() => setCameraOpen(false)}
