@@ -44,6 +44,7 @@ const Finance = () => {
   const totalCash = safe(cashPosition?.total_cash);
   const cashOnHand = safe(cashPosition?.cash_on_hand);
   const bankBalance = safe(cashPosition?.bank_balance);
+  const cashChangePct = safe(cashPosition?.change_pct);
   const recvTotal = safe(receivables?.total);
   const recvCount = safe(receivables?.count);
   const payTotal = safe(payables?.total);
@@ -104,9 +105,16 @@ const Finance = () => {
             {/* ─── 1. Ταμειακό Υπόλοιπο ─── */}
             <Card className="bg-primary text-primary-foreground">
               <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Wallet className="w-5 h-5 opacity-70" />
-                  <h2 className="text-sm font-semibold opacity-80">Ταμειακό Υπόλοιπο</h2>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-5 h-5 opacity-70" />
+                    <h2 className="text-sm font-semibold opacity-80">Ταμειακό Υπόλοιπο</h2>
+                  </div>
+                  {cashChangePct !== 0 && (
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cashChangePct > 0 ? "bg-success/20 text-success-foreground" : "bg-destructive/20 text-destructive-foreground"}`}>
+                      {cashChangePct > 0 ? "+" : ""}{cashChangePct.toFixed(1)}% vs προηγ. μήνα
+                    </span>
+                  )}
                 </div>
                 <p className="text-4xl font-bold font-display tracking-tight">
                   {fmt(totalCash)}

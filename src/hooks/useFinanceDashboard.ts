@@ -8,6 +8,8 @@ export interface CashPositionData {
   cash_on_hand: number;
   bank_balance: number;
   total_cash: number;
+  prev_total_cash: number;
+  change_pct: number;
 }
 
 export interface ReceivablesData {
@@ -80,6 +82,19 @@ export function useFinanceDashboard(refreshKey = 0) {
           .limit(1)
           .maybeSingle();
 
+        // 1b. Previous month cash position
+        const prevMonthDate = new Date(today);
+        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+        const prevMonthStr = prevMonthDate.toISOString().slice(0, 10);
+        const prevCashPromise = supabase
+          .from("cash_positions")
+          .select("total_cash")
+          .eq("company_id", companyId)
+          .lte("recorded_date", prevMonthStr)
+          .order("recorded_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         // 2. Receivables — approved invoices not yet paid
         const receivablesPromise = supabase
           .from("invoices")
@@ -130,20 +145,25 @@ export function useFinanceDashboard(refreshKey = 0) {
           .order("due_date", { ascending: true })
           .limit(20);
 
-        const [cashRes, recvRes, payRes, revRes, expRes, overdueRes, upcomingRes] = await Promise.all([
-          cashPromise, receivablesPromise, payablesPromise, revenuePromise, expensePromise, overduePromise, upcomingPromise,
+        const [cashRes, prevCashRes, recvRes, payRes, revRes, expRes, overdueRes, upcomingRes] = await Promise.all([
+          cashPromise, prevCashPromise, receivablesPromise, payablesPromise, revenuePromise, expensePromise, overduePromise, upcomingPromise,
         ]);
 
         // Process cash position
+        const prevTotal = safe((prevCashRes.data as any)?.total_cash);
         if (cashRes.data) {
           const d = cashRes.data as any;
+          const currentTotal = safe(d.total_cash);
+          const changePct = prevTotal > 0 ? ((currentTotal - prevTotal) / prevTotal) * 100 : 0;
           setCashPosition({
             cash_on_hand: safe(d.cash_on_hand),
             bank_balance: safe(d.bank_balance),
-            total_cash: safe(d.total_cash),
+            total_cash: currentTotal,
+            prev_total_cash: prevTotal,
+            change_pct: changePct,
           });
         } else {
-          setCashPosition({ cash_on_hand: 0, bank_balance: 0, total_cash: 0 });
+          setCashPosition({ cash_on_hand: 0, bank_balance: 0, total_cash: 0, prev_total_cash: 0, change_pct: 0 });
         }
 
         // Process receivables
