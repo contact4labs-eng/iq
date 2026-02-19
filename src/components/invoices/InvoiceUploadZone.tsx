@@ -107,6 +107,9 @@ export function InvoiceUploadZone({ onUploadComplete }: InvoiceUploadZoneProps) 
         if (!response.ok) {
           console.warn("Edge function returned non-OK status:", response.status);
           toast({ title: t("toast.error"), description: t("upload.processing_error"), variant: "destructive" });
+          setStep("error");
+          setTimeout(() => setStep("idle"), 4000);
+          return;
         }
 
         setStep("done");
