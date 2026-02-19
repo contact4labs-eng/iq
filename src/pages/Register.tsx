@@ -25,7 +25,8 @@ const Register = () => {
       return;
     }
     setLoading(true);
-    
+
+    try {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -51,12 +52,28 @@ const Register = () => {
 
       if (companyError) {
         console.error("Company creation error:", companyError);
+        setLoading(false);
+        toast({
+          title: t("toast.error"),
+          description: "\u039F \u03BB\u03BF\u03B3\u03B1\u03C1\u03B9\u03B1\u03C3\u03BC\u03CC\u03C2 \u03B4\u03B7\u03BC\u03B9\u03BF\u03C5\u03C1\u03B3\u03AE\u03B8\u03B7\u03BA\u03B5 \u03B1\u03BB\u03BB\u03AC \u03B7 \u03B5\u03C4\u03B1\u03B9\u03C1\u03B5\u03AF\u03B1 \u03B4\u03B5\u03BD \u03B1\u03C0\u03BF\u03B8\u03B7\u03BA\u03B5\u03CD\u03C4\u03B7\u03BA\u03B5. \u03A0\u03B1\u03C1\u03B1\u03BA\u03B1\u03BB\u03CE \u03B5\u03C0\u03B9\u03BA\u03BF\u03B9\u03BD\u03C9\u03BD\u03AE\u03C3\u03C4\u03B5 \u03BC\u03B5 \u03C4\u03B7\u03BD \u03C5\u03C0\u03BF\u03C3\u03C4\u03AE\u03C1\u03B9\u03BE\u03B7.",
+          variant: "destructive",
+        });
+        return;
       }
     }
 
     setLoading(false);
     toast({ title: t("toast.register_success"), description: t("toast.check_email") });
     navigate("/login");
+    } catch (err) {
+      console.error("Registration error:", err);
+      setLoading(false);
+      toast({
+        title: t("toast.register_error"),
+        description: err instanceof Error ? err.message : "\u0391\u03C0\u03C1\u03CC\u03C3\u03BC\u03B5\u03BD\u03BF \u03C3\u03C6\u03AC\u03BB\u03BC\u03B1. \u0394\u03BF\u03BA\u03B9\u03BC\u03AC\u03C3\u03C4\u03B5 \u03BE\u03B1\u03BD\u03AC.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -88,7 +105,7 @@ const Register = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">{t("auth.password")}</Label>
-              <Input id="password" type="password" placeholder="••••••••" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input id="password" type="password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
