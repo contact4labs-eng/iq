@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,19 +12,30 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast({ title: t("toast.login_error"), description: error.message, variant: "destructive" });
-    } else {
-      navigate("/");
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setLoading(false);
+        toast({ title: t("toast.login_error"), description: error.message, variant: "destructive" });
+        return;
+      }
+      // Don't navigate manually — onAuthStateChange will update user state,
+      // then PublicRoute will automatically redirect to "/" once user is set.
+      // Keep loading=true so the button stays disabled during the redirect.
+    } catch (err) {
+      setLoading(false);
+      toast({
+        title: t("toast.login_error"),
+        description: err instanceof Error ? err.message : "Απρόσμενο σφάλμα. Δοκιμάστε ξανά.",
+        variant: "destructive",
+      });
     }
   };
 
