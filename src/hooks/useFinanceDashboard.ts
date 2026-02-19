@@ -73,7 +73,7 @@ export function useFinanceDashboard(refreshKey = 0) {
       setError(null);
 
       try {
-        // 1. Cash Position — latest record
+        // 1. Cash Position â latest record
         const cashPromise = supabase
           .from("cash_positions")
           .select("cash_on_hand, bank_balance, total_cash")
@@ -95,14 +95,14 @@ export function useFinanceDashboard(refreshKey = 0) {
           .limit(1)
           .maybeSingle();
 
-        // 2. Receivables — approved invoices (all approved are considered receivable)
+        // 2. Receivables â approved invoices (all approved are considered receivable)
         const receivablesPromise = supabase
           .from("invoices")
           .select("total_amount")
           .eq("company_id", companyId)
           .eq("status", "approved");
 
-        // 3. Payables — scheduled payments pending
+        // 3. Payables â scheduled payments pending
         const payablesPromise = supabase
           .from("scheduled_payments")
           .select("amount")
@@ -125,7 +125,7 @@ export function useFinanceDashboard(refreshKey = 0) {
           .gte("entry_date", thirtyDaysAgoStr)
           .lte("entry_date", todayStr);
 
-        // 6. Overdue invoices — approved invoices past due_date
+        // 6. Overdue invoices â approved invoices past due_date
         const overduePromise = supabase
           .from("invoices")
           .select("id, invoice_number, total_amount, due_date, suppliers(name)")
@@ -145,9 +145,36 @@ export function useFinanceDashboard(refreshKey = 0) {
           .order("due_date", { ascending: true })
           .limit(20);
 
-        const [cashRes, prevCashRes, recvRes, payRes, revRes, expRes, overdueRes, upcomingRes] = await Promise.all([
+        const results = await Promise.allSettled([
           cashPromise, prevCashPromise, receivablesPromise, payablesPromise, revenuePromise, expensePromise, overduePromise, upcomingPromise,
         ]);
+
+        // Helper to safely extract fulfilled results
+        const getResult = (index: number) => {
+          const r = results[index];
+          if (r.status === "fulfilled") return r.value;
+          console.error(`Finance query ${index} failed:`, r.reason);
+          return { data: null, error: r.reason };
+        };
+
+        const cashRes = getResult(0);
+        const prevCashRes = getResult(1);
+        const recvRes = getResult(2);
+        const payRes = getResult(3);
+        const revRes = getResult(4);
+        const expRes = getResult(5);
+        const overdueRes = getResult(6);
+        const upcomingRes = getResult(7);
+
+        // Check for individual query errors and warn
+        const queryErrors: string[] = [];
+        results.forEach((r, i) => {
+          if (r.status === "rejected") queryErrors.push(`Query ${i}`);
+          else if (r.value?.error) queryErrors.push(`Query ${i}: ${r.value.error.message}`);
+        });
+        if (queryErrors.length > 0) {
+          console.warn("Some finance queries had errors:", queryErrors);
+        }
 
         // Process cash position
         const prevTotal = safe((prevCashRes.data as any)?.total_cash);
@@ -169,14 +196,14 @@ export function useFinanceDashboard(refreshKey = 0) {
         // Process receivables
         const recvRows = (recvRes.data ?? []) as any[];
         setReceivables({
-          total: recvRows.reduce((sum, r) => sum + safe(r.total_amount), 0),
+          total: recvRows.reduce((sum: number, r: any) => sum + safe(r.total_amount), 0),
           count: recvRows.length,
         });
 
         // Process payables
         const payRows = (payRes.data ?? []) as any[];
         setPayables({
-          total: payRows.reduce((sum, r) => sum + safe(r.amount), 0),
+          total: payRows.reduce((sum: number, r: any) => sum + safe(r.amount), 0),
           count: payRows.length,
         });
 
@@ -185,19 +212,19 @@ export function useFinanceDashboard(refreshKey = 0) {
         const expRows = (expRes.data ?? []) as any[];
 
         const weeks: WeeklyCashFlow[] = [
-          { week: "Εβδ. 1", inflows: 0, outflows: 0 },
-          { week: "Εβδ. 2", inflows: 0, outflows: 0 },
-          { week: "Εβδ. 3", inflows: 0, outflows: 0 },
-          { week: "Εβδ. 4", inflows: 0, outflows: 0 },
+          { week: "ÎÎ²Î´. 1", inflows: 0, outflows: 0 },
+          { week: "ÎÎ²Î´. 2", inflows: 0, outflows: 0 },
+          { week: "ÎÎ²Î´. 3", inflows: 0, outflows: 0 },
+          { week: "ÎÎ²Î´. 4", inflows: 0, outflows: 0 },
         ];
 
         const getWeekIndex = (dateStr: string) => {
           const d = new Date(dateStr);
           const diffDays = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays < 7) return 3; // Εβδ. 4 (most recent)
+          if (diffDays < 7) return 3; // ÎÎ²Î´. 4 (most recent)
           if (diffDays < 14) return 2;
           if (diffDays < 21) return 1;
-          return 0; // Εβδ. 1 (oldest)
+          return 0; // ÎÎ²Î´. 1 (oldest)
         };
 
         for (const r of revRows) {
@@ -219,8 +246,8 @@ export function useFinanceDashboard(refreshKey = 0) {
             const daysOverdue = Math.max(0, Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
             return {
               id: r.id,
-              supplier_name: (r.suppliers as any)?.name ?? "—",
-              invoice_number: r.invoice_number ?? "—",
+              supplier_name: (r.suppliers as any)?.name ?? "â",
+              invoice_number: r.invoice_number ?? "â",
               total_amount: safe(r.total_amount),
               due_date: r.due_date,
               days_overdue: daysOverdue,
@@ -236,7 +263,7 @@ export function useFinanceDashboard(refreshKey = 0) {
             const daysUntil = Math.max(0, Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
             return {
               id: r.id,
-              description: r.description ?? "—",
+              description: r.description ?? "â",
               amount: safe(r.amount),
               due_date: r.due_date,
               days_until: daysUntil,
@@ -245,7 +272,7 @@ export function useFinanceDashboard(refreshKey = 0) {
           })
         );
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Σφάλμα φόρτωσης δεδομένων");
+        setError(err instanceof Error ? err.message : "Î£ÏÎ¬Î»Î¼Î± ÏÏÏÏÏÏÎ·Ï Î´ÎµÎ´Î¿Î¼Î­Î½ÏÎ½");
       } finally {
         setLoading(false);
       }
