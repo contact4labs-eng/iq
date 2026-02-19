@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,7 +50,7 @@ const statusClasses: Record<string, string> = {
 };
 
 function formatCurrency(value: number | null): string {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "â";
   return new Intl.NumberFormat("el-GR", {
     style: "currency",
     currency: "EUR",
@@ -59,7 +59,7 @@ function formatCurrency(value: number | null): string {
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "â";
   return new Date(dateStr).toLocaleDateString("el-GR", {
     day: "2-digit",
     month: "2-digit",
@@ -67,11 +67,52 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
+const InvoiceRow = memo(function InvoiceRow({
+  inv,
+  onClick,
+  t,
+}: {
+  inv: Invoice;
+  onClick: () => void;
+  t: (key: TranslationKey) => string;
+}) {
+  const labelKey = statusLabelKeys[inv.status];
+  const label = labelKey ? t(labelKey) : inv.status;
+  const cls = statusClasses[inv.status] || "bg-muted text-muted-foreground border-border";
+  return (
+    <tr
+      onClick={onClick}
+      className="border-b hover:bg-secondary/40 cursor-pointer transition-colors"
+    >
+      <td className="px-4 py-3 text-foreground">
+        {formatDate(inv.invoice_date || inv.created_at)}
+      </td>
+      <td className="px-4 py-3 text-foreground font-medium">
+        {inv.supplier_name || "â"}
+      </td>
+      <td className="px-4 py-3 text-foreground">
+        {inv.invoice_number || "â"}
+      </td>
+      <td className="px-4 py-3 text-right text-foreground font-semibold">
+        {formatCurrency(inv.total_amount)}
+      </td>
+      <td className="px-4 py-3 text-right text-muted-foreground">
+        {formatCurrency(inv.vat_amount)}
+      </td>
+      <td className="px-4 py-3 text-center">
+        <Badge variant="outline" className={`text-xs ${cls}`}>
+          {label}
+        </Badge>
+      </td>
+    </tr>
+  );
+});
+
 interface InvoiceListProps {
   refreshKey: number;
 }
 
-export function InvoiceList({ refreshKey }: InvoiceListProps) {
+export const InvoiceList = memo(function InvoiceList({ refreshKey }: InvoiceListProps) {
   const { company } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -190,39 +231,14 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
                   </tr>
                 ))
               : invoices.length > 0
-              ? invoices.map((inv) => {
-                  const labelKey = statusLabelKeys[inv.status];
-                  const label = labelKey ? t(labelKey) : inv.status;
-                  const className = statusClasses[inv.status] || "bg-muted text-muted-foreground border-border";
-                  return (
-                    <tr
-                      key={inv.id}
-                      onClick={() => navigate(`/invoices/${inv.id}`)}
-                      className="border-b hover:bg-secondary/40 cursor-pointer transition-colors"
-                    >
-                      <td className="px-4 py-3 text-foreground">
-                        {formatDate(inv.invoice_date || inv.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-foreground font-medium">
-                        {inv.supplier_name || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">
-                        {inv.invoice_number || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-foreground font-semibold">
-                        {formatCurrency(inv.total_amount)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-muted-foreground">
-                        {formatCurrency(inv.vat_amount)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge variant="outline" className={`text-xs ${className}`}>
-                          {label}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })
+              ? invoices.map((inv) => (
+                  <InvoiceRow
+                    key={inv.id}
+                    inv={inv}
+                    onClick={() => navigate(`/invoices/${inv.id}`)}
+                    t={t}
+                  />
+                ))
               : (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
@@ -268,4 +284,4 @@ export function InvoiceList({ refreshKey }: InvoiceListProps) {
       )}
     </div>
   );
-}
+});
