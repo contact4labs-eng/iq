@@ -60,7 +60,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
 
       if (invErr) throw invErr;
       if (!inv) {
-        setError("Το τιμολόγιο δεν βρέθηκε.");
+        setError("Î¤Î¿ ÏÎ¹Î¼Î¿Î»ÏÎ³Î¹Î¿ Î´ÎµÎ½ Î²ÏÎ­Î¸Î·ÎºÎµ.");
         setLoading(false);
         return;
       }
@@ -118,7 +118,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       }
     } catch (err: unknown) {
       console.error("Invoice detail fetch error:", err);
-      setError("Σφάλμα κατά τη φόρτωση του τιμολογίου.");
+      setError("Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ· ÏÏÏÏÏÏÎ· ÏÎ¿Ï ÏÎ¹Î¼Î¿Î»Î¿Î³Î¯Î¿Ï.");
     } finally {
       setLoading(false);
     }
@@ -129,7 +129,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
   }, [fetchInvoice]);
 
   const updateInvoiceStatus = async (newStatus: string, notes?: string) => {
-    if (!invoice) return false;
+    if (!invoice || !company?.id) return false;
 
     setSaving(true);
     setError(null);
@@ -144,13 +144,14 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       const { error } = await supabase
         .from("invoices")
         .update(updateData)
-        .eq("id", invoice.id);
+        .eq("id", invoice.id)
+        .eq("company_id", company.id);
 
-      if (error) throw new Error(error.message || "Άγνωστο σφάλμα βάσης δεδομένων.");
+      if (error) throw new Error(error.message || "ÎÎ³Î½ÏÏÏÎ¿ ÏÏÎ¬Î»Î¼Î± Î²Î¬ÏÎ·Ï Î´ÎµÎ´Î¿Î¼Î­Î½ÏÎ½.");
       setInvoice((prev) => prev ? { ...prev, status: newStatus, notes: notes ?? prev.notes } : null);
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Σφάλμα κατά την ενημέρωση κατάστασης.";
+      const message = err instanceof Error ? err.message : "Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ ÎµÎ½Î·Î¼Î­ÏÏÏÎ· ÎºÎ±ÏÎ¬ÏÏÎ±ÏÎ·Ï.";
       console.error("Status update error:", err);
       setError(message);
       return false;
@@ -163,7 +164,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
     editedInvoice: Partial<InvoiceData>,
     editedItems: LineItem[]
   ) => {
-    if (!invoice) return false;
+    if (!invoice || !company?.id) return false;
     setSaving(true);
     try {
       // Update invoice header
@@ -177,7 +178,8 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
           vat_amount: editedInvoice.vat_amount,
           total_amount: editedInvoice.total_amount,
         })
-        .eq("id", invoice.id);
+        .eq("id", invoice.id)
+        .eq("company_id", company.id);
 
       if (invErr) throw invErr;
 
@@ -229,7 +231,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       return true;
     } catch (err) {
       console.error("Save error:", err);
-      setError("Σφάλμα κατά την αποθήκευση.");
+      setError("Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ Î±ÏÎ¿Î¸Î®ÎºÎµÏÏÎ·.");
       return false;
     } finally {
       setSaving(false);
@@ -237,19 +239,19 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
   };
 
   const deleteInvoice = async () => {
-    if (!invoice) return false;
+    if (!invoice || !company?.id) return false;
     setSaving(true);
     setError(null);
     try {
       // Delete line items first
       await supabase.from("invoice_line_items").delete().eq("invoice_id", invoice.id);
-      // Delete invoice
-      const { error: delErr } = await supabase.from("invoices").delete().eq("id", invoice.id);
+      // Delete invoice â scoped to company
+      const { error: delErr } = await supabase.from("invoices").delete().eq("id", invoice.id).eq("company_id", company.id);
       if (delErr) throw delErr;
       return true;
     } catch (err) {
       console.error("Delete error:", err);
-      setError("Σφάλμα κατά τη διαγραφή του τιμολογίου.");
+      setError("Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ· Î´Î¹Î±Î³ÏÎ±ÏÎ® ÏÎ¿Ï ÏÎ¹Î¼Î¿Î»Î¿Î³Î¯Î¿Ï.");
       return false;
     } finally {
       setSaving(false);
