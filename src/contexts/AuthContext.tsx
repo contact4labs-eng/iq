@@ -1,13 +1,14 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Company {
   id: string;
   name: string;
   industry: string;
   currency: string;
-  settings: any;
+  settings: Record<string, unknown>;
   owner_user_id: string;
   created_at: string;
   updated_at: string;
@@ -36,76 +37,94 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchCompany = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("companies")
-      .select("*")
-      .eq("owner_user_id", userId)
-      .maybeSingle();
-    if (!error && data) {
-      setCompany(data as Company);
+  // Track which user ID we've already fetched company for to prevent duplicates
+  const fetchedCompanyForRef = useRef<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  const fetchCompany = useCallback(async (userId: string) => {
+    // Skip if we already fetched for this user
+    if (fetchedCompanyForRef.current === userId) return;
+    fetchedCompanyForRef.current = userId;
+
+    try {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("owner_user_id", userId)
+        .maybeSingle();
+
+      if (!isMountedRef.current) return;
+
+      if (error) {
+        console.error("Failed to fetch company:", error.message);
+        return;
+      }
+
+      if (data) {
+        setCompany(data as Company);
+      }
+    } catch (err) {
+      console.error("Company fetch error:", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
 
+    // Only use onAuthStateChange as the single source of truth.
+    // getSession() can cause duplicate calls; onAuthStateChange fires
+    // with INITIAL_SESSION on setup which covers the initial load.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!isMounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
+      (_event, newSession) => {
+        if (!isMountedRef.current) return;
+
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          // Use setTimeout(0) to avoid Supabase deadlock on auth state change
           setTimeout(() => {
-            if (isMounted) fetchCompany(session.user.id);
+            if (isMountedRef.current) {
+              fetchCompany(newSession.user.id);
+            }
           }, 0);
         } else {
+          // Logged out — clear everything
           setCompany(null);
+          fetchedCompanyForRef.current = null;
         }
+
         setLoading(false);
       }
     );
 
+    // Safety timeout — if onAuthStateChange never fires (e.g. offline)
     const timeoutId = setTimeout(() => {
-      if (isMounted) {
-        console.error("Auth initialization timed out after 5s");
+      if (isMountedRef.current && loading) {
+        console.warn("Auth initialization timed out after 5s");
         setLoading(false);
       }
     }, 5000);
 
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchCompany(session.user.id);
-        }
-      } catch (error) {
-        console.error("Error during auth initialization:", error);
-      } finally {
-        if (isMounted) {
-          clearTimeout(timeoutId);
-          setLoading(false);
-        }
-      }
-    };
-
-    initAuth();
-
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
       clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    // Explicitly clear all state
+    setUser(null);
+    setSession(null);
     setCompany(null);
-  };
+    fetchedCompanyForRef.current = null;
+    // Clear all cached query data
+    queryClient.clear();
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ user, session, company, loading, signOut }}>
