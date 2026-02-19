@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, AlertTriangle, Plus, PiggyBank, BarChart3, CalendarClock, TrendingUp, TrendingDown, PieChart as PieChartIcon, Activity } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
@@ -72,19 +72,25 @@ const Finance = () => {
   const payTotal = safe(payables?.total);
   const payCount = safe(payables?.count);
 
-  const hasChartData = weeklyCashFlow.some((w) => w.inflows > 0 || w.outflows > 0);
+  const hasChartData = useMemo(
+    () => weeklyCashFlow.some((w) => w.inflows > 0 || w.outflows > 0),
+    [weeklyCashFlow]
+  );
 
   // Transform data for grouped bar chart
-  const chartData = weeklyCashFlow.map((w) => ({
-    week: w.week,
-    inflows: safe(w.inflows),
-    outflows: safe(w.outflows),
-  }));
+  const chartData = useMemo(
+    () => weeklyCashFlow.map((w) => ({
+      week: w.week,
+      inflows: safe(w.inflows),
+      outflows: safe(w.outflows),
+    })),
+    [weeklyCashFlow]
+  );
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* ─── Header + Quick Actions ─── */}
+        {/* âââ Header + Quick Actions âââ */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 mb-0.5">
@@ -124,7 +130,7 @@ const Finance = () => {
           </div>
         ) : (
           <>
-            {/* ─── 1. Ταμειακό Υπόλοιπο ─── */}
+            {/* âââ 1. Î¤Î±Î¼ÎµÎ¹Î±ÎºÏ Î¥ÏÏÎ»Î¿Î¹ÏÎ¿ âââ */}
             <Card className="bg-primary text-primary-foreground">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -154,7 +160,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 2 & 3. Εισπρακτέα + Πληρωτέα ─── */}
+            {/* âââ 2 & 3. ÎÎ¹ÏÏÏÎ±ÎºÏÎ­Î± + Î Î»Î·ÏÏÏÎ­Î± âââ */}
             <div className="grid gap-4 md:grid-cols-2">
               {/* Receivables */}
               <Card>
@@ -195,7 +201,7 @@ const Finance = () => {
               </Card>
             </div>
 
-            {/* ─── 4. Ταμειακή Ροή 30 Ημερών ─── */}
+            {/* âââ 4. Î¤Î±Î¼ÎµÎ¹Î±ÎºÎ® Î¡Î¿Î® 30 ÎÎ¼ÎµÏÏÎ½ âââ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -233,7 +239,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 5. Προγραμματισμένες Πληρωμές ─── */}
+            {/* âââ 5. Î ÏÎ¿Î³ÏÎ±Î¼Î¼Î±ÏÎ¹ÏÎ¼Î­Î½ÎµÏ Î Î»Î·ÏÏÎ¼Î­Ï âââ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -284,7 +290,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 6. Ληξιπρόθεσμα Τιμολόγια ─── */}
+            {/* âââ 6. ÎÎ·Î¾Î¹ÏÏÏÎ¸ÎµÏÎ¼Î± Î¤Î¹Î¼Î¿Î»ÏÎ³Î¹Î± âââ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -294,7 +300,7 @@ const Finance = () => {
                   </div>
                   {overdueInvoices.length > 0 && (
                     <Badge className="bg-destructive/15 text-destructive border-0">
-                      {overdueInvoices.length}
+                      {OverdueInvoices.length}
                     </Badge>
                   )}
                 </div>
@@ -340,10 +346,10 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 7. Ημερολόγιο Κερδοφορίας ─── */}
+            {/* âââ 7. ÎÎ¼ÎµÏÎ¿Î»ÏÎ³Î¹Î¿ ÎÎµÏÎ´Î¿ÏÎ¿ÏÎ¯Î±Ï âââ */}
             <ProfitabilityCalendar refreshKey={refreshKey} />
 
-            {/* ─── 8. Κέρδος & Ζημία Μήνα (P&L) ─── */}
+            {/* âââ 8. ÎÎ­ÏÎ´Î¿Ï & ÎÎ·Î¼Î¯Î± ÎÎ®Î½Î± (P&L) âââ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -352,7 +358,7 @@ const Finance = () => {
                 </div>
                 {monthlyPL ? (
                   <div className="grid grid-cols-3 gap-4">
-                    {/* Έσοδα */}
+                    {/* ÎÏÎ¿Î´Î± */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("dashboard.revenue")}</p>
                       <p className="text-xl font-bold text-success">{fmt(safe(monthlyPL.revenue))}</p>
@@ -363,7 +369,7 @@ const Finance = () => {
                         </span>
                       )}
                     </div>
-                    {/* Έξοδα */}
+                    {/* ÎÎ¾Î¿Î´Î± */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("dashboard.expenses")}</p>
                       <p className="text-xl font-bold text-destructive">{fmt(safe(monthlyPL.expenses))}</p>
@@ -374,7 +380,7 @@ const Finance = () => {
                         </span>
                       )}
                     </div>
-                    {/* Καθαρό Κέρδος */}
+                    {/* ÎÎ±Î¸Î±ÏÏ ÎÎ­ÏÎ´Î¿Ï */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("finance.net_profit")}</p>
                       <p className={`text-xl font-bold ${safe(monthlyPL.net_profit) >= 0 ? "text-success" : "text-destructive"}`}>
@@ -394,7 +400,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 8. Ανάλυση Εξόδων (Pie Chart) ─── */}
+            {/* âââ 8. ÎÎ½Î¬Î»ÏÏÎ· ÎÎ¾ÏÎ´ÏÎ½ (Pie Chart) âââ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -449,7 +455,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* ─── 9. Τάσεις 6 Μηνών (Area Chart) ─── */}
+            {/* âââ 9. Î¤Î¬ÏÎµÎ¹Ï 6 ÎÎ·Î½ÏÎ½ (Area Chart) âââ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
