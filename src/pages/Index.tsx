@@ -12,11 +12,14 @@ import { CashRegisterModal } from "@/components/finance/CashRegisterModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
-  const { dailyKpis, weeklyKpis, recentInvoices, loading, error } = useDashboardData();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { dailyKpis, weeklyKpis, recentInvoices, loading, error } = useDashboardData(refreshKey);
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
   const { t } = useLanguage();
+
+  const handleDataChange = () => setRefreshKey((k) => k + 1);
 
   return (
     <DashboardLayout>
@@ -58,9 +61,9 @@ const Index = () => {
         </div>
       </div>
 
-      <AddRevenueModal open={revenueOpen} onOpenChange={setRevenueOpen} onSuccess={() => {}} />
-      <AddExpenseModal open={expenseOpen} onOpenChange={setExpenseOpen} onSuccess={() => {}} />
-      <CashRegisterModal open={cashOpen} onOpenChange={setCashOpen} onSuccess={() => {}} />
+      <AddRevenueModal open={revenueOpen} onOpenChange={setRevenueOpen} onSuccess={handleDataChange} />
+      <AddExpenseModal open={expenseOpen} onOpenChange={setExpenseOpen} onSuccess={handleDataChange} />
+      <CashRegisterModal open={cashOpen} onOpenChange={setCashOpen} onSuccess={handleDataChange} />
     </DashboardLayout>
   );
 };
