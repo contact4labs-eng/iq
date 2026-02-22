@@ -60,7 +60,7 @@ export function useAlerts() {
         low: unresolvedAlerts.filter((a) => a.severity === "low").length,
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Σφάλμα φόρτωσης ειδοποιήσεων");
+      setError(err instanceof Error ? err.message : "Î£ÏÎ¬Î»Î¼Î± ÏÏÏÏÏÏÎ·Ï ÎµÎ¹Î´Î¿ÏÎ¿Î¹Î®ÏÎµÏÎ½");
     } finally {
       setLoading(false);
     }
@@ -69,10 +69,12 @@ export function useAlerts() {
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
 
   const resolveAlert = async (alertId: string) => {
+    if (!companyId) return { message: "No company" } as { message: string };
     const { error } = await supabase
       .from("alerts")
       .update({ status: "resolved", resolved_at: new Date().toISOString() } as Record<string, unknown>)
-      .eq("id", alertId);
+      .eq("id", alertId)
+      .eq("company_id", companyId);
     if (!error) {
       setAlerts((prev) =>
         prev.map((a) => (a.id === alertId ? { ...a, status: "resolved", is_resolved: true, resolved_at: new Date().toISOString() } : a))
