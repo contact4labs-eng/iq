@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // test
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -79,7 +79,7 @@ export function useFinanceData(refreshKey = 0) {
       setLoading(true);
       setError(null);
       try {
-        const [mRes, dRes, wRes, cfRes, ebRes, ppRes] = await Promise.all([
+        const [mRes, dRes, wRes, cfRes, ebRes, ppRes] = await Promise.allSettled([
           supabase.rpc("get_monthly_kpis", { p_company_id: companyId }),
           supabase.rpc("get_daily_kpis", { p_company_id: companyId }),
           supabase.rpc("get_weekly_kpis", { p_company_id: companyId }),
@@ -92,10 +92,6 @@ export function useFinanceData(refreshKey = 0) {
           supabase.rpc("get_profit_pressure", { p_company_id: companyId }),
         ]);
 
-        for (const r of [mRes, dRes, wRes, cfRes, ebRes, ppRes]) {
-          if (r.error) throw r.error;
-        }
-
         const pickSafe = (d: unknown) => {
           const raw = Array.isArray(d) ? d[0] : d;
           if (!raw || typeof raw !== "object") return null;
@@ -106,15 +102,39 @@ export function useFinanceData(refreshKey = 0) {
           }
           return safed;
         };
-        const pick = (d: unknown) => (Array.isArray(d) ? d[0] : d);
-        setMonthly(pickSafe(mRes.data) as unknown as MonthlyKpis);
-        setDaily(pickSafe(dRes.data) as unknown as DailyKpis);
-        setWeekly(pickSafe(wRes.data) as unknown as WeeklyKpis);
-        setCashFlow((cfRes.data ?? []) as CashFlowPoint[]);
-        setExpenseBreakdown((ebRes.data ?? []) as ExpenseCategory[]);
-        setProfitPressure(pickSafe(ppRes.data) as unknown as ProfitPressure);
+
+        if (mRes.status === "fulfilled" && !mRes.value.error) {
+          setMonthly(pickSafe(mRes.value.data) as unknown as MonthlyKpis);
+        } else {
+          console.error("Monthly KPIs error:", mRes.status === "fulfilled" ? mRes.value.error : mRes.reason);
+        }
+        if (dRes.status === "fulfilled" && !dRes.value.error) {
+          setDaily(pickSafe(dRes.value.data) as unknown as DailyKpis);
+        } else {
+          console.error("Daily KPIs error:", dRes.status === "fulfilled" ? dRes.value.error : dRes.reason);
+        }
+        if (wRes.status === "fulfilled" && !wRes.value.error) {
+          setWeekly(pickSafe(wRes.value.data) as unknown as WeeklyKpis);
+        } else {
+          console.error("Weekly KPIs error:", wRes.status === "fulfilled" ? wRes.value.error : wRes.reason);
+        }
+        if (cfRes.status === "fulfilled" && !cfRes.value.error) {
+          setCashFlow((cfRes.value.data ?? []) as CashFlowPoint[]);
+        } else {
+          console.error("Cash flow error:", cfRes.status === "fulfilled" ? cfRes.value.error : cfRes.reason);
+        }
+        if (ebRes.status === "fulfilled" && !ebRes.value.error) {
+          setExpenseBreakdown((ebRes.value.data ?? []) as ExpenseCategory[]);
+        } else {
+          console.error("Expense breakdown error:", ebRes.status === "fulfilled" ? ebRes.value.error : ebRes.reason);
+        }
+        if (ppRes.status === "fulfilled" && !ppRes.value.error) {
+          setProfitPressure(pickSafe(ppRes.value.data) as unknown as ProfitPressure);
+        } else {
+          console.error("Profit pressure error:", ppRes.status === "fulfilled" ? ppRes.value.error : ppRes.reason);
+        }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Σφάλμα φόρτωσης οικονομικών δεδομένων");
+        setError(err instanceof Error ? err.message : "Î£ÏÎ¬Î»Î¼Î± ÏÏÏÏÏÏÎ·Ï Î¿Î¹ÎºÎ¿Î½Î¿Î¼Î¹ÎºÏÎ½ Î´ÎµÎ´Î¿Î¼Î­Î½ÏÎ½");
       } finally {
         setLoading(false);
       }
