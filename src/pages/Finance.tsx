@@ -90,7 +90,7 @@ const Finance = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* âââ Header + Quick Actions âââ */}
+        {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Header + Quick Actions Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 mb-0.5">
@@ -130,7 +130,7 @@ const Finance = () => {
           </div>
         ) : (
           <>
-            {/* âââ 1. Î¤Î±Î¼ÎµÎ¹Î±ÎºÏ Î¥ÏÏÎ»Î¿Î¹ÏÎ¿ âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 1. ÃÂ¤ÃÂ±ÃÂ¼ÃÂµÃÂ¹ÃÂ±ÃÂºÃÂ ÃÂ¥ÃÂÃÂÃÂ»ÃÂ¿ÃÂ¹ÃÂÃÂ¿ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <Card className="bg-primary text-primary-foreground">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -160,7 +160,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* âââ 2 & 3. ÎÎ¹ÏÏÏÎ±ÎºÏÎ­Î± + Î Î»Î·ÏÏÏÎ­Î± âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 2 & 3. ÃÂÃÂ¹ÃÂÃÂÃÂÃÂ±ÃÂºÃÂÃÂ­ÃÂ± + ÃÂ ÃÂ»ÃÂ·ÃÂÃÂÃÂÃÂ­ÃÂ± Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <div className="grid gap-4 md:grid-cols-2">
               {/* Receivables */}
               <Card>
@@ -201,7 +201,7 @@ const Finance = () => {
               </Card>
             </div>
 
-            {/* âââ 4. Î¤Î±Î¼ÎµÎ¹Î±ÎºÎ® Î¡Î¿Î® 30 ÎÎ¼ÎµÏÏÎ½ âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 4. ÃÂ¤ÃÂ±ÃÂ¼ÃÂµÃÂ¹ÃÂ±ÃÂºÃÂ® ÃÂ¡ÃÂ¿ÃÂ® 30 ÃÂÃÂ¼ÃÂµÃÂÃÂÃÂ½ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -239,7 +239,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* âââ 5. Î ÏÎ¿Î³ÏÎ±Î¼Î¼Î±ÏÎ¹ÏÎ¼Î­Î½ÎµÏ Î Î»Î·ÏÏÎ¼Î­Ï âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 5. ÃÂ ÃÂÃÂ¿ÃÂ³ÃÂÃÂ±ÃÂ¼ÃÂ¼ÃÂ±ÃÂÃÂ¹ÃÂÃÂ¼ÃÂ­ÃÂ½ÃÂµÃÂ ÃÂ ÃÂ»ÃÂ·ÃÂÃÂÃÂ¼ÃÂ­ÃÂ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -290,7 +290,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* âââ 6. ÎÎ·Î¾Î¹ÏÏÏÎ¸ÎµÏÎ¼Î± Î¤Î¹Î¼Î¿Î»ÏÎ³Î¹Î± âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 6. ÃÂÃÂ·ÃÂ¾ÃÂ¹ÃÂÃÂÃÂÃÂ¸ÃÂµÃÂÃÂ¼ÃÂ± ÃÂ¤ÃÂ¹ÃÂ¼ÃÂ¿ÃÂ»ÃÂÃÂ³ÃÂ¹ÃÂ± Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -300,7 +300,7 @@ const Finance = () => {
                   </div>
                   {overdueInvoices.length > 0 && (
                     <Badge className="bg-destructive/15 text-destructive border-0">
-                      {OverdueInvoices.length}
+                      {overdueInvoices.length}
                     </Badge>
                   )}
                 </div>
@@ -346,10 +346,10 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* âââ 7. ÎÎ¼ÎµÏÎ¿Î»ÏÎ³Î¹Î¿ ÎÎµÏÎ´Î¿ÏÎ¿ÏÎ¯Î±Ï âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 7. ÃÂÃÂ¼ÃÂµÃÂÃÂ¿ÃÂ»ÃÂÃÂ³ÃÂ¹ÃÂ¿ ÃÂÃÂµÃÂÃÂ´ÃÂ¿ÃÂÃÂ¿ÃÂÃÂ¯ÃÂ±ÃÂ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <ProfitabilityCalendar refreshKey={refreshKey} />
 
-            {/* âââ 8. ÎÎ­ÏÎ´Î¿Ï & ÎÎ·Î¼Î¯Î± ÎÎ®Î½Î± (P&L) âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 8. ÃÂÃÂ­ÃÂÃÂ´ÃÂ¿ÃÂ & ÃÂÃÂ·ÃÂ¼ÃÂ¯ÃÂ± ÃÂÃÂ®ÃÂ½ÃÂ± (P&L) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -358,7 +358,7 @@ const Finance = () => {
                 </div>
                 {monthlyPL ? (
                   <div className="grid grid-cols-3 gap-4">
-                    {/* ÎÏÎ¿Î´Î± */}
+                    {/* ÃÂÃÂÃÂ¿ÃÂ´ÃÂ± */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("dashboard.revenue")}</p>
                       <p className="text-xl font-bold text-success">{fmt(safe(monthlyPL.revenue))}</p>
@@ -369,7 +369,7 @@ const Finance = () => {
                         </span>
                       )}
                     </div>
-                    {/* ÎÎ¾Î¿Î´Î± */}
+                    {/* ÃÂÃÂ¾ÃÂ¿ÃÂ´ÃÂ± */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("dashboard.expenses")}</p>
                       <p className="text-xl font-bold text-destructive">{fmt(safe(monthlyPL.expenses))}</p>
@@ -380,7 +380,7 @@ const Finance = () => {
                         </span>
                       )}
                     </div>
-                    {/* ÎÎ±Î¸Î±ÏÏ ÎÎ­ÏÎ´Î¿Ï */}
+                    {/* ÃÂÃÂ±ÃÂ¸ÃÂ±ÃÂÃÂ ÃÂÃÂ­ÃÂÃÂ´ÃÂ¿ÃÂ */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("finance.net_profit")}</p>
                       <p className={`text-xl font-bold ${safe(monthlyPL.net_profit) >= 0 ? "text-success" : "text-destructive"}`}>
@@ -400,7 +400,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* âââ 8. ÎÎ½Î¬Î»ÏÏÎ· ÎÎ¾ÏÎ´ÏÎ½ (Pie Chart) âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 8. ÃÂÃÂ½ÃÂ¬ÃÂ»ÃÂÃÂÃÂ· ÃÂÃÂ¾ÃÂÃÂ´ÃÂÃÂ½ (Pie Chart) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -455,7 +455,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* âââ 9. Î¤Î¬ÏÎµÎ¹Ï 6 ÎÎ·Î½ÏÎ½ (Area Chart) âââ */}
+            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 9. ÃÂ¤ÃÂ¬ÃÂÃÂµÃÂ¹ÃÂ 6 ÃÂÃÂ·ÃÂ½ÃÂÃÂ½ (Area Chart) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
