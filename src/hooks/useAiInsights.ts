@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -22,7 +22,7 @@ export interface QaMessage {
 
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/dynamic-task`;
 
-const FALLBACK_ANSWER = "Δεν μπόρεσα να κατανοήσω την ερώτησή σας. Παρακαλώ δοκιμάστε μια ερώτηση σχετικά με τα οικονομικά σας δεδομένα, όπως έξοδα, έσοδα, τιμολόγια ή προμηθευτές.";
+const FALLBACK_ANSWER = "ÎÎµÎ½ Î¼ÏÏÏÎµÏÎ± Î½Î± ÎºÎ±ÏÎ±Î½Î¿Î®ÏÏ ÏÎ·Î½ ÎµÏÏÏÎ·ÏÎ® ÏÎ±Ï. Î Î±ÏÎ±ÎºÎ±Î»Ï Î´Î¿ÎºÎ¹Î¼Î¬ÏÏÎµ Î¼Î¹Î± ÎµÏÏÏÎ·ÏÎ· ÏÏÎµÏÎ¹ÎºÎ¬ Î¼Îµ ÏÎ± Î¿Î¹ÎºÎ¿Î½Î¿Î¼Î¹ÎºÎ¬ ÏÎ±Ï Î´ÎµÎ´Î¿Î¼Î­Î½Î±, ÏÏÏÏ Î­Î¾Î¿Î´Î±, Î­ÏÎ¿Î´Î±, ÏÎ¹Î¼Î¿Î»ÏÎ³Î¹Î± Î® ÏÏÎ¿Î¼Î·Î¸ÎµÏÏÎ­Ï.";
 
 function extractAnswer(obj: Record<string, unknown>): string | null {
   // Try nested insights.answer
@@ -82,9 +82,15 @@ export function useAiInsights() {
 
   const [qaMessages, setQaMessages] = useState<QaMessage[]>([]);
   const [qaLoading, setQaLoading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const askQuestion = useCallback(async (question: string) => {
     if (!companyId || !token) return;
+    // Cancel any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setQaMessages((prev) => [...prev, { role: "user", content: question }]);
     setQaLoading(true);
     try {
@@ -95,13 +101,14 @@ export function useAiInsights() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ company_id: companyId, mode: "qa", question }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
         throw new Error(
           res.status >= 500
-            ? "Πρόβλημα σύνδεσης. Ελέγξτε τη σύνδεσή σας."
-            : "Προέκυψε σφάλμα κατά την επεξεργασία. Παρακαλώ δοκιμάστε ξανά."
+            ? "Î ÏÏÎ²Î»Î·Î¼Î± ÏÏÎ½Î´ÎµÏÎ·Ï. ÎÎ»Î­Î³Î¾ÏÎµ ÏÎ· ÏÏÎ½Î´ÎµÏÎ® ÏÎ±Ï."
+            : "Î ÏÎ¿Î­ÎºÏÏÎµ ÏÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ ÎµÏÎµÎ¾ÎµÏÎ³Î±ÏÎ¯Î±. Î Î±ÏÎ±ÎºÎ±Î»Ï Î´Î¿ÎºÎ¹Î¼Î¬ÏÏÎµ Î¾Î±Î½Î¬."
         );
       }
 
@@ -109,7 +116,7 @@ export function useAiInsights() {
       try {
         data = await res.json();
       } catch {
-        throw new Error("Προέκυψε σφάλμα κατά την επεξεργασία. Παρακαλώ δοκιμάστε ξανά.");
+        throw new Error("Î ÏÎ¿Î­ÎºÏÏÎµ ÏÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ ÎµÏÎµÎ¾ÎµÏÎ³Î±ÏÎ¯Î±. Î Î±ÏÎ±ÎºÎ±Î»Ï Î´Î¿ÎºÎ¹Î¼Î¬ÏÏÎµ Î¾Î±Î½Î¬.");
       }
 
       const parsed = parseEdgeResponse(data);
@@ -124,10 +131,11 @@ export function useAiInsights() {
         },
       ]);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const msg =
-        err instanceof Error && (err.message.startsWith("Πρόβλημα") || err.message.startsWith("Προέκυψε"))
+        err instanceof Error && (err.message.startsWith("\u03A0\u03C1\u03CC\u03B2\u03BB\u03B7\u03BC\u03B1") || err.message.startsWith("\u03A0\u03C1\u03BF\u03AD\u03BA\u03C5\u03C8\u03B5"))
           ? err.message
-          : "Προέκυψε σφάλμα κατά την επεξεργασία. Παρακαλώ δοκιμάστε ξανά.";
+          : "\u03A0\u03C1\u03BF\u03AD\u03BA\u03C5\u03C8\u03B5 \u03C3\u03C6\u03AC\u03BB\u03BC\u03B1 \u03BA\u03B1\u03C4\u03AC \u03C4\u03B7\u03BD \u03B5\u03C0\u03B5\u03BE\u03B5\u03C1\u03B3\u03B1\u03C3\u03AF\u03B1. \u03A0\u03B1\u03C1\u03B1\u03BA\u03B1\u03BB\u03CE \u03B4\u03BF\u03BA\u03B9\u03BC\u03AC\u03C3\u03C4\u03B5 \u03BE\u03B1\u03BD\u03AC.";
       setQaMessages((prev) => [...prev, { role: "assistant", content: msg }]);
     } finally {
       setQaLoading(false);
