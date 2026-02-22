@@ -52,13 +52,27 @@ const Register = () => {
 
       if (companyError) {
         console.error("Company creation error:", companyError);
-        setLoading(false);
-        toast({
-          title: t("toast.error"),
-          description: "\u039F \u03BB\u03BF\u03B3\u03B1\u03C1\u03B9\u03B1\u03C3\u03BC\u03CC\u03C2 \u03B4\u03B7\u03BC\u03B9\u03BF\u03C5\u03C1\u03B3\u03AE\u03B8\u03B7\u03BA\u03B5 \u03B1\u03BB\u03BB\u03AC \u03B7 \u03B5\u03C4\u03B1\u03B9\u03C1\u03B5\u03AF\u03B1 \u03B4\u03B5\u03BD \u03B1\u03C0\u03BF\u03B8\u03B7\u03BA\u03B5\u03CD\u03C4\u03B7\u03BA\u03B5. \u03A0\u03B1\u03C1\u03B1\u03BA\u03B1\u03BB\u03CE \u03B5\u03C0\u03B9\u03BA\u03BF\u03B9\u03BD\u03C9\u03BD\u03AE\u03C3\u03C4\u03B5 \u03BC\u03B5 \u03C4\u03B7\u03BD \u03C5\u03C0\u03BF\u03C3\u03C4\u03AE\u03C1\u03B9\u03BE\u03B7.",
-          variant: "destructive",
-        });
-        return;
+        // Retry once before giving up
+        const { error: retryError } = await supabase
+          .from("companies")
+          .insert({
+            owner_user_id: authData.user.id,
+            name: companyName,
+            afm,
+          });
+
+        if (retryError) {
+          console.error("Company creation retry also failed:", retryError);
+          // Sign out the orphaned user so they can try registering again
+          await supabase.auth.signOut();
+          setLoading(false);
+          toast({
+            title: t("toast.error"),
+            description: "\u0397 \u03B4\u03B7\u03BC\u03B9\u03BF\u03C5\u03C1\u03B3\u03AF\u03B1 \u03B5\u03C4\u03B1\u03B9\u03C1\u03B5\u03AF\u03B1\u03C2 \u03B1\u03C0\u03AD\u03C4\u03C5\u03C7\u03B5. \u03A0\u03B1\u03C1\u03B1\u03BA\u03B1\u03BB\u03CE \u03B4\u03BF\u03BA\u03B9\u03BC\u03AC\u03C3\u03C4\u03B5 \u03BE\u03B1\u03BD\u03AC \u03AE \u03B5\u03C0\u03B9\u03BA\u03BF\u03B9\u03BD\u03C9\u03BD\u03AE\u03C3\u03C4\u03B5 \u03BC\u03B5 \u03C4\u03B7\u03BD \u03C5\u03C0\u03BF\u03C3\u03C4\u03AE\u03C1\u03B9\u03BE\u03B7.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
     }
 
