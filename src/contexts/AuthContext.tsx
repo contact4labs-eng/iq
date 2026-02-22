@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           }, 0);
         } else {
-          // Logged out — clear everything
+          // Logged out â clear everything
           setCompany(null);
           fetchedCompanyForRef.current = null;
         }
@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Safety timeout — if onAuthStateChange never fires (e.g. offline)
+    // Safety timeout â if onAuthStateChange never fires (e.g. offline)
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current && loading) {
         console.warn("Auth initialization timed out after 5s");
@@ -116,14 +116,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    // Explicitly clear all state
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("Supabase signOut error:", error.message);
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    }
+    // Always clear local state regardless of API result
     setUser(null);
     setSession(null);
     setCompany(null);
     fetchedCompanyForRef.current = null;
-    // Clear all cached query data
-    queryClient.clear();
+    try {
+      queryClient.clear();
+    } catch (err) {
+      console.error("QueryClient clear error:", err);
+    }
   }, [queryClient]);
 
   return (
