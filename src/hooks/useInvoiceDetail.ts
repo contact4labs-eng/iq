@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -43,6 +43,12 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const fetchInvoice = useCallback(async () => {
     if (!invoiceId || !company?.id) return;
@@ -59,8 +65,9 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
         .maybeSingle();
 
       if (invErr) throw invErr;
+      if (!isMountedRef.current) return;
       if (!inv) {
-        setError("Î¤Î¿ ÏÎ¹Î¼Î¿Î»ÏÎ³Î¹Î¿ Î´ÎµÎ½ Î²ÏÎ­Î¸Î·ÎºÎµ.");
+        setError("ÃÂ¤ÃÂ¿ ÃÂÃÂ¹ÃÂ¼ÃÂ¿ÃÂ»ÃÂÃÂ³ÃÂ¹ÃÂ¿ ÃÂ´ÃÂµÃÂ½ ÃÂ²ÃÂÃÂ­ÃÂ¸ÃÂ·ÃÂºÃÂµ.");
         setLoading(false);
         return;
       }
@@ -118,7 +125,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       }
     } catch (err: unknown) {
       console.error("Invoice detail fetch error:", err);
-      setError("Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ· ÏÏÏÏÏÏÎ· ÏÎ¿Ï ÏÎ¹Î¼Î¿Î»Î¿Î³Î¯Î¿Ï.");
+      setError("ÃÂ£ÃÂÃÂ¬ÃÂ»ÃÂ¼ÃÂ± ÃÂºÃÂ±ÃÂÃÂ¬ ÃÂÃÂ· ÃÂÃÂÃÂÃÂÃÂÃÂÃÂ· ÃÂÃÂ¿ÃÂ ÃÂÃÂ¹ÃÂ¼ÃÂ¿ÃÂ»ÃÂ¿ÃÂ³ÃÂ¯ÃÂ¿ÃÂ.");
     } finally {
       setLoading(false);
     }
@@ -147,11 +154,11 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
         .eq("id", invoice.id)
         .eq("company_id", company.id);
 
-      if (error) throw new Error(error.message || "ÎÎ³Î½ÏÏÏÎ¿ ÏÏÎ¬Î»Î¼Î± Î²Î¬ÏÎ·Ï Î´ÎµÎ´Î¿Î¼Î­Î½ÏÎ½.");
+      if (error) throw new Error(error.message || "ÃÂÃÂ³ÃÂ½ÃÂÃÂÃÂÃÂ¿ ÃÂÃÂÃÂ¬ÃÂ»ÃÂ¼ÃÂ± ÃÂ²ÃÂ¬ÃÂÃÂ·ÃÂ ÃÂ´ÃÂµÃÂ´ÃÂ¿ÃÂ¼ÃÂ­ÃÂ½ÃÂÃÂ½.");
       setInvoice((prev) => prev ? { ...prev, status: newStatus, notes: notes ?? prev.notes } : null);
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ ÎµÎ½Î·Î¼Î­ÏÏÏÎ· ÎºÎ±ÏÎ¬ÏÏÎ±ÏÎ·Ï.";
+      const message = err instanceof Error ? err.message : "ÃÂ£ÃÂÃÂ¬ÃÂ»ÃÂ¼ÃÂ± ÃÂºÃÂ±ÃÂÃÂ¬ ÃÂÃÂ·ÃÂ½ ÃÂµÃÂ½ÃÂ·ÃÂ¼ÃÂ­ÃÂÃÂÃÂÃÂ· ÃÂºÃÂ±ÃÂÃÂ¬ÃÂÃÂÃÂ±ÃÂÃÂ·ÃÂ.";
       console.error("Status update error:", err);
       setError(message);
       return false;
@@ -191,7 +198,8 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
             name: editedInvoice.supplier_name,
             afm: editedInvoice.supplier_afm,
           })
-          .eq("id", invoice.supplier_id);
+          .eq("id", invoice.supplier_id)
+          .eq("company_id", company.id);
       }
 
       // Handle line items: delete removed, update existing, insert new
@@ -200,7 +208,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       const deletedIds = originalIds.filter((id) => !existingIds.includes(id));
 
       if (deletedIds.length > 0) {
-        await supabase.from("invoice_line_items").delete().in("id", deletedIds);
+        await supabase.from("invoice_line_items").delete().in("id", deletedIds).eq("company_id", company.id);
       }
 
       for (const item of editedItems) {
@@ -224,14 +232,15 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
               tax_rate: item.tax_rate,
               line_total: item.line_total,
             })
-            .eq("id", item.id);
+            .eq("id", item.id)
+            .eq("company_id", company.id);
         }
       }
 
       return true;
     } catch (err) {
       console.error("Save error:", err);
-      setError("Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ Î±ÏÎ¿Î¸Î®ÎºÎµÏÏÎ·.");
+      setError("ÃÂ£ÃÂÃÂ¬ÃÂ»ÃÂ¼ÃÂ± ÃÂºÃÂ±ÃÂÃÂ¬ ÃÂÃÂ·ÃÂ½ ÃÂ±ÃÂÃÂ¿ÃÂ¸ÃÂ®ÃÂºÃÂµÃÂÃÂÃÂ·.");
       return false;
     } finally {
       setSaving(false);
@@ -244,14 +253,14 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
     setError(null);
     try {
       // Delete line items first
-      await supabase.from("invoice_line_items").delete().eq("invoice_id", invoice.id);
-      // Delete invoice â scoped to company
+      await supabase.from("invoice_line_items").delete().eq("invoice_id", invoice.id).eq("company_id", company.id);
+      // Delete invoice Ã¢ÂÂ scoped to company
       const { error: delErr } = await supabase.from("invoices").delete().eq("id", invoice.id).eq("company_id", company.id);
       if (delErr) throw delErr;
       return true;
     } catch (err) {
       console.error("Delete error:", err);
-      setError("Î£ÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ· Î´Î¹Î±Î³ÏÎ±ÏÎ® ÏÎ¿Ï ÏÎ¹Î¼Î¿Î»Î¿Î³Î¯Î¿Ï.");
+      setError("ÃÂ£ÃÂÃÂ¬ÃÂ»ÃÂ¼ÃÂ± ÃÂºÃÂ±ÃÂÃÂ¬ ÃÂÃÂ· ÃÂ´ÃÂ¹ÃÂ±ÃÂ³ÃÂÃÂ±ÃÂÃÂ® ÃÂÃÂ¿ÃÂ ÃÂÃÂ¹ÃÂ¼ÃÂ¿ÃÂ»ÃÂ¿ÃÂ³ÃÂ¯ÃÂ¿ÃÂ.");
       return false;
     } finally {
       setSaving(false);
