@@ -48,10 +48,16 @@ const NotificationsPage = () => {
 
   const handleMarkAllRead = async () => {
     const unresolvedIds = unreadAlerts.map((a) => a.id);
+    let failCount = 0;
     for (const id of unresolvedIds) {
-      await resolveAlert(id);
+      const err = await resolveAlert(id);
+      if (err) failCount++;
     }
-    toast({ title: t("toast.success"), description: t("toast.alert_resolved") });
+    if (failCount > 0) {
+      toast({ title: t("toast.error"), description: `${failCount} \u03B5\u03B9\u03B4\u03BF\u03C0\u03BF\u03B9\u03AE\u03C3\u03B5\u03B9\u03C2 \u03B4\u03B5\u03BD \u03B5\u03C0\u03B9\u03BB\u03CD\u03B8\u03B7\u03BA\u03B1\u03BD`, variant: "destructive" });
+    } else {
+      toast({ title: t("toast.success"), description: t("toast.alert_resolved") });
+    }
   };
 
   const renderAlertList = (list: typeof alerts) => {
