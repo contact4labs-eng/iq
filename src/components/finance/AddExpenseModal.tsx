@@ -56,7 +56,11 @@ export function AddExpenseModal({ open, onOpenChange, onSuccess }: AddExpenseMod
   };
 
   const handleSave = async () => {
-    if (!company?.id) return;
+    if (!company?.id) {
+      console.error("[AddExpense] No company found — company:", company);
+      toast({ title: t("toast.error"), description: "No company found. Please refresh.", variant: "destructive" });
+      return;
+    }
     const parsed = parseFloat(amount);
     if (!amount || isNaN(parsed) || parsed <= 0) {
       toast({ title: t("toast.error"), description: t("modal.amount_error"), variant: "destructive" });

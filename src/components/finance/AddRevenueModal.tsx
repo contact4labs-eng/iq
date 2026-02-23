@@ -56,7 +56,11 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
   };
 
   const handleSave = async () => {
-    if (!company?.id) return;
+    if (!company?.id) {
+      console.error("[AddRevenue] No company found — company:", company);
+      toast({ title: t("toast.error"), description: "No company found. Please refresh.", variant: "destructive" });
+      return;
+    }
     const parsed = parseFloat(amount);
     if (!amount || isNaN(parsed) || parsed <= 0) {
       toast({ title: t("toast.error"), description: t("modal.amount_error"), variant: "destructive" });
@@ -75,7 +79,8 @@ export function AddRevenueModal({ open, onOpenChange, onSuccess }: AddRevenueMod
       setSaving(false);
 
       if (error) {
-        toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
+        console.error("[AddRevenue] Insert failed:", error.code, error.message, error.details, error.hint);
+        toast({ title: t("toast.error"), description: `${error.message}${error.hint ? ` (${error.hint})` : ""}`, variant: "destructive" });
         return;
       }
 

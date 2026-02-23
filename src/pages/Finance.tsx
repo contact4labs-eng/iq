@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
-  Wallet, Clock, AlertTriangle, Plus, BarChart3, TrendingUp, TrendingDown,
-  PieChart as PieChartIcon, Activity, Users, FileText, ArrowUpRight, ArrowDownRight,
+  Wallet, Plus, BarChart3, TrendingUp, TrendingDown,
+  PieChart as PieChartIcon, Activity, Users, FileText, ArrowUpRight, ArrowDownRight, Database,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
@@ -25,6 +25,9 @@ import {
 import { useFinanceExtras } from "@/hooks/useFinanceExtras";
 import { ProfitabilityCalendar } from "@/components/finance/ProfitabilityCalendar";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { seedDemoData } from "@/utils/seedDemoData";
 
 const safe = (v: any): number => (v == null || isNaN(v)) ? 0 : Number(v);
 
@@ -107,10 +110,13 @@ function KpiCard({
 /* ── Main Component ───────────────────────────────────────── */
 const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { weeklyCashFlow, overdueInvoices, loading, error } = useFinanceDashboard(refreshKey);
+  const { weeklyCashFlow, loading, error } = useFinanceDashboard(refreshKey);
   const { kpi, topSuppliers, invoiceActivity, loading: insightsLoading } = useBusinessInsights(refreshKey);
   const { monthlyPL, expenseBreakdown, monthlyTrends } = useFinanceExtras(refreshKey);
   const { t } = useLanguage();
+  const { company } = useAuth();
+  const { toast } = useToast();
+  const [seeding, setSeeding] = useState(false);
 
   const chartConfig: ChartConfig = {
     inflows: { label: t("finance.inflows"), color: "hsl(var(--success))" },
@@ -126,6 +132,19 @@ const Finance = () => {
   const [expenseOpen, setExpenseOpen] = useState(false);
 
   const onDataChanged = () => setRefreshKey((k) => k + 1);
+
+  const handleSeedData = async () => {
+    if (!company?.id) return;
+    setSeeding(true);
+    const result = await seedDemoData(company.id);
+    setSeeding(false);
+    if (result.success) {
+      toast({ title: "Demo data added", description: result.message });
+      onDataChanged();
+    } else {
+      toast({ title: "Seed failed", description: result.message, variant: "destructive" });
+    }
+  };
 
   const hasChartData = useMemo(
     () => weeklyCashFlow.some((w) => w.inflows > 0 || w.outflows > 0),
@@ -159,6 +178,9 @@ const Finance = () => {
             </Button>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setExpenseOpen(true)}>
               <Plus className="w-4 h-4" /> {t("finance.add_expense")}
+            </Button>
+            <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground" onClick={handleSeedData} disabled={seeding}>
+              <Database className="w-4 h-4" /> {seeding ? "Seeding..." : "Demo Data"}
             </Button>
           </div>
         </div>
@@ -503,66 +525,7 @@ const Finance = () => {
           </Card>
         )}
 
-        {/* ── Row 6: Overdue Invoices ── */}
-        {loading ? (
-          <Skeleton className="h-48 rounded-lg" />
-        ) : (
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                  <h2 className="text-sm font-semibold text-foreground">{t("finance.overdue_invoices")}</h2>
-                </div>
-                {overdueInvoices.length > 0 && (
-                  <Badge className="bg-destructive/15 text-destructive border-0">
-                    {overdueInvoices.length}
-                  </Badge>
-                )}
-              </div>
-              {overdueInvoices.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.supplier")}</th>
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.invoice_number")}</th>
-                        <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.amount")}</th>
-                        <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.days_overdue")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {overdueInvoices.map((inv) => (
-                        <tr key={inv.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
-                          <td className="py-2.5 px-3 font-medium text-foreground truncate max-w-[200px]">{inv.supplier_name}</td>
-                          <td className="py-2.5 px-3 text-muted-foreground">{inv.invoice_number}</td>
-                          <td className="py-2.5 px-3 text-right font-bold text-destructive">{fmt(safe(inv.total_amount))}</td>
-                          <td className="py-2.5 px-3 text-right">
-                            <div className="flex items-center gap-1 justify-end">
-                              <Clock className="w-3 h-3 text-destructive/70" />
-                              <span className="text-destructive/80 font-medium">
-                                {safe(inv.days_overdue)} {safe(inv.days_overdue) === 1 ? t("finance.day") : t("finance.days")}
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <div className="w-10 h-10 rounded-full bg-success/15 flex items-center justify-center mb-2">
-                    <AlertTriangle className="w-5 h-5 text-success" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">{t("finance.no_overdue")}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Row 7: Profitability Calendar ── */}
+        {/* ── Row 6: Profitability Calendar ── */}
         <ProfitabilityCalendar refreshKey={refreshKey} />
       </div>
 
