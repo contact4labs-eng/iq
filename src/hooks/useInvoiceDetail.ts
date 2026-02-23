@@ -192,7 +192,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
 
       // Update supplier info if supplier exists
       if (invoice.supplier_id && (editedInvoice.supplier_name || editedInvoice.supplier_afm)) {
-        await supabase
+        const { error: suppErr } = await supabase
           .from("suppliers")
           .update({
             name: editedInvoice.supplier_name,
@@ -200,6 +200,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
           })
           .eq("id", invoice.supplier_id)
           .eq("company_id", company.id);
+        if (suppErr) throw new Error(`Supplier update failed: ${suppErr.message}`);
       }
 
       // Handle line items: delete removed, update existing, insert new
@@ -208,12 +209,13 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       const deletedIds = originalIds.filter((id) => !existingIds.includes(id));
 
       if (deletedIds.length > 0) {
-        await supabase.from("invoice_line_items").delete().in("id", deletedIds).eq("company_id", company.id);
+        const { error: delErr } = await supabase.from("invoice_line_items").delete().in("id", deletedIds).eq("company_id", company.id);
+        if (delErr) throw new Error(`Line item delete failed: ${delErr.message}`);
       }
 
       for (const item of editedItems) {
         if (item.isNew) {
-          await supabase.from("invoice_line_items").insert({
+          const { error: insertErr } = await supabase.from("invoice_line_items").insert({
             invoice_id: invoice.id,
             company_id: company?.id,
             description: item.description,
@@ -222,8 +224,9 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
             tax_rate: item.tax_rate,
             line_total: item.line_total,
           });
+          if (insertErr) throw new Error(`Line item insert failed: ${insertErr.message}`);
         } else {
-          await supabase
+          const { error: updateErr } = await supabase
             .from("invoice_line_items")
             .update({
               description: item.description,
@@ -234,11 +237,13 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
             })
             .eq("id", item.id)
             .eq("company_id", company.id);
+          if (updateErr) throw new Error(`Line item update failed: ${updateErr.message}`);
         }
       }
 
       return true;
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Save failed";
       console.error("Save error:", err);
       setError("ÃÂ£ÃÂÃÂ¬ÃÂ»ÃÂ¼ÃÂ± ÃÂºÃÂ±ÃÂÃÂ¬ ÃÂÃÂ·ÃÂ½ ÃÂ±ÃÂÃÂ¿ÃÂ¸ÃÂ®ÃÂºÃÂµÃÂÃÂÃÂ·.");
       return false;

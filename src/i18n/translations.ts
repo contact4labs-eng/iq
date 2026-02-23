@@ -414,7 +414,8 @@ export const translations = {
   "toast.register_success": { el: "Επιτυχής εγγραφή!", en: "Registration successful!" },
   "toast.check_email": { el: "Ελέγξτε το email σας για επιβεβαίωση.", en: "Check your email for confirmation." },
   "toast.invalid_afm": { el: "Μη έγκυρο ΑΦΜ", en: "Invalid Tax ID" },
-  "toast.afm_digits": { el: "Το ΑΦΜ πρέπει να αποτελείται από 9 ψηφία.", en: "Tax ID must be 9 digits." },
+  "toast.afm_digits": { el: "Το ΑΦΜ πρέπει να αποτελείται από 9 έγκυρα ψηφία.", en: "Tax ID must be 9 valid digits with correct checksum." },
+  "toast.password_too_short": { el: "Ο κωδικός πρέπει να είναι τουλάχιστον 10 χαρακτήρες.", en: "Password must be at least 10 characters." },
 
   // Footer
   "footer.made_with": { el: "Made with", en: "Made with" },

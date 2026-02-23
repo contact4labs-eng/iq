@@ -132,7 +132,7 @@ export function useFinanceExtras(refreshKey = 0) {
           const cat = r.description || "Άλλο";
           catMap.set(cat, (catMap.get(cat) ?? 0) + safe(r.amount));
         }
-        const totalExp = curExp || 1;
+        const totalExp = curExp > 0 ? curExp : 1;
         const categories = Array.from(catMap.entries())
           .map(([category, total]) => ({ category, total, percentage: (total / totalExp) * 100 }))
           .sort((a, b) => b.total - a.total);

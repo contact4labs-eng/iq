@@ -33,7 +33,7 @@ const Login = () => {
       setLoading(false);
       toast({
         title: t("toast.login_error"),
-        description: err instanceof Error ? err.message : "Απρόσμενο σφάλμα. Δοκιμάστε ξανά.",
+        description: err instanceof Error ? err.message : t("toast.login_error"),
         variant: "destructive",
       });
     }

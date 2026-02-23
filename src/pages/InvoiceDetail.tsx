@@ -39,9 +39,9 @@ const statusClasses: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive",
 };
 
-function formatCurrency(v: number | null): string {
-  if (v === null || v === undefined) return "0,00 €";
-  return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(v);
+function formatCurrency(v: number | null, locale = "el-GR"): string {
+  if (v === null || v === undefined) return "0,00 \u20AC";
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(v);
 }
 
 function DatePickerField({

@@ -57,8 +57,17 @@ const SettingsPage = () => {
       .select("name, afm, email, phone, address")
       .eq("id", companyId)
       .maybeSingle()
-      .then(({ data }) => {
-        if (data) setInfo(data as CompanyInfo);
+      .then(({ data, error: fetchErr }) => {
+        if (fetchErr) {
+          console.error("Settings fetch error:", fetchErr.message);
+          toast({ title: t("toast.error"), description: fetchErr.message, variant: "destructive" });
+        } else if (data) {
+          setInfo(data as CompanyInfo);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Settings fetch exception:", err);
         setLoading(false);
       });
   }, [companyId]);

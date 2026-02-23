@@ -68,9 +68,9 @@ function mapPriceVolatility(raw: Record<string, unknown>): PriceVolatility {
     avg_price: (raw.avg_price as number) ?? 0,
     min_price: (raw.min_price as number) ?? 0,
     max_price: (raw.max_price as number) ?? 0,
-    latest_price: (raw.latest_price as number) ?? raw.avg_price as number ?? 0,
+    latest_price: (raw.latest_price as number) ?? (raw.avg_price as number) ?? 0,
     volatility: (raw.volatility as number) ?? (raw.volatility_score as number) ?? 0,
-    level: (raw.level as string) ?? (raw.volatility_level as string)?.toLowerCase() ?? "low",
+    level: (raw.level as string) ?? ((raw.volatility_level as string)?.toLowerCase() ?? "low"),
   };
 }
 
@@ -96,17 +96,32 @@ export function useInvoiceAnalytics() {
       setError(null);
 
       try {
-        const [execRes, suppRes, costRes, volRes] = await Promise.all([
+        const results = await Promise.allSettled([
           supabase.rpc("get_executive_summary", { p_company_id: companyId }),
           supabase.rpc("get_supplier_performance", { p_company_id: companyId }),
           supabase.rpc("get_cost_analytics", { p_company_id: companyId }),
           supabase.rpc("get_price_volatility", { p_company_id: companyId }),
         ]);
 
-        if (execRes.error) throw execRes.error;
-        if (suppRes.error) throw suppRes.error;
-        if (costRes.error) throw costRes.error;
-        if (volRes.error) throw volRes.error;
+        const getResult = (index: number) => {
+          const r = results[index];
+          if (r.status === "fulfilled") return r.value;
+          console.error(`Analytics RPC ${index} failed:`, r.reason);
+          return { data: null, error: r.reason };
+        };
+
+        const execRes = getResult(0);
+        const suppRes = getResult(1);
+        const costRes = getResult(2);
+        const volRes = getResult(3);
+
+        // Log individual errors but don't throw — show partial data
+        const errors: string[] = [];
+        if (execRes.error) errors.push(`Executive summary: ${execRes.error.message}`);
+        if (suppRes.error) errors.push(`Supplier performance: ${suppRes.error.message}`);
+        if (costRes.error) errors.push(`Cost analytics: ${costRes.error.message}`);
+        if (volRes.error) errors.push(`Price volatility: ${volRes.error.message}`);
+        if (errors.length > 0) console.warn("Partial analytics failures:", errors);
 
         // Executive summary may return a single row or array with one row
         const execRaw = Array.isArray(execRes.data) ? execRes.data[0] : execRes.data;

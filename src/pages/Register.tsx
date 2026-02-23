@@ -18,10 +18,27 @@ const Register = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
 
+  // Greek AFM MOD11 checksum validation
+  const isValidAfm = (afm: string): boolean => {
+    if (afm.length !== 9 || !/^\d+$/.test(afm)) return false;
+    if (afm === "000000000") return false;
+    let sum = 0;
+    for (let i = 0; i < 8; i++) {
+      sum += parseInt(afm[i], 10) * Math.pow(2, 8 - i);
+    }
+    const remainder = sum % 11;
+    const checkDigit = remainder % 10;
+    return checkDigit === parseInt(afm[8], 10);
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (afm.length !== 9 || !/^\d+$/.test(afm)) {
+    if (!isValidAfm(afm)) {
       toast({ title: t("toast.invalid_afm"), description: t("toast.afm_digits"), variant: "destructive" });
+      return;
+    }
+    if (password.length < 10) {
+      toast({ title: t("toast.error"), description: t("toast.password_too_short"), variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -52,27 +69,36 @@ const Register = () => {
 
       if (companyError) {
         console.error("Company creation error:", companyError);
-        // Retry once before giving up
-        const { error: retryError } = await supabase
+        // Check if company already exists (idempotency guard against duplicates)
+        const { data: existingCompany } = await supabase
           .from("companies")
-          .insert({
-            owner_user_id: authData.user.id,
-            name: companyName,
-            afm,
-          });
+          .select("id")
+          .eq("owner_user_id", authData.user.id)
+          .maybeSingle();
 
-        if (retryError) {
-          console.error("Company creation retry also failed:", retryError);
-          // Sign out the orphaned user so they can try registering again
-          await supabase.auth.signOut();
-          setLoading(false);
-          toast({
-            title: t("toast.error"),
-            description: "\u0397 \u03B4\u03B7\u03BC\u03B9\u03BF\u03C5\u03C1\u03B3\u03AF\u03B1 \u03B5\u03C4\u03B1\u03B9\u03C1\u03B5\u03AF\u03B1\u03C2 \u03B1\u03C0\u03AD\u03C4\u03C5\u03C7\u03B5. \u03A0\u03B1\u03C1\u03B1\u03BA\u03B1\u03BB\u03CE \u03B4\u03BF\u03BA\u03B9\u03BC\u03AC\u03C3\u03C4\u03B5 \u03BE\u03B1\u03BD\u03AC \u03AE \u03B5\u03C0\u03B9\u03BA\u03BF\u03B9\u03BD\u03C9\u03BD\u03AE\u03C3\u03C4\u03B5 \u03BC\u03B5 \u03C4\u03B7\u03BD \u03C5\u03C0\u03BF\u03C3\u03C4\u03AE\u03C1\u03B9\u03BE\u03B7.",
-            variant: "destructive",
-          });
-          return;
+        if (!existingCompany) {
+          // Company truly doesn't exist — retry once
+          const { error: retryError } = await supabase
+            .from("companies")
+            .insert({
+              owner_user_id: authData.user.id,
+              name: companyName,
+              afm,
+            });
+
+          if (retryError) {
+            console.error("Company creation retry also failed:", retryError);
+            await supabase.auth.signOut();
+            setLoading(false);
+            toast({
+              title: t("toast.error"),
+              description: t("toast.register_error"),
+              variant: "destructive",
+            });
+            return;
+          }
         }
+        // If existingCompany found, company was created — continue normally
       }
     }
 
@@ -119,7 +145,7 @@ const Register = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">{t("auth.password")}</Label>
-              <Input id="password" type="password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input id="password" type="password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}

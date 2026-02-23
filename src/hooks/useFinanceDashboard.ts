@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
-const safe = (v: any): number => (v == null || isNaN(v)) ? 0 : Number(v);
+const safe = (v: unknown): number => (v == null || isNaN(Number(v))) ? 0 : Number(v);
 
 export interface CashPositionData {
   cash_on_hand: number;

@@ -18,12 +18,16 @@ export function InvoiceLineItemsTable({ items, onChange }: Props) {
 
   const updateItem = (index: number, field: keyof LineItem, value: string) => {
     const updated = [...items];
-    const numFields = ["quantity", "unit_price", "tax_rate", "line_total"];
+    const numFields: Array<keyof LineItem> = ["quantity", "unit_price", "tax_rate", "line_total"];
+    const item = { ...updated[index] };
     if (numFields.includes(field)) {
-      (updated[index] as unknown as Record<string, unknown>)[field] = value === "" ? null : parseFloat(value);
+      const parsed = value === "" ? null : parseFloat(value);
+      if (parsed !== null && isNaN(parsed)) return; // reject non-numeric input
+      (item as Record<string, unknown>)[field] = parsed;
     } else {
-      (updated[index] as unknown as Record<string, unknown>)[field] = value || null;
+      (item as Record<string, unknown>)[field] = value || null;
     }
+    updated[index] = item as LineItem;
     if (["quantity", "unit_price", "tax_rate"].includes(field)) {
       const qty = updated[index].quantity ?? 0;
       const price = updated[index].unit_price ?? 0;

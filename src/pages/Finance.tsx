@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, AlertTriangle, Plus, PiggyBank, BarChart3, CalendarClock, TrendingUp, TrendingDown, PieChart as PieChartIcon, Activity } from "lucide-react";
+import { Wallet, Clock, AlertTriangle, Plus, PiggyBank, BarChart3, TrendingUp, TrendingDown, PieChart as PieChartIcon, Activity } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,8 +30,6 @@ function fmtShort(v: number) {
   return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 }
 
-// Chart configs are created inside the component to use translations
-
 const PIE_COLORS = [
   "hsl(var(--primary))",
   "hsl(var(--accent))",
@@ -43,7 +41,7 @@ const PIE_COLORS = [
 
 const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { cashPosition, receivables, payables, weeklyCashFlow, overdueInvoices, upcomingPayments, loading, error } = useFinanceDashboard(refreshKey);
+  const { weeklyCashFlow, overdueInvoices, loading, error } = useFinanceDashboard(refreshKey);
   const { monthlyPL, expenseBreakdown, monthlyTrends } = useFinanceExtras(refreshKey);
   const { t } = useLanguage();
 
@@ -63,15 +61,6 @@ const Finance = () => {
 
   const onDataChanged = () => setRefreshKey((k) => k + 1);
 
-  const totalCash = safe(cashPosition?.total_cash);
-  const cashOnHand = safe(cashPosition?.cash_on_hand);
-  const bankBalance = safe(cashPosition?.bank_balance);
-  const cashChangePct = safe(cashPosition?.change_pct);
-  const recvTotal = safe(receivables?.total);
-  const recvCount = safe(receivables?.count);
-  const payTotal = safe(payables?.total);
-  const payCount = safe(payables?.count);
-
   const hasChartData = useMemo(
     () => weeklyCashFlow.some((w) => w.inflows > 0 || w.outflows > 0),
     [weeklyCashFlow]
@@ -90,7 +79,7 @@ const Finance = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Header + Quick Actions Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+        {/* Header + Quick Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 mb-0.5">
@@ -120,88 +109,13 @@ const Finance = () => {
 
         {loading ? (
           <div className="space-y-4">
-            <Skeleton className="h-36 rounded-lg" />
-            <div className="grid gap-4 md:grid-cols-2">
-              <Skeleton className="h-28 rounded-lg" />
-              <Skeleton className="h-28 rounded-lg" />
-            </div>
             <Skeleton className="h-72 rounded-lg" />
+            <Skeleton className="h-48 rounded-lg" />
             <Skeleton className="h-48 rounded-lg" />
           </div>
         ) : (
           <>
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 1. ÃÂ¤ÃÂ±ÃÂ¼ÃÂµÃÂ¹ÃÂ±ÃÂºÃÂ ÃÂ¥ÃÂÃÂÃÂ»ÃÂ¿ÃÂ¹ÃÂÃÂ¿ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
-            <Card className="bg-primary text-primary-foreground">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="w-5 h-5 opacity-70" />
-                    <h2 className="text-sm font-semibold opacity-80">{t("finance.cash_balance")}</h2>
-                  </div>
-                  {cashChangePct !== 0 && (
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cashChangePct > 0 ? "bg-success/20 text-success-foreground" : "bg-destructive/20 text-destructive-foreground"}`}>
-                      {cashChangePct > 0 ? "+" : ""}{cashChangePct.toFixed(1)}% {t("finance.vs_prev_month")}
-                    </span>
-                  )}
-                </div>
-                <p className="text-4xl font-bold font-display tracking-tight">
-                  {fmt(totalCash)}
-                </p>
-                <div className="flex gap-6 mt-4 pt-3 border-t border-primary-foreground/20">
-                  <div>
-                    <p className="text-xs opacity-60">{t("finance.cash_on_hand")}</p>
-                    <p className="text-lg font-semibold">{fmtShort(cashOnHand)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs opacity-60">{t("finance.bank")}</p>
-                    <p className="text-lg font-semibold">{fmtShort(bankBalance)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 2 & 3. ÃÂÃÂ¹ÃÂÃÂÃÂÃÂ±ÃÂºÃÂÃÂ­ÃÂ± + ÃÂ ÃÂ»ÃÂ·ÃÂÃÂÃÂÃÂ­ÃÂ± Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Receivables */}
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-9 h-9 rounded-full bg-success/15 flex items-center justify-center">
-                      <ArrowDownLeft className="w-4.5 h-4.5 text-success" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-semibold text-foreground">{t("finance.receivables")}</h2>
-                      <p className="text-xs text-muted-foreground">{t("finance.receivables_desc")}</p>
-                    </div>
-                  </div>
-                  <p className="text-3xl font-bold font-display text-success">{fmt(recvTotal)}</p>
-                  {recvCount > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">{recvCount} {recvCount === 1 ? t("finance.invoice_singular") : t("finance.invoice_plural")}</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Payables */}
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-9 h-9 rounded-full bg-warning/15 flex items-center justify-center">
-                      <ArrowUpRight className="w-4.5 h-4.5 text-warning" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-semibold text-foreground">{t("finance.payables")}</h2>
-                      <p className="text-xs text-muted-foreground">{t("finance.payables_desc")}</p>
-                    </div>
-                  </div>
-                  <p className="text-3xl font-bold font-display text-warning">{fmt(payTotal)}</p>
-                  {payCount > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">{payCount} {payCount === 1 ? t("finance.payment_singular") : t("finance.payment_plural")}</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 4. ÃÂ¤ÃÂ±ÃÂ¼ÃÂµÃÂ¹ÃÂ±ÃÂºÃÂ® ÃÂ¡ÃÂ¿ÃÂ® 30 ÃÂÃÂ¼ÃÂµÃÂÃÂÃÂ½ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+            {/* Cash Flow 30 Days */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -239,58 +153,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 5. ÃÂ ÃÂÃÂ¿ÃÂ³ÃÂÃÂ±ÃÂ¼ÃÂ¼ÃÂ±ÃÂÃÂ¹ÃÂÃÂ¼ÃÂ­ÃÂ½ÃÂµÃÂ ÃÂ ÃÂ»ÃÂ·ÃÂÃÂÃÂ¼ÃÂ­ÃÂ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <CalendarClock className="w-4 h-4 text-accent" />
-                    <h2 className="text-sm font-semibold text-foreground">{t("finance.scheduled_payments")}</h2>
-                  </div>
-                  {upcomingPayments.length > 0 && (
-                    <Badge className="bg-accent/15 text-accent border-0">
-                      {upcomingPayments.length}
-                    </Badge>
-                  )}
-                </div>
-
-                {upcomingPayments.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.description")}</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.amount")}</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.date")}</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-muted-foreground">{t("finance.in_days")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {upcomingPayments.map((p) => (
-                          <tr key={p.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
-                            <td className="py-2.5 px-3 font-medium text-foreground truncate max-w-[200px]">{p.description}</td>
-                            <td className="py-2.5 px-3 text-right font-bold text-foreground">{fmt(safe(p.amount))}</td>
-                            <td className="py-2.5 px-3 text-right text-muted-foreground">{p.due_date}</td>
-                            <td className="py-2.5 px-3 text-right">
-                              <Badge className="bg-accent/10 text-accent border-0 font-medium">
-                                {safe(p.days_until)} {safe(p.days_until) === 1 ? t("finance.day") : t("finance.days")}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <CalendarClock className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">{t("finance.no_scheduled")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 6. ÃÂÃÂ·ÃÂ¾ÃÂ¹ÃÂÃÂÃÂÃÂ¸ÃÂµÃÂÃÂ¼ÃÂ± ÃÂ¤ÃÂ¹ÃÂ¼ÃÂ¿ÃÂ»ÃÂÃÂ³ÃÂ¹ÃÂ± Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+            {/* Overdue Invoices */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -346,10 +209,10 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 7. ÃÂÃÂ¼ÃÂµÃÂÃÂ¿ÃÂ»ÃÂÃÂ³ÃÂ¹ÃÂ¿ ÃÂÃÂµÃÂÃÂ´ÃÂ¿ÃÂÃÂ¿ÃÂÃÂ¯ÃÂ±ÃÂ Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+            {/* Profitability Calendar */}
             <ProfitabilityCalendar refreshKey={refreshKey} />
 
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 8. ÃÂÃÂ­ÃÂÃÂ´ÃÂ¿ÃÂ & ÃÂÃÂ·ÃÂ¼ÃÂ¯ÃÂ± ÃÂÃÂ®ÃÂ½ÃÂ± (P&L) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+            {/* P&L Monthly */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -358,7 +221,6 @@ const Finance = () => {
                 </div>
                 {monthlyPL ? (
                   <div className="grid grid-cols-3 gap-4">
-                    {/* ÃÂÃÂÃÂ¿ÃÂ´ÃÂ± */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("dashboard.revenue")}</p>
                       <p className="text-xl font-bold text-success">{fmt(safe(monthlyPL.revenue))}</p>
@@ -369,7 +231,6 @@ const Finance = () => {
                         </span>
                       )}
                     </div>
-                    {/* ÃÂÃÂ¾ÃÂ¿ÃÂ´ÃÂ± */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("dashboard.expenses")}</p>
                       <p className="text-xl font-bold text-destructive">{fmt(safe(monthlyPL.expenses))}</p>
@@ -380,7 +241,6 @@ const Finance = () => {
                         </span>
                       )}
                     </div>
-                    {/* ÃÂÃÂ±ÃÂ¸ÃÂ±ÃÂÃÂ ÃÂÃÂ­ÃÂÃÂ´ÃÂ¿ÃÂ */}
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{t("finance.net_profit")}</p>
                       <p className={`text-xl font-bold ${safe(monthlyPL.net_profit) >= 0 ? "text-success" : "text-destructive"}`}>
@@ -400,7 +260,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 8. ÃÂÃÂ½ÃÂ¬ÃÂ»ÃÂÃÂÃÂ· ÃÂÃÂ¾ÃÂÃÂ´ÃÂÃÂ½ (Pie Chart) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+            {/* Expense Breakdown (Pie Chart) */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -455,7 +315,7 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ 9. ÃÂ¤ÃÂ¬ÃÂÃÂµÃÂ¹ÃÂ 6 ÃÂÃÂ·ÃÂ½ÃÂÃÂ½ (Area Chart) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+            {/* Monthly Trends (Area Chart) */}
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-4">

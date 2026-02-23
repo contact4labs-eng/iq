@@ -52,8 +52,8 @@ const Alerts = () => {
   });
 
   const handleResolve = async (id: string) => {
-    const err = await resolveAlert(id);
-    if (err) toast({ title: t("toast.error"), description: err.message, variant: "destructive" });
+    const result = await resolveAlert(id);
+    if (!result.success) toast({ title: t("toast.error"), description: result.message ?? "Unknown error", variant: "destructive" });
     else toast({ title: t("toast.success"), description: t("toast.alert_resolved") });
   };
 

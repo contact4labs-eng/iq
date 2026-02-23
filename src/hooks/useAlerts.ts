@@ -68,19 +68,20 @@ export function useAlerts() {
 
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
 
-  const resolveAlert = async (alertId: string) => {
-    if (!companyId) return { message: "No company" } as { message: string };
+  const resolveAlert = async (alertId: string): Promise<{ success: boolean; message?: string }> => {
+    if (!companyId) return { success: false, message: "No company" };
     const { error } = await supabase
       .from("alerts")
       .update({ status: "resolved", resolved_at: new Date().toISOString() } as Record<string, unknown>)
       .eq("id", alertId)
       .eq("company_id", companyId);
-    if (!error) {
-      setAlerts((prev) =>
-        prev.map((a) => (a.id === alertId ? { ...a, status: "resolved", is_resolved: true, resolved_at: new Date().toISOString() } : a))
-      );
+    if (error) {
+      return { success: false, message: error.message };
     }
-    return error;
+    setAlerts((prev) =>
+      prev.map((a) => (a.id === alertId ? { ...a, status: "resolved", is_resolved: true, resolved_at: new Date().toISOString() } : a))
+    );
+    return { success: true };
   };
 
   return { summary, alerts, loading, error, resolveAlert, refresh: fetchAlerts };
