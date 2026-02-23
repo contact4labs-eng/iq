@@ -60,7 +60,10 @@ export function useFinanceDashboard(refreshKey = 0) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
 
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
