@@ -46,7 +46,10 @@ export function useBusinessInsights(refreshKey = 0) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
 
     const fetchAll = async () => {
       setLoading(true);
