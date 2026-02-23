@@ -25,6 +25,7 @@ const CATEGORY_KEYS: { key: TranslationKey; value: string }[] = [
   { key: "fixed_costs.cat_fmy", value: "fmy" },
   { key: "fixed_costs.cat_deh", value: "deh" },
   { key: "fixed_costs.cat_eydap", value: "eydap" },
+  { key: "fixed_costs.cat_payroll", value: "payroll" },
 ];
 
 interface AddFixedCostModalProps {

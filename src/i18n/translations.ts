@@ -654,6 +654,7 @@ export const translations = {
   "fixed_costs.cat_fmy": { el: "ΦΜΥ", en: "FMY" },
   "fixed_costs.cat_deh": { el: "ΔΕΗ", en: "Electricity" },
   "fixed_costs.cat_eydap": { el: "ΕΥΔΑΠ", en: "Water" },
+  "fixed_costs.cat_payroll": { el: "Μισθοδοσία", en: "Payroll" },
 
   // Responsive nav
   "nav.more": { el: "Περισσότερα", en: "More" },
