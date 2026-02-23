@@ -2,7 +2,7 @@ export const translations = {
   // Navigation
   "nav.home": { el: "Αρχική", en: "Dashboard" },
   "nav.invoices": { el: "Τιμολόγια", en: "Invoices" },
-  "nav.finance": { el: "Χρήματα", en: "Finance" },
+  "nav.finance": { el: "Επιχ. Πληροφορίες", en: "Business Insights" },
   "nav.ai": { el: "AI Ανάλυση", en: "AI Analysis" },
   "nav.analytics": { el: "Αναλύσεις", en: "Analytics" },
   "nav.alerts": { el: "Ειδοποιήσεις", en: "Alerts" },
