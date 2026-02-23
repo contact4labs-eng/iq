@@ -292,6 +292,39 @@ export interface Database {
         }
         Relationships: []
       }
+      fixed_costs: {
+        Row: {
+          id: string
+          company_id: string
+          category: string
+          amount: number
+          month: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          category: string
+          amount: number
+          month: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          category?: string
+          amount?: number
+          month?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expense_entries: {
         Row: {
           id: string

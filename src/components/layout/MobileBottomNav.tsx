@@ -1,4 +1,4 @@
-import { Home, FileText, TrendingUp, Zap, MoreHorizontal, Wallet, Brain, Bell, Settings } from "lucide-react";
+import { Home, FileText, TrendingUp, Zap, MoreHorizontal, Wallet, Brain, Bell, Settings, CalendarClock } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/contexts/LanguageContext";
@@ -20,6 +20,7 @@ const primaryItems: { titleKey: TranslationKey; url: string; icon: typeof Home }
 const moreItems: { titleKey: TranslationKey; url: string; icon: typeof Home }[] = [
   { titleKey: "nav.finance", url: "/finance", icon: Wallet },
   { titleKey: "nav.ai", url: "/ai-insights", icon: Brain },
+  { titleKey: "nav.fixed_costs", url: "/fixed-costs", icon: CalendarClock },
   { titleKey: "nav.alerts", url: "/alerts", icon: Bell },
   { titleKey: "nav.settings", url: "/settings", icon: Settings },
 ];
