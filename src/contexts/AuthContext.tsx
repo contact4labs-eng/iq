@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchedCompanyForRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
 
-  const fetchCompany = useCallback(async (userId: string) => {
+  const fetchCompany = useCallback(async (userId: string, userMeta?: Record<string, unknown>) => {
     // Skip if we already fetched for this user
     if (fetchedCompanyForRef.current === userId) return;
     fetchedCompanyForRef.current = userId;
@@ -64,6 +64,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (data) {
         setCompany(data as Company);
+        return;
+      }
+
+      // Auto-repair: if no company exists but user metadata has company info,
+      // create the company row. This handles cases where registration's
+      // company insert failed silently.
+      const companyName = userMeta?.company_name as string | undefined;
+      const afm = userMeta?.afm as string | undefined;
+      if (companyName && afm) {
+        console.info("No company found — auto-creating from user metadata");
+        const { data: created, error: createErr } = await supabase
+          .from("companies")
+          .insert({ owner_user_id: userId, name: companyName, afm })
+          .select("*")
+          .maybeSingle();
+
+        if (!isMountedRef.current) return;
+
+        if (createErr) {
+          console.error("Auto-create company failed:", createErr.message);
+        } else if (created) {
+          setCompany(created as Company);
+        }
+      } else {
+        console.warn("No company found for user and no metadata to auto-create.");
       }
     } catch (err) {
       console.error("Company fetch error:", err);
@@ -87,7 +112,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Use setTimeout(0) to avoid Supabase deadlock on auth state change
           setTimeout(() => {
             if (isMountedRef.current) {
-              fetchCompany(newSession.user.id);
+              fetchCompany(
+                newSession.user.id,
+                newSession.user.user_metadata as Record<string, unknown> | undefined
+              );
             }
           }, 0);
         } else {

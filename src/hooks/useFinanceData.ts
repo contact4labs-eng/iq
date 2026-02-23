@@ -1,39 +1,19 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  useDailyKpis,
+  useWeeklyKpis,
+  useMonthlyKpis,
+} from "@/hooks/queries/useSupabaseQuery";
 
-const safe = (v: unknown): number => (v == null || isNaN(Number(v))) ? 0 : Number(v);
-
-export interface MonthlyKpis {
-  net_profit: number;
-  margin_pct: number;
-  revenue_total: number;
-  expenses_total: number;
-  revenue_growth_rate: number;
-  expense_growth_rate: number;
-}
-
-export interface DailyKpis {
-  cash_position: number;
-  pending_outgoing: number;
-  mtd_profit: number;
-  overdue_amount: number;
-  today_revenue?: number;
-  today_expenses?: number;
-  today_profit?: number;
-}
-
-export interface WeeklyKpis {
-  this_week_revenue: number;
-  this_week_expenses: number;
-  this_week_profit: number;
-  last_week_revenue: number;
-  last_week_expenses: number;
-  last_week_profit: number;
-  revenue_change_pct: number;
-  expenses_change_pct: number;
-  profit_change_pct: number;
-}
+// Re-export shared types
+export type {
+  DailyKpis,
+  WeeklyKpis,
+  MonthlyKpis,
+} from "@/hooks/queries/useSupabaseQuery";
 
 export interface CashFlowPoint {
   month: string;
@@ -55,93 +35,108 @@ export interface ProfitPressure {
   top_sources: { source: string; impact: number }[];
 }
 
+const safe = (v: unknown): number => (v == null || isNaN(Number(v))) ? 0 : Number(v);
+
+function pickSafe(d: unknown): Record<string, unknown> | null {
+  const raw = Array.isArray(d) ? d[0] : d;
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  const safed: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    safed[k] = typeof v === "number" || (typeof v === "string" && !isNaN(Number(v))) ? safe(v) : v;
+  }
+  return safed;
+}
+
+/**
+ * Finance data hook — shared daily/weekly/monthly KPIs come from
+ * @tanstack/react-query (deduplicated with Dashboard), while
+ * finance-specific RPCs are fetched here.
+ */
 export function useFinanceData(refreshKey = 0) {
   const { company } = useAuth();
   const companyId = company?.id;
+  const queryClient = useQueryClient();
+  const lastRefreshKeyRef = useRef(refreshKey);
 
-  const [monthly, setMonthly] = useState<MonthlyKpis | null>(null);
-  const [daily, setDaily] = useState<DailyKpis | null>(null);
-  const [weekly, setWeekly] = useState<WeeklyKpis | null>(null);
-  const [cashFlow, setCashFlow] = useState<CashFlowPoint[]>([]);
-  const [expenseBreakdown, setExpenseBreakdown] = useState<ExpenseCategory[]>([]);
-  const [profitPressure, setProfitPressure] = useState<ProfitPressure | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Shared cached queries (same cache key as Dashboard)
+  const monthlyQuery = useMonthlyKpis();
+  const dailyQuery = useDailyKpis();
+  const weeklyQuery = useWeeklyKpis();
 
-  useEffect(() => {
+  // Finance-specific: cash flow
+  const cashFlowQuery = useQuery<CashFlowPoint[]>({
+    queryKey: ["rpc", "get_cash_flow", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase.rpc("get_cash_flow", { p_company_id: companyId });
+      if (error) throw error;
+      return (data ?? []) as CashFlowPoint[];
+    },
+    enabled: !!companyId,
+  });
+
+  // Finance-specific: expense breakdown
+  const expenseQuery = useQuery<ExpenseCategory[]>({
+    queryKey: ["rpc", "get_expense_category_breakdown", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const now = new Date();
+      const fromDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const toDate = now.toISOString().slice(0, 10);
+      const { data, error } = await supabase.rpc("get_expense_category_breakdown", {
+        p_company_id: companyId,
+        p_from_date: fromDate,
+        p_to_date: toDate,
+      });
+      if (error) throw error;
+      return (data ?? []) as ExpenseCategory[];
+    },
+    enabled: !!companyId,
+  });
+
+  // Finance-specific: profit pressure
+  const pressureQuery = useQuery<ProfitPressure | null>({
+    queryKey: ["rpc", "get_profit_pressure", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const { data, error } = await supabase.rpc("get_profit_pressure", { p_company_id: companyId });
+      if (error) throw error;
+      return pickSafe(data) as unknown as ProfitPressure;
+    },
+    enabled: !!companyId,
+  });
+
+  const refresh = useCallback(() => {
     if (!companyId) return;
+    queryClient.invalidateQueries({ queryKey: ["rpc"] });
+  }, [queryClient, companyId]);
 
-    const now = new Date();
-    const fromDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-    const toDate = now.toISOString().slice(0, 10);
+  // Support legacy refreshKey
+  useEffect(() => {
+    if (refreshKey > lastRefreshKeyRef.current) {
+      lastRefreshKeyRef.current = refreshKey;
+      refresh();
+    }
+  }, [refreshKey, refresh]);
 
-    const fetchAll = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [mRes, dRes, wRes, cfRes, ebRes, ppRes] = await Promise.allSettled([
-          supabase.rpc("get_monthly_kpis", { p_company_id: companyId }),
-          supabase.rpc("get_daily_kpis", { p_company_id: companyId }),
-          supabase.rpc("get_weekly_kpis", { p_company_id: companyId }),
-          supabase.rpc("get_cash_flow", { p_company_id: companyId }),
-          supabase.rpc("get_expense_category_breakdown", {
-            p_company_id: companyId,
-            p_from_date: fromDate,
-            p_to_date: toDate,
-          }),
-          supabase.rpc("get_profit_pressure", { p_company_id: companyId }),
-        ]);
+  const loading =
+    monthlyQuery.isLoading || dailyQuery.isLoading || weeklyQuery.isLoading ||
+    cashFlowQuery.isLoading || expenseQuery.isLoading || pressureQuery.isLoading;
 
-        const pickSafe = (d: unknown) => {
-          const raw = Array.isArray(d) ? d[0] : d;
-          if (!raw || typeof raw !== "object") return null;
-          const obj = raw as Record<string, unknown>;
-          const safed: Record<string, unknown> = {};
-          for (const [k, v] of Object.entries(obj)) {
-            safed[k] = typeof v === "number" || (typeof v === "string" && !isNaN(Number(v))) ? safe(v) : v;
-          }
-          return safed;
-        };
+  const error =
+    monthlyQuery.error?.message || dailyQuery.error?.message ||
+    weeklyQuery.error?.message || cashFlowQuery.error?.message ||
+    expenseQuery.error?.message || pressureQuery.error?.message || null;
 
-        if (mRes.status === "fulfilled" && !mRes.value.error) {
-          setMonthly(pickSafe(mRes.value.data) as unknown as MonthlyKpis);
-        } else {
-          console.error("Monthly KPIs error:", mRes.status === "fulfilled" ? mRes.value.error : mRes.reason);
-        }
-        if (dRes.status === "fulfilled" && !dRes.value.error) {
-          setDaily(pickSafe(dRes.value.data) as unknown as DailyKpis);
-        } else {
-          console.error("Daily KPIs error:", dRes.status === "fulfilled" ? dRes.value.error : dRes.reason);
-        }
-        if (wRes.status === "fulfilled" && !wRes.value.error) {
-          setWeekly(pickSafe(wRes.value.data) as unknown as WeeklyKpis);
-        } else {
-          console.error("Weekly KPIs error:", wRes.status === "fulfilled" ? wRes.value.error : wRes.reason);
-        }
-        if (cfRes.status === "fulfilled" && !cfRes.value.error) {
-          setCashFlow((cfRes.value.data ?? []) as CashFlowPoint[]);
-        } else {
-          console.error("Cash flow error:", cfRes.status === "fulfilled" ? cfRes.value.error : cfRes.reason);
-        }
-        if (ebRes.status === "fulfilled" && !ebRes.value.error) {
-          setExpenseBreakdown((ebRes.value.data ?? []) as ExpenseCategory[]);
-        } else {
-          console.error("Expense breakdown error:", ebRes.status === "fulfilled" ? ebRes.value.error : ebRes.reason);
-        }
-        if (ppRes.status === "fulfilled" && !ppRes.value.error) {
-          setProfitPressure(pickSafe(ppRes.value.data) as unknown as ProfitPressure);
-        } else {
-          console.error("Profit pressure error:", ppRes.status === "fulfilled" ? ppRes.value.error : ppRes.reason);
-        }
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Î£ÏÎ¬Î»Î¼Î± ÏÏÏÏÏÏÎ·Ï Î¿Î¹ÎºÎ¿Î½Î¿Î¼Î¹ÎºÏÎ½ Î´ÎµÎ´Î¿Î¼Î­Î½ÏÎ½");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAll();
-  }, [companyId, refreshKey]);
-
-  return { monthly, daily, weekly, cashFlow, expenseBreakdown, profitPressure, loading, error };
+  return {
+    monthly: monthlyQuery.data ?? null,
+    daily: dailyQuery.data ?? null,
+    weekly: weeklyQuery.data ?? null,
+    cashFlow: cashFlowQuery.data ?? [],
+    expenseBreakdown: expenseQuery.data ?? [],
+    profitPressure: pressureQuery.data ?? null,
+    loading,
+    error,
+  };
 }

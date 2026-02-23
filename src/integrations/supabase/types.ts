@@ -1,3 +1,10 @@
+/**
+ * Supabase Auto-Generated Types
+ *
+ * This file contains TypeScript types for all Supabase database tables and RPC functions.
+ * Generated from code analysis of database operations across the application.
+ */
+
 export type Json =
   | string
   | number
@@ -6,176 +13,667 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
+export interface Database {
   public: {
     Tables: {
-      profiles: {
+      companies: {
         Row: {
-          afm: string
-          company_name: string
-          created_at: string
           id: string
+          owner_user_id: string
+          name: string
+          afm: string
+          industry: string | null
+          currency: string
+          settings: Record<string, unknown> | null
+          email: string | null
+          phone: string | null
+          address: string | null
+          created_at: string
           updated_at: string
-          user_id: string
         }
         Insert: {
-          afm: string
-          company_name: string
-          created_at?: string
           id?: string
+          owner_user_id: string
+          name: string
+          afm: string
+          industry?: string | null
+          currency?: string
+          settings?: Record<string, unknown> | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          created_at?: string
           updated_at?: string
-          user_id: string
         }
         Update: {
-          afm?: string
-          company_name?: string
-          created_at?: string
           id?: string
+          owner_user_id?: string
+          name?: string
+          afm?: string
+          industry?: string | null
+          currency?: string
+          settings?: Record<string, unknown> | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          id: string
+          user_id: string
+          display_name: string | null
+          avatar_url: string | null
+          preferences: Record<string, unknown> | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          display_name?: string | null
+          avatar_url?: string | null
+          preferences?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
           user_id?: string
+          display_name?: string | null
+          avatar_url?: string | null
+          preferences?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          afm: string | null
+          email: string | null
+          phone: string | null
+          address: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          afm?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          name?: string
+          afm?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          id: string
+          company_id: string
+          supplier_id: string | null
+          file_id: string | null
+          invoice_number: string | null
+          invoice_date: string | null
+          due_date: string | null
+          paid_date: string | null
+          status: string
+          subtotal: number | null
+          vat_amount: number | null
+          total_amount: number | null
+          notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          supplier_id?: string | null
+          file_id?: string | null
+          invoice_number?: string | null
+          invoice_date?: string | null
+          due_date?: string | null
+          paid_date?: string | null
+          status?: string
+          subtotal?: number | null
+          vat_amount?: number | null
+          total_amount?: number | null
+          notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          supplier_id?: string | null
+          file_id?: string | null
+          invoice_number?: string | null
+          invoice_date?: string | null
+          due_date?: string | null
+          paid_date?: string | null
+          status?: string
+          subtotal?: number | null
+          vat_amount?: number | null
+          total_amount?: number | null
+          notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invoice_line_items: {
+        Row: {
+          id: string
+          invoice_id: string
+          company_id: string
+          description: string | null
+          quantity: number | null
+          unit_price: number | null
+          tax_rate: number | null
+          line_total: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          company_id: string
+          description?: string | null
+          quantity?: number | null
+          unit_price?: number | null
+          tax_rate?: number | null
+          line_total?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          company_id?: string
+          description?: string | null
+          quantity?: number | null
+          unit_price?: number | null
+          tax_rate?: number | null
+          line_total?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      files: {
+        Row: {
+          id: string
+          company_id: string
+          storage_path: string
+          original_filename: string
+          file_type: string
+          file_size_bytes: number | null
+          source_channel: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          storage_path: string
+          original_filename: string
+          file_type: string
+          file_size_bytes?: number | null
+          source_channel?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          storage_path?: string
+          original_filename?: string
+          file_type?: string
+          file_size_bytes?: number | null
+          source_channel?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      revenue_entries: {
+        Row: {
+          id: string
+          company_id: string
+          amount: number
+          description: string | null
+          entry_date: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          amount: number
+          description?: string | null
+          entry_date: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          amount?: number
+          description?: string | null
+          entry_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expense_entries: {
+        Row: {
+          id: string
+          company_id: string
+          amount: number
+          description: string | null
+          entry_date: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          amount: number
+          description?: string | null
+          entry_date: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          amount?: number
+          description?: string | null
+          entry_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cash_positions: {
+        Row: {
+          id: string
+          company_id: string
+          recorded_date: string
+          cash_on_hand: number
+          bank_balance: number
+          total_cash: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          recorded_date: string
+          cash_on_hand: number
+          bank_balance: number
+          total_cash: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          recorded_date?: string
+          cash_on_hand?: number
+          bank_balance?: number
+          total_cash?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scheduled_payments: {
+        Row: {
+          id: string
+          company_id: string
+          supplier_id: string | null
+          invoice_id: string | null
+          amount: number
+          due_date: string | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          supplier_id?: string | null
+          invoice_id?: string | null
+          amount: number
+          due_date?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          supplier_id?: string | null
+          invoice_id?: string | null
+          amount?: number
+          due_date?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      alerts: {
+        Row: {
+          id: string
+          company_id: string
+          alert_type: string
+          severity: string
+          title: string
+          description: string
+          recommended_action: string | null
+          status: string
+          resolved_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          alert_type: string
+          severity: string
+          title: string
+          description: string
+          recommended_action?: string | null
+          status?: string
+          resolved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          alert_type?: string
+          severity?: string
+          title?: string
+          description?: string
+          recommended_action?: string | null
+          status?: string
+          resolved_at?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
     }
-    Views: {
-      [_ in never]: never
-    }
     Functions: {
-      [_ in never]: never
+      get_daily_kpis: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: {
+          cash_position: number
+          pending_outgoing: number
+          mtd_profit: number
+          overdue_amount: number
+          cash_position_trend?: number
+          pending_outgoing_trend?: number
+          mtd_profit_trend?: number
+          overdue_trend?: number
+        }
+      }
+      get_weekly_kpis: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: {
+          this_week_revenue: number
+          this_week_expenses: number
+          this_week_profit: number
+          last_week_revenue: number
+          last_week_expenses: number
+          last_week_profit: number
+          revenue_change_pct: number
+          expenses_change_pct: number
+          profit_change_pct: number
+          revenue?: number
+          expenses?: number
+          profit?: number
+          prev_revenue?: number
+          prev_expenses?: number
+          prev_profit?: number
+        }
+      }
+      get_monthly_kpis: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: {
+          net_profit: number
+          margin_pct: number
+          revenue_total: number
+          expenses_total: number
+          revenue_growth_rate: number
+          expense_growth_rate: number
+        }
+      }
+      get_cash_flow: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: Array<{
+          month: string
+          revenue: number
+          expenses: number
+          net_flow: number
+        }>
+      }
+      get_expense_category_breakdown: {
+        Args: {
+          p_company_id: string
+          p_from_date: string
+          p_to_date: string
+        }
+        Returns: Array<{
+          category: string
+          total: number
+          percentage: number
+        }>
+      }
+      get_profit_pressure: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: {
+          pressure_level: string
+          current_margin: number
+          previous_margin: number
+          top_sources: Array<{
+            source: string
+            impact: number
+          }>
+        }
+      }
+      get_executive_summary: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: {
+          total_invoices: number
+          total_spend: number
+          current_quarter_spend?: number
+          avg_invoice: number
+          avg_invoice_amount?: number
+          unique_suppliers: number
+          total_suppliers?: number
+          invoices_this_month: number
+          spend_this_month: number
+          current_month_spend?: number
+        }
+      }
+      get_supplier_performance: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: Array<{
+          supplier_name: string
+          total_spend: number
+          invoice_count: number
+          avg_invoice: number
+          avg_invoice_amount?: number
+          dependency_pct: number
+          dependency_percentage?: number
+          risk_level: string
+          dependency_risk?: string
+        }>
+      }
+      get_cost_analytics: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: {
+          by_category: Array<{
+            category: string
+            total: number
+          }>
+          monthly_trends: Array<{
+            month: string
+            total: number
+            invoice_count?: number
+          }>
+          total_spend?: number
+          avg_invoice_amount?: number
+        }
+      }
+      get_price_volatility: {
+        Args: {
+          p_company_id: string
+        }
+        Returns: Array<{
+          product_name: string
+          supplier_name: string
+          avg_price: number
+          min_price: number
+          max_price: number
+          latest_price: number
+          volatility: number
+          volatility_score?: number
+          level: string
+          volatility_level?: string
+        }>
+      }
     }
     Enums: {
-      [_ in never]: never
+      alert_severity: "critical" | "high" | "medium" | "low"
+      alert_status: "active" | "resolved" | "acknowledged"
+      invoice_status: "uploaded" | "processing" | "extracted" | "approved" | "flagged" | "rejected" | "paid"
+      payment_status: "pending" | "completed" | "overdue" | "cancelled"
     }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    CompositeTypes: {}
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  PublicTableNameOrOptions extends
+    | keyof Database["public"]["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends {
+    schema: keyof Database
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] & {
+      Schema: PublicTableNameOrOptions["schema"]
     }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+  ? Database["public"]["Tables"][PublicTableNameOrOptions] & {
+      Schema: "public"
+    }
+  : never
 
 export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  PublicTableNameOrOptions extends
+    | keyof Database["public"]["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends {
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName]["Insert"]
+  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+  ? Database["public"]["Tables"][PublicTableNameOrOptions]["Insert"]
+  : never
 
 export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  PublicTableNameOrOptions extends
+    | keyof Database["public"]["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends {
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName]["Update"]
+  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+  ? Database["public"]["Tables"][PublicTableNameOrOptions]["Update"]
+  : never
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  PublicEnumNameOrOptions extends
+    | keyof Database["public"]["Enums"]
+    | { schema: keyof Database },
+  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
+  ? Database["public"]["Enums"][PublicEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | keyof Database["public"]["CompositeTypes"]
+    | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof Database["public"]["CompositeTypes"]
+  ? Database["public"]["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never

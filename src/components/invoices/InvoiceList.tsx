@@ -139,7 +139,11 @@ export const InvoiceList = memo(function InvoiceList({ refreshKey }: InvoiceList
     }
 
     if (search.trim()) {
-      query = query.or(`invoice_number.ilike.%${search.trim()}%,suppliers.name.ilike.%${search.trim()}%`);
+      // Sanitize input: strip characters that have special meaning in PostgREST filters
+      const sanitized = search.trim().replace(/[%(),.*\\]/g, "");
+      if (sanitized.length > 0) {
+        query = query.or(`invoice_number.ilike.%${sanitized}%,suppliers.name.ilike.%${sanitized}%`);
+      }
     }
 
     const { data, error, count } = await query;

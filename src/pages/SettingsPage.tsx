@@ -93,13 +93,23 @@ const SettingsPage = () => {
     navigate("/login");
   };
 
+  const EXPORT_LIMIT = 10_000;
+
   const handleExport = async (table: string, filename: string) => {
     if (!companyId) return;
     setExporting(table);
-    const { data, error } = await supabase.from(table).select("*").eq("company_id", companyId);
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(EXPORT_LIMIT);
     setExporting(null);
     if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); return; }
     if (!data?.length) { toast({ title: t("toast.empty_data"), description: t("toast.no_records") }); return; }
+    if (data.length >= EXPORT_LIMIT) {
+      toast({ title: t("toast.export_truncated") || "Export truncated", description: `${EXPORT_LIMIT} rows max`, variant: "destructive" });
+    }
     downloadCsv(filename, data as Record<string, unknown>[]);
     toast({ title: t("toast.success"), description: `${t("toast.export_success")} ${filename}` });
   };

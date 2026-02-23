@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, AlertCircle } from "lucide-react";
+import { Home, AlertCircle, Building2 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { WeeklySummary } from "@/components/dashboard/WeeklySummary";
@@ -10,8 +10,10 @@ import { AddRevenueModal } from "@/components/finance/AddRevenueModal";
 import { AddExpenseModal } from "@/components/finance/AddExpenseModal";
 import { CashRegisterModal } from "@/components/finance/CashRegisterModal";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { company, loading: authLoading } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const { dailyKpis, weeklyKpis, recentInvoices, loading, error } = useDashboardData(refreshKey);
   const [revenueOpen, setRevenueOpen] = useState(false);
@@ -31,6 +33,16 @@ const Index = () => {
           </div>
           <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
         </div>
+
+        {!authLoading && !company && (
+          <div className="flex items-center gap-3 bg-warning/10 border border-warning/30 rounded-lg p-4 text-sm text-warning">
+            <Building2 className="w-5 h-5 shrink-0" />
+            <div>
+              <p className="font-medium">{t("dashboard.no_company_title") || "No company linked to your account"}</p>
+              <p className="text-muted-foreground mt-0.5">{t("dashboard.no_company_desc") || "Please contact support or re-register to create your company profile."}</p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">

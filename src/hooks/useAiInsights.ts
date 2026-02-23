@@ -83,9 +83,15 @@ export function useAiInsights() {
   const [qaMessages, setQaMessages] = useState<QaMessage[]>([]);
   const [qaLoading, setQaLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const lastSentRef = useRef<number>(0);
+  const MIN_INTERVAL_MS = 1000; // Minimum 1s between requests
 
   const askQuestion = useCallback(async (question: string) => {
     if (!companyId || !token) return;
+    // Throttle: reject if last request was less than MIN_INTERVAL_MS ago
+    const now = Date.now();
+    if (now - lastSentRef.current < MIN_INTERVAL_MS) return;
+    lastSentRef.current = now;
     // Cancel any in-flight request
     abortRef.current?.abort();
     const controller = new AbortController();
