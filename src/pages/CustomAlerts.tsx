@@ -83,6 +83,21 @@ function CustomAlerts() {
   const fmt = (n: number) =>
     n.toLocaleString("el-GR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const isSmartRule = (rule: AlertRule) => {
+    const cfg = rule.config as Record<string, unknown> | null;
+    return cfg?.mode === "smart";
+  };
+
+  const smartDesc = (rule: AlertRule): string => {
+    const cfg = rule.config as Record<string, unknown> | null;
+    if (!cfg) return "";
+    const pct = cfg.percent != null ? cfg.percent : rule.threshold_value;
+    const dir = cfg.direction === "above"
+      ? t("alert_rules.smart_label_above")
+      : t("alert_rules.smart_label_below");
+    return `${pct}% ${dir}`;
+  };
+
   const totalRules = rules.length;
   const activeRules = rules.filter((r) => r.enabled).length;
 
@@ -150,12 +165,23 @@ function CustomAlerts() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium text-sm">
-                        {typeLabel(rule.alert_type)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">
+                          {typeLabel(rule.alert_type)}
+                        </span>
+                        {isSmartRule(rule) && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                            SMART
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
-                        {rule.threshold_value != null && (
-                          <span>{t("alert_rules.threshold")}: {fmt(rule.threshold_value)} €</span>
+                        {isSmartRule(rule) ? (
+                          <span>{smartDesc(rule)}</span>
+                        ) : (
+                          rule.threshold_value != null && (
+                            <span>{t("alert_rules.threshold")}: {fmt(rule.threshold_value)} €</span>
+                          )
                         )}
                         {rule.notes && (
                           <span className="truncate max-w-[250px]">· {rule.notes}</span>
