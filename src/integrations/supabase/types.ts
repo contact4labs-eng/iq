@@ -292,6 +292,54 @@ export interface Database {
         }
         Relationships: []
       }
+      custom_alert_rules: {
+        Row: {
+          id: string
+          company_id: string
+          category: string
+          alert_type: string
+          enabled: boolean
+          severity: string
+          threshold_value: number | null
+          threshold_unit: string | null
+          comparison_period: string | null
+          notes: string | null
+          config: Record<string, unknown> | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          category: string
+          alert_type: string
+          enabled?: boolean
+          severity?: string
+          threshold_value?: number | null
+          threshold_unit?: string | null
+          comparison_period?: string | null
+          notes?: string | null
+          config?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          category?: string
+          alert_type?: string
+          enabled?: boolean
+          severity?: string
+          threshold_value?: number | null
+          threshold_unit?: string | null
+          comparison_period?: string | null
+          notes?: string | null
+          config?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fixed_costs: {
         Row: {
           id: string
