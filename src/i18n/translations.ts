@@ -185,6 +185,25 @@ export const translations = {
   "finance.net_profit": { el: "Καθαρό Κέρδος", en: "Net Profit" },
   "finance.margin": { el: "Περιθώριο", en: "Margin" },
 
+  // Business Insights
+  "insights.subtitle": { el: "Επισκόπηση απόδοσης και βασικοί δείκτες", en: "Performance overview and key metrics" },
+  "insights.revenue_month": { el: "Έσοδα Μήνα", en: "Revenue (MTD)" },
+  "insights.expenses_month": { el: "Έξοδα Μήνα", en: "Expenses (MTD)" },
+  "insights.net_profit": { el: "Καθαρό Κέρδος", en: "Net Profit" },
+  "insights.outstanding": { el: "Ανοιχτό Υπόλοιπο", en: "Outstanding Balance" },
+  "insights.receivables": { el: "Εισπρακτέα", en: "Receivables" },
+  "insights.payables": { el: "Πληρωτέα", en: "Payables" },
+  "insights.net_exposure": { el: "Καθαρή Έκθεση", en: "Net Exposure" },
+  "insights.top_suppliers": { el: "Top Προμηθευτές", en: "Top Suppliers" },
+  "insights.no_suppliers": { el: "Δεν υπάρχουν δεδομένα προμηθευτών", en: "No supplier data" },
+  "insights.invoices_count": { el: "τιμ.", en: "inv." },
+  "insights.invoice_activity": { el: "Δραστηριότητα Τιμολογίων", en: "Invoice Activity" },
+  "insights.received": { el: "Ληφθέντα", en: "Received" },
+  "insights.paid": { el: "Πληρωμένα", en: "Paid" },
+  "insights.overdue": { el: "Ληξιπρόθεσμα", en: "Overdue" },
+  "insights.avg_days_to_pay": { el: "Μ.Ο. Ημέρες Πληρωμής", en: "Avg. Days to Pay" },
+  "insights.this_month": { el: "αυτόν τον μήνα", en: "this month" },
+
   // Modals common
   "modal.cancel": { el: "Ακύρωση", en: "Cancel" },
   "modal.save": { el: "Αποθήκευση", en: "Save" },
