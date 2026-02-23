@@ -695,6 +695,18 @@ export const translations = {
   "alert_rules.type_daily_expenses": { el: "Ημερήσια Έξοδα", en: "Daily Expenses" },
   "alert_rules.type_weekly_expenses": { el: "Εβδομαδιαία Έξοδα", en: "Weekly Expenses" },
   "alert_rules.type_monthly_expenses": { el: "Μηνιαία Έξοδα", en: "Monthly Expenses" },
+  "alert_rules.type_future_payment": { el: "Μελλοντική Πληρωμή", en: "Future Payment" },
+  "alert_rules.payment_description": { el: "Περιγραφή πληρωμής", en: "Payment description" },
+  "alert_rules.payment_description_placeholder": { el: "π.χ. Ενοίκιο γραφείου", en: "e.g. Office rent" },
+  "alert_rules.payment_amount": { el: "Ποσό (€)", en: "Amount (€)" },
+  "alert_rules.payment_amount_placeholder": { el: "π.χ. 1200", en: "e.g. 1200" },
+  "alert_rules.payment_due_date": { el: "Ημερομηνία πληρωμής", en: "Due date" },
+  "alert_rules.payment_recurring": { el: "Επανάληψη", en: "Recurring" },
+  "alert_rules.payment_recurring_monthly": { el: "Κάθε μήνα", en: "Every month" },
+  "alert_rules.payment_recurring_none": { el: "Μία φορά", en: "One time" },
+  "alert_rules.payment_action_ask": { el: "Θα ερωτηθείτε: Τιμολόγιο ή Έξοδο", en: "You will be asked: Invoice or Expense" },
+  "alert_rules.payment_badge": { el: "ΠΛΗΡΩΜΗ", en: "PAYMENT" },
+  "alert_rules.payment_due": { el: "Λήξη", en: "Due" },
 
   // Responsive nav
   "nav.more": { el: "Περισσότερα", en: "More" },

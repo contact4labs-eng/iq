@@ -22,13 +22,13 @@ import { useToast } from "@/hooks/use-toast";
 import type { AlertRule, AlertRuleInsert } from "@/hooks/useCustomAlertRules";
 
 /* ------------------------------------------------------------------ */
-/*  The 6 alert types                                                  */
+/*  Alert types                                                        */
 /* ------------------------------------------------------------------ */
 
 export interface AlertTypeDef {
   value: string;
   labelKey: TranslationKey;
-  category: "sales" | "expenses";
+  category: "sales" | "expenses" | "payments";
 }
 
 export const ALERT_TYPES: AlertTypeDef[] = [
@@ -38,6 +38,7 @@ export const ALERT_TYPES: AlertTypeDef[] = [
   { value: "daily_expenses", labelKey: "alert_rules.type_daily_expenses", category: "expenses" },
   { value: "weekly_expenses", labelKey: "alert_rules.type_weekly_expenses", category: "expenses" },
   { value: "monthly_expenses", labelKey: "alert_rules.type_monthly_expenses", category: "expenses" },
+  { value: "future_payment", labelKey: "alert_rules.type_future_payment", category: "payments" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -64,24 +65,49 @@ export function AddAlertRuleModal({ open, onOpenChange, onSave, editing }: Props
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Future payment fields
+  const [paymentDesc, setPaymentDesc] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDueDate, setPaymentDueDate] = useState("");
+  const [paymentRecurring, setPaymentRecurring] = useState<"none" | "monthly">("none");
+
+  const isFuturePayment = alertType === "future_payment";
+
   useEffect(() => {
     if (editing) {
       setAlertType(editing.alert_type);
       setEnabled(editing.enabled);
       setNotes(editing.notes ?? "");
 
-      // Detect mode from stored data
       const cfg = editing.config as Record<string, unknown> | null;
-      if (cfg?.mode === "smart") {
+
+      if (editing.alert_type === "future_payment") {
+        setPaymentDesc((cfg?.description as string) ?? "");
+        setPaymentAmount(editing.threshold_value != null ? String(editing.threshold_value) : "");
+        setPaymentDueDate((cfg?.due_date as string) ?? "");
+        setPaymentRecurring((cfg?.recurring as "none" | "monthly") ?? "none");
+        setMode("fixed");
+        setThresholdValue("");
+        setSmartPercent("");
+        setSmartDirection("below");
+      } else if (cfg?.mode === "smart") {
         setMode("smart");
         setSmartPercent(cfg.percent != null ? String(cfg.percent) : "10");
         setSmartDirection((cfg.direction as "below" | "above") ?? "below");
         setThresholdValue("");
+        setPaymentDesc("");
+        setPaymentAmount("");
+        setPaymentDueDate("");
+        setPaymentRecurring("none");
       } else {
         setMode("fixed");
         setThresholdValue(editing.threshold_value != null ? String(editing.threshold_value) : "");
         setSmartPercent("");
         setSmartDirection("below");
+        setPaymentDesc("");
+        setPaymentAmount("");
+        setPaymentDueDate("");
+        setPaymentRecurring("none");
       }
     } else {
       setAlertType("daily_sales");
@@ -91,6 +117,10 @@ export function AddAlertRuleModal({ open, onOpenChange, onSave, editing }: Props
       setSmartDirection("below");
       setEnabled(true);
       setNotes("");
+      setPaymentDesc("");
+      setPaymentAmount("");
+      setPaymentDueDate("");
+      setPaymentRecurring("none");
     }
   }, [editing, open]);
 
@@ -108,7 +138,17 @@ export function AddAlertRuleModal({ open, onOpenChange, onSave, editing }: Props
         notes: notes.trim() || null,
       };
 
-      if (mode === "smart") {
+      if (isFuturePayment) {
+        rule.threshold_value = paymentAmount ? parseFloat(paymentAmount) : null;
+        rule.threshold_unit = "€";
+        rule.config = {
+          mode: "future_payment",
+          description: paymentDesc.trim(),
+          due_date: paymentDueDate,
+          recurring: paymentRecurring,
+          action: "ask", // always ask: invoice or expense
+        };
+      } else if (mode === "smart") {
         rule.threshold_value = smartPercent ? parseFloat(smartPercent) : null;
         rule.threshold_unit = "%";
         rule.config = {
@@ -151,7 +191,7 @@ export function AddAlertRuleModal({ open, onOpenChange, onSave, editing }: Props
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          {/* Single dropdown with all 6 types */}
+          {/* Alert type dropdown */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">{t("alert_rules.alert_type")}</label>
             <Select value={alertType} onValueChange={setAlertType} disabled={!!editing}>
@@ -166,53 +206,113 @@ export function AddAlertRuleModal({ open, onOpenChange, onSave, editing }: Props
             </Select>
           </div>
 
-          {/* Mode toggle: Fixed € or Smart % */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">{t("alert_rules.threshold_mode")}</label>
-            <Select value={mode} onValueChange={(v) => setMode(v as "fixed" | "smart")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fixed">{t("alert_rules.mode_fixed")}</SelectItem>
-                <SelectItem value="smart">{t("alert_rules.mode_smart")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Fixed mode: € threshold */}
-          {mode === "fixed" && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">{t("alert_rules.threshold")}</label>
-              <Input
-                type="number"
-                value={thresholdValue}
-                onChange={(e) => setThresholdValue(e.target.value)}
-                placeholder={t("alert_rules.threshold_placeholder")}
-              />
-            </div>
-          )}
-
-          {/* Smart mode: direction + percentage */}
-          {mode === "smart" && (
+          {/* ---- Future Payment fields ---- */}
+          {isFuturePayment && (
             <>
+              {/* Description */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">{t("alert_rules.smart_direction")}</label>
-                <Select value={smartDirection} onValueChange={(v) => setSmartDirection(v as "below" | "above")}>
+                <label className="text-sm font-medium">{t("alert_rules.payment_description")}</label>
+                <Input
+                  value={paymentDesc}
+                  onChange={(e) => setPaymentDesc(e.target.value)}
+                  placeholder={t("alert_rules.payment_description_placeholder")}
+                />
+              </div>
+
+              {/* Amount */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t("alert_rules.payment_amount")}</label>
+                <Input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder={t("alert_rules.payment_amount_placeholder")}
+                />
+              </div>
+
+              {/* Due date */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t("alert_rules.payment_due_date")}</label>
+                <Input
+                  type="date"
+                  value={paymentDueDate}
+                  onChange={(e) => setPaymentDueDate(e.target.value)}
+                />
+              </div>
+
+              {/* Recurring */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t("alert_rules.payment_recurring")}</label>
+                <Select value={paymentRecurring} onValueChange={(v) => setPaymentRecurring(v as "none" | "monthly")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="below">{t("alert_rules.direction_below")}</SelectItem>
-                    <SelectItem value="above">{t("alert_rules.direction_above")}</SelectItem>
+                    <SelectItem value="none">{t("alert_rules.payment_recurring_none")}</SelectItem>
+                    <SelectItem value="monthly">{t("alert_rules.payment_recurring_monthly")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">{t("alert_rules.smart_percent")}</label>
-                <Input
-                  type="number"
-                  value={smartPercent}
-                  onChange={(e) => setSmartPercent(e.target.value)}
-                  placeholder={t("alert_rules.smart_percent_placeholder")}
-                />
+
+              {/* Info banner */}
+              <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  {t("alert_rules.payment_action_ask")}
+                </p>
               </div>
+            </>
+          )}
+
+          {/* ---- Regular alert fields (not future payment) ---- */}
+          {!isFuturePayment && (
+            <>
+              {/* Mode toggle: Fixed € or Smart % */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t("alert_rules.threshold_mode")}</label>
+                <Select value={mode} onValueChange={(v) => setMode(v as "fixed" | "smart")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">{t("alert_rules.mode_fixed")}</SelectItem>
+                    <SelectItem value="smart">{t("alert_rules.mode_smart")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Fixed mode: € threshold */}
+              {mode === "fixed" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">{t("alert_rules.threshold")}</label>
+                  <Input
+                    type="number"
+                    value={thresholdValue}
+                    onChange={(e) => setThresholdValue(e.target.value)}
+                    placeholder={t("alert_rules.threshold_placeholder")}
+                  />
+                </div>
+              )}
+
+              {/* Smart mode: direction + percentage */}
+              {mode === "smart" && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">{t("alert_rules.smart_direction")}</label>
+                    <Select value={smartDirection} onValueChange={(v) => setSmartDirection(v as "below" | "above")}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="below">{t("alert_rules.direction_below")}</SelectItem>
+                        <SelectItem value="above">{t("alert_rules.direction_above")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">{t("alert_rules.smart_percent")}</label>
+                    <Input
+                      type="number"
+                      value={smartPercent}
+                      onChange={(e) => setSmartPercent(e.target.value)}
+                      placeholder={t("alert_rules.smart_percent_placeholder")}
+                    />
+                  </div>
+                </>
+              )}
             </>
           )}
 

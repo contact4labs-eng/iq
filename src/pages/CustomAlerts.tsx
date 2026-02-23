@@ -88,6 +88,11 @@ function CustomAlerts() {
     return cfg?.mode === "smart";
   };
 
+  const isFuturePayment = (rule: AlertRule) => {
+    const cfg = rule.config as Record<string, unknown> | null;
+    return cfg?.mode === "future_payment";
+  };
+
   const smartDesc = (rule: AlertRule): string => {
     const cfg = rule.config as Record<string, unknown> | null;
     if (!cfg) return "";
@@ -96,6 +101,17 @@ function CustomAlerts() {
       ? t("alert_rules.smart_label_above")
       : t("alert_rules.smart_label_below");
     return `${pct}% ${dir}`;
+  };
+
+  const paymentDesc = (rule: AlertRule): string => {
+    const cfg = rule.config as Record<string, unknown> | null;
+    if (!cfg) return "";
+    const parts: string[] = [];
+    if (cfg.description) parts.push(String(cfg.description));
+    if (rule.threshold_value != null) parts.push(`${fmt(rule.threshold_value)} €`);
+    if (cfg.due_date) parts.push(`${t("alert_rules.payment_due")}: ${String(cfg.due_date)}`);
+    if (cfg.recurring === "monthly") parts.push(`(${t("alert_rules.payment_recurring_monthly")})`);
+    return parts.join(" · ");
   };
 
   const totalRules = rules.length;
@@ -174,9 +190,16 @@ function CustomAlerts() {
                             SMART
                           </span>
                         )}
+                        {isFuturePayment(rule) && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                            {t("alert_rules.payment_badge")}
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
-                        {isSmartRule(rule) ? (
+                        {isFuturePayment(rule) ? (
+                          <span>{paymentDesc(rule)}</span>
+                        ) : isSmartRule(rule) ? (
                           <span>{smartDesc(rule)}</span>
                         ) : (
                           rule.threshold_value != null && (
