@@ -1,152 +1,200 @@
 import { useState, useCallback, useRef } from "react";
 import { SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-
-export interface DataPoint {
-  label: string;
-  value: string | number;
-}
-
-export interface ParsedResponse {
-  answer: string;
-  data_points?: DataPoint[];
-  follow_up?: string;
-}
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface QaMessage {
   role: "user" | "assistant";
   content: string;
-  data_points?: DataPoint[];
-  follow_up?: string;
+  timestamp: number;
 }
 
-const EDGE_URL = `${SUPABASE_URL}/functions/v1/dynamic-task`;
+const AI_CHAT_URL = `${SUPABASE_URL}/functions/v1/ai-chat`;
+const LEGACY_URL = `${SUPABASE_URL}/functions/v1/dynamic-task`;
+const MIN_INTERVAL_MS = 800;
 
-const FALLBACK_ANSWER = "ÎÎµÎ½ Î¼ÏÏÏÎµÏÎ± Î½Î± ÎºÎ±ÏÎ±Î½Î¿Î®ÏÏ ÏÎ·Î½ ÎµÏÏÏÎ·ÏÎ® ÏÎ±Ï. Î Î±ÏÎ±ÎºÎ±Î»Ï Î´Î¿ÎºÎ¹Î¼Î¬ÏÏÎµ Î¼Î¹Î± ÎµÏÏÏÎ·ÏÎ· ÏÏÎµÏÎ¹ÎºÎ¬ Î¼Îµ ÏÎ± Î¿Î¹ÎºÎ¿Î½Î¿Î¼Î¹ÎºÎ¬ ÏÎ±Ï Î´ÎµÎ´Î¿Î¼Î­Î½Î±, ÏÏÏÏ Î­Î¾Î¿Î´Î±, Î­ÏÎ¿Î´Î±, ÏÎ¹Î¼Î¿Î»ÏÎ³Î¹Î± Î® ÏÏÎ¿Î¼Î·Î¸ÎµÏÏÎ­Ï.";
+/* ------------------------------------------------------------------ */
+/*  SSE stream parser                                                   */
+/* ------------------------------------------------------------------ */
+
+async function* parseSSEStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>
+): AsyncGenerator<string> {
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6).trim();
+        if (data === "[DONE]") return;
+        try {
+          const parsed = JSON.parse(data);
+          // Anthropic streaming format
+          if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+            yield parsed.delta.text;
+          }
+        } catch {
+          // Skip malformed JSON
+        }
+      }
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Legacy (non-streaming) fallback                                     */
+/* ------------------------------------------------------------------ */
 
 function extractAnswer(obj: Record<string, unknown>): string | null {
-  // Try nested insights.answer
   if (obj.insights && typeof obj.insights === "object") {
     const ins = obj.insights as Record<string, unknown>;
     if (typeof ins.answer === "string" && ins.answer.trim()) return ins.answer;
   }
-  // Try top-level answer
   if (typeof obj.answer === "string" && obj.answer.trim()) return obj.answer;
-  // Try response
   if (typeof obj.response === "string" && obj.response.trim()) return obj.response;
-  // Try message
   if (typeof obj.message === "string" && obj.message.trim()) return obj.message;
   return null;
 }
 
-function extractDataPoints(obj: Record<string, unknown>): DataPoint[] | undefined {
-  const src = (obj.insights && typeof obj.insights === "object")
-    ? (obj.insights as Record<string, unknown>)
-    : obj;
-  return Array.isArray(src.data_points) && src.data_points.length > 0
-    ? src.data_points
-    : undefined;
-}
-
-function extractFollowUp(obj: Record<string, unknown>): string | undefined {
-  const src = (obj.insights && typeof obj.insights === "object")
-    ? (obj.insights as Record<string, unknown>)
-    : obj;
-  const fu = src.follow_up;
-  return (typeof fu === "string" && fu.trim()) ? fu : undefined;
-}
-
-function parseEdgeResponse(data: unknown): ParsedResponse {
-  if (!data || typeof data !== "object") {
-    return { answer: FALLBACK_ANSWER };
-  }
-
-  const obj = data as Record<string, unknown>;
-  const answer = extractAnswer(obj);
-
-  if (!answer) {
-    return { answer: FALLBACK_ANSWER };
-  }
-
-  return {
-    answer,
-    data_points: extractDataPoints(obj),
-    follow_up: extractFollowUp(obj),
-  };
-}
+/* ------------------------------------------------------------------ */
+/*  Hook                                                                */
+/* ------------------------------------------------------------------ */
 
 export function useAiInsights() {
   const { company, session } = useAuth();
+  const { language } = useLanguage();
   const companyId = company?.id;
   const token = session?.access_token;
 
   const [qaMessages, setQaMessages] = useState<QaMessage[]>([]);
   const [qaLoading, setQaLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const lastSentRef = useRef<number>(0);
-  const MIN_INTERVAL_MS = 1000; // Minimum 1s between requests
+
+  const clearChat = useCallback(() => {
+    abortRef.current?.abort();
+    setQaMessages([]);
+    setStreamingText("");
+    setQaLoading(false);
+  }, []);
+
+  const stopGeneration = useCallback(() => {
+    abortRef.current?.abort();
+    setQaLoading(false);
+  }, []);
 
   const askQuestion = useCallback(async (question: string) => {
     if (!companyId || !token) return;
-    // Throttle: reject if last request was less than MIN_INTERVAL_MS ago
+
     const now = Date.now();
     if (now - lastSentRef.current < MIN_INTERVAL_MS) return;
     lastSentRef.current = now;
+
     // Cancel any in-flight request
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setQaMessages((prev) => [...prev, { role: "user", content: question }]);
+    const userMsg: QaMessage = { role: "user", content: question, timestamp: Date.now() };
+    setQaMessages((prev) => [...prev, userMsg]);
     setQaLoading(true);
+    setStreamingText("");
+
+    // Build conversation history for the API (last 20 messages)
+    const prevMessages = [...qaMessages, userMsg].slice(-20);
+    const apiMessages = prevMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
     try {
-      const res = await fetch(EDGE_URL, {
+      // Try new streaming endpoint first
+      const res = await fetch(AI_CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ company_id: companyId, mode: "qa", question }),
+        body: JSON.stringify({
+          company_id: companyId,
+          messages: apiMessages,
+          language: language,
+        }),
         signal: controller.signal,
       });
 
-      if (!res.ok) {
-        throw new Error(
-          res.status >= 500
-            ? "Î ÏÏÎ²Î»Î·Î¼Î± ÏÏÎ½Î´ÎµÏÎ·Ï. ÎÎ»Î­Î³Î¾ÏÎµ ÏÎ· ÏÏÎ½Î´ÎµÏÎ® ÏÎ±Ï."
-            : "Î ÏÎ¿Î­ÎºÏÏÎµ ÏÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ ÎµÏÎµÎ¾ÎµÏÎ³Î±ÏÎ¯Î±. Î Î±ÏÎ±ÎºÎ±Î»Ï Î´Î¿ÎºÎ¹Î¼Î¬ÏÏÎµ Î¾Î±Î½Î¬."
-        );
+      if (res.ok && res.headers.get("content-type")?.includes("text/event-stream")) {
+        // Streaming response
+        const reader = res.body!.getReader();
+        let fullText = "";
+
+        for await (const chunk of parseSSEStream(reader)) {
+          if (controller.signal.aborted) break;
+          fullText += chunk;
+          setStreamingText(fullText);
+        }
+
+        if (!controller.signal.aborted && fullText.trim()) {
+          setQaMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: fullText, timestamp: Date.now() },
+          ]);
+        }
+        setStreamingText("");
+      } else if (res.ok) {
+        // Non-streaming JSON response (new endpoint returned JSON)
+        const data = await res.json();
+        const answer = extractAnswer(data as Record<string, unknown>) ||
+          (data as any)?.content?.[0]?.text ||
+          "I couldn't process that request. Please try again.";
+        setQaMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: answer, timestamp: Date.now() },
+        ]);
+      } else {
+        // New endpoint failed, try legacy fallback
+        console.warn("ai-chat returned", res.status, "— falling back to legacy");
+        const legacyRes = await fetch(LEGACY_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ company_id: companyId, mode: "qa", question }),
+          signal: controller.signal,
+        });
+
+        if (!legacyRes.ok) throw new Error("Service unavailable");
+
+        const data = await legacyRes.json();
+        const answer = extractAnswer(data as Record<string, unknown>) ||
+          "I couldn't process that request. Please try again.";
+        setQaMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: answer, timestamp: Date.now() },
+        ]);
       }
-
-      let data: unknown;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("Î ÏÎ¿Î­ÎºÏÏÎµ ÏÏÎ¬Î»Î¼Î± ÎºÎ±ÏÎ¬ ÏÎ·Î½ ÎµÏÎµÎ¾ÎµÏÎ³Î±ÏÎ¯Î±. Î Î±ÏÎ±ÎºÎ±Î»Ï Î´Î¿ÎºÎ¹Î¼Î¬ÏÏÎµ Î¾Î±Î½Î¬.");
-      }
-
-      const parsed = parseEdgeResponse(data);
-
-      setQaMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: parsed.answer,
-          data_points: parsed.data_points,
-          follow_up: parsed.follow_up,
-        },
-      ]);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      const msg =
-        err instanceof Error && (err.message.startsWith("\u03A0\u03C1\u03CC\u03B2\u03BB\u03B7\u03BC\u03B1") || err.message.startsWith("\u03A0\u03C1\u03BF\u03AD\u03BA\u03C5\u03C8\u03B5"))
-          ? err.message
-          : "\u03A0\u03C1\u03BF\u03AD\u03BA\u03C5\u03C8\u03B5 \u03C3\u03C6\u03AC\u03BB\u03BC\u03B1 \u03BA\u03B1\u03C4\u03AC \u03C4\u03B7\u03BD \u03B5\u03C0\u03B5\u03BE\u03B5\u03C1\u03B3\u03B1\u03C3\u03AF\u03B1. \u03A0\u03B1\u03C1\u03B1\u03BA\u03B1\u03BB\u03CE \u03B4\u03BF\u03BA\u03B9\u03BC\u03AC\u03C3\u03C4\u03B5 \u03BE\u03B1\u03BD\u03AC.";
-      setQaMessages((prev) => [...prev, { role: "assistant", content: msg }]);
+      const msg = err instanceof Error ? err.message : "An error occurred";
+      setQaMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `⚠️ ${msg}`, timestamp: Date.now() },
+      ]);
     } finally {
       setQaLoading(false);
+      setStreamingText("");
     }
-  }, [companyId, token]);
+  }, [companyId, token, qaMessages, language]);
 
-  return { qaMessages, qaLoading, askQuestion };
+  return { qaMessages, qaLoading, streamingText, askQuestion, clearChat, stopGeneration };
 }

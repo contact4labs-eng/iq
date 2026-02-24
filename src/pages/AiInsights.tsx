@@ -5,7 +5,7 @@ import { BusinessQA } from "@/components/ai/BusinessQA";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const AiInsights = () => {
-  const { qaMessages, qaLoading, askQuestion } = useAiInsights();
+  const { qaMessages, qaLoading, streamingText, askQuestion, clearChat, stopGeneration } = useAiInsights();
   const { t } = useLanguage();
 
   return (
@@ -18,7 +18,14 @@ const AiInsights = () => {
         </div>
 
         {/* Chat */}
-        <BusinessQA messages={qaMessages} loading={qaLoading} onAsk={askQuestion} />
+        <BusinessQA
+          messages={qaMessages}
+          loading={qaLoading}
+          streamingText={streamingText}
+          onAsk={askQuestion}
+          onClearChat={clearChat}
+          onStopGeneration={stopGeneration}
+        />
       </div>
     </DashboardLayout>
   );

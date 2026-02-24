@@ -352,8 +352,15 @@ export const translations = {
 
   // AI Insights
   "ai.title": { el: "AI Ανάλυση", en: "AI Analysis" },
-  "ai.welcome": { el: "Γεια σας! Είμαι ο AI βοηθός σας. Μπορώ να αναλύσω τα οικονομικά σας δεδομένα, να απαντήσω ερωτήσεις για τιμολόγια, προμηθευτές, έξοδα και έσοδα. Ρωτήστε με ό,τι θέλετε!", en: "Hello! I'm your AI assistant. I can analyze your financial data, answer questions about invoices, suppliers, expenses and revenue. Ask me anything!" },
+  "ai.welcome_title": { el: "Ο AI Βοηθός σας", en: "Your AI Assistant" },
+  "ai.welcome": { el: "Μπορώ να αναλύσω τα οικονομικά σας δεδομένα, να απαντήσω ερωτήσεις για τιμολόγια, προμηθευτές, έξοδα και έσοδα. Ρωτήστε με ό,τι θέλετε!", en: "I can analyze your financial data, answer questions about invoices, suppliers, expenses and revenue. Ask me anything!" },
   "ai.placeholder": { el: "Ρωτήστε κάτι...", en: "Ask something..." },
+  "ai.stop": { el: "Σταμάτα", en: "Stop" },
+  "ai.new_chat": { el: "Νέα συνομιλία", en: "New chat" },
+  "ai.disclaimer": { el: "Το AI μπορεί να κάνει λάθη. Επαληθεύστε σημαντικές πληροφορίες.", en: "AI can make mistakes. Verify important information." },
+  "ai.cat_financial": { el: "Οικονομικά", en: "Financial" },
+  "ai.cat_suppliers": { el: "Προμηθευτές", en: "Suppliers" },
+  "ai.cat_invoices": { el: "Τιμολόγια", en: "Invoices" },
   "ai.suggestion_1": { el: "Ποια είναι τα top 5 έξοδά μου;", en: "What are my top 5 expenses?" },
   "ai.suggestion_2": { el: "Πώς πάει η επιχείρηση αυτόν τον μήνα;", en: "How is the business doing this month?" },
   "ai.suggestion_3": { el: "Ποιος προμηθευτής μου κοστίζει περισσότερο;", en: "Which supplier costs me the most?" },
