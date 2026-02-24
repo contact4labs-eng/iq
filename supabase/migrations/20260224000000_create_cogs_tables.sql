@@ -29,10 +29,13 @@ CREATE POLICY ingredients_update ON public.ingredients FOR UPDATE
 CREATE POLICY ingredients_delete ON public.ingredients FOR DELETE
   USING (public.user_owns_company(company_id));
 
+CREATE OR REPLACE FUNCTION public.update_ingredients_updated_at()
+RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS ingredients_updated_at ON public.ingredients;
 CREATE TRIGGER ingredients_updated_at
   BEFORE UPDATE ON public.ingredients
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_ingredients_updated_at();
 
 -- 2. PRODUCTS
 CREATE TABLE IF NOT EXISTS public.products (
@@ -62,10 +65,13 @@ CREATE POLICY products_update ON public.products FOR UPDATE
 CREATE POLICY products_delete ON public.products FOR DELETE
   USING (public.user_owns_company(company_id));
 
+CREATE OR REPLACE FUNCTION public.update_products_updated_at()
+RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS products_updated_at ON public.products;
 CREATE TRIGGER products_updated_at
   BEFORE UPDATE ON public.products
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_products_updated_at();
 
 -- 3. PRODUCT_INGREDIENTS (recipe join table)
 CREATE TABLE IF NOT EXISTS public.product_ingredients (
@@ -114,10 +120,13 @@ CREATE POLICY product_ingredients_delete ON public.product_ingredients FOR DELET
     AND public.user_owns_company(p.company_id)
   ));
 
+CREATE OR REPLACE FUNCTION public.update_product_ingredients_updated_at()
+RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS product_ingredients_updated_at ON public.product_ingredients;
 CREATE TRIGGER product_ingredients_updated_at
   BEFORE UPDATE ON public.product_ingredients
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_product_ingredients_updated_at();
 
 -- 4. MARGIN_THRESHOLDS
 CREATE TABLE IF NOT EXISTS public.margin_thresholds (
@@ -142,10 +151,13 @@ CREATE POLICY margin_thresholds_update ON public.margin_thresholds FOR UPDATE
 CREATE POLICY margin_thresholds_delete ON public.margin_thresholds FOR DELETE
   USING (public.user_owns_company(company_id));
 
+CREATE OR REPLACE FUNCTION public.update_margin_thresholds_updated_at()
+RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS margin_thresholds_updated_at ON public.margin_thresholds;
 CREATE TRIGGER margin_thresholds_updated_at
   BEFORE UPDATE ON public.margin_thresholds
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_margin_thresholds_updated_at();
 
 -- 5. PRICE_LISTS (future expansion)
 CREATE TABLE IF NOT EXISTS public.price_lists (
@@ -167,7 +179,10 @@ CREATE POLICY price_lists_update ON public.price_lists FOR UPDATE
 CREATE POLICY price_lists_delete ON public.price_lists FOR DELETE
   USING (public.user_owns_company(company_id));
 
+CREATE OR REPLACE FUNCTION public.update_price_lists_updated_at()
+RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS price_lists_updated_at ON public.price_lists;
 CREATE TRIGGER price_lists_updated_at
   BEFORE UPDATE ON public.price_lists
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_price_lists_updated_at();
