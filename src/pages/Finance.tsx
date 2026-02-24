@@ -568,14 +568,14 @@ const Finance = () => {
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-5">
                     <PieChartIcon className="w-4 h-4 text-accent" />
-                    <h2 className="text-sm font-semibold text-foreground">{t("cogs.profit_margin_overview") || "Profit Margin Overview"}</h2>
+                    <h2 className="text-sm font-semibold text-foreground">{t("bi.profit_margin_overview")}</h2>
                   </div>
 
                   {/* Average margins */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     {marginData.avgDinein > 0 && (
                       <div className="rounded-lg border p-4 text-center space-y-2">
-                        <p className="text-xs text-muted-foreground">{t("cogs.avg_margin_dinein") || "Avg. Margin (Dine-in)"}</p>
+                        <p className="text-xs text-muted-foreground">{t("bi.avg_margin_dinein")}</p>
                         <p className={`text-3xl font-bold ${
                           marginData.avgDinein >= 65 ? "text-success" : marginData.avgDinein >= 45 ? "text-warning" : "text-destructive"
                         }`}>
@@ -591,7 +591,7 @@ const Finance = () => {
                     )}
                     {marginData.avgDelivery > 0 && (
                       <div className="rounded-lg border p-4 text-center space-y-2">
-                        <p className="text-xs text-muted-foreground">{t("cogs.avg_margin_delivery") || "Avg. Margin (Delivery)"}</p>
+                        <p className="text-xs text-muted-foreground">{t("bi.avg_margin_delivery")}</p>
                         <p className={`text-3xl font-bold ${
                           marginData.avgDelivery >= 65 ? "text-success" : marginData.avgDelivery >= 45 ? "text-warning" : "text-destructive"
                         }`}>
@@ -611,17 +611,17 @@ const Finance = () => {
                   <div className="flex items-center gap-3 mb-5">
                     <div className="flex items-center gap-1.5 text-xs">
                       <span className="w-2.5 h-2.5 rounded-full bg-success inline-block" />
-                      <span className="text-muted-foreground">{t("cogs.healthy") || "Healthy"}: <span className="font-semibold text-foreground">{marginData.greenCount}</span></span>
+                      <span className="text-muted-foreground">{t("cogs.dash_healthy")}: <span className="font-semibold text-foreground">{marginData.greenCount}</span></span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
                       <span className="w-2.5 h-2.5 rounded-full bg-warning inline-block" />
-                      <span className="text-muted-foreground">{t("cogs.at_risk") || "At Risk"}: <span className="font-semibold text-foreground">{marginData.yellowCount}</span></span>
+                      <span className="text-muted-foreground">{t("cogs.dash_at_risk")}: <span className="font-semibold text-foreground">{marginData.yellowCount}</span></span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
                       <span className="w-2.5 h-2.5 rounded-full bg-destructive inline-block" />
-                      <span className="text-muted-foreground">{t("cogs.critical") || "Critical"}: <span className="font-semibold text-foreground">{marginData.redCount}</span></span>
+                      <span className="text-muted-foreground">{t("cogs.dash_critical")}: <span className="font-semibold text-foreground">{marginData.redCount}</span></span>
                     </div>
-                    <span className="text-xs text-muted-foreground ml-auto">{marginData.total} {t("cogs.products_label") || "products"}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{marginData.total} {t("cogs.dash_products_label")}</span>
                   </div>
 
                   {/* Distribution bar */}
@@ -640,13 +640,13 @@ const Finance = () => {
                   {/* Category breakdown */}
                   {marginData.categories.length > 0 && (
                     <div className="space-y-2.5">
-                      <p className="text-xs font-medium text-muted-foreground mb-2">{t("cogs.by_category") || "By Category"}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">{t("cogs.dash_margin_by_category")}</p>
                       {marginData.categories.map((cat) => (
                         <div key={cat.category}>
                           <div className="flex items-center justify-between text-xs mb-1">
                             <span className="font-medium text-foreground truncate max-w-[60%]">{cat.category}</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">{cat.count} {t("cogs.products_label") || "products"}</span>
+                              <span className="text-muted-foreground">{cat.count} {t("cogs.dash_products_label")}</span>
                               <span className={`font-bold ${
                                 cat.avg >= 65 ? "text-success" : cat.avg >= 45 ? "text-warning" : "text-destructive"
                               }`}>
@@ -671,11 +671,11 @@ const Finance = () => {
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <PieChartIcon className="w-4 h-4 text-accent" />
-                    <h2 className="text-sm font-semibold text-foreground">{t("cogs.profit_margin_overview") || "Profit Margin Overview"}</h2>
+                    <h2 className="text-sm font-semibold text-foreground">{t("bi.profit_margin_overview")}</h2>
                   </div>
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <PieChartIcon className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">{t("cogs.no_products") || "No products configured yet"}</p>
+                    <p className="text-sm text-muted-foreground">{t("cogs.no_products")}</p>
                   </div>
                 </CardContent>
               </Card>
