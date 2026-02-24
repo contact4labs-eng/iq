@@ -1,16 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#e53935;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#c62828;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <!-- Rounded square background -->
-  <rect x="4" y="4" width="192" height="192" rx="32" ry="32" fill="url(#bgGrad)" />
-  <!-- The big 4 -->
-  <text x="100" y="115" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="120" font-weight="800" fill="white" letter-spacing="-4">4</text>
-  <!-- LABS text -->
-  <text x="100" y="155" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="36" font-weight="700" fill="white" letter-spacing="8">LABS</text>
-  <!-- solutions text -->
-  <text x="100" y="178" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="400" fill="rgba(255,255,255,0.85)" letter-spacing="4">solutions</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Red background -->
+  <rect width="400" height="400" rx="40" ry="40" fill="#f03e2f"/>
+
+  <!-- The "4" - geometric blocky style -->
+  <g fill="#fff8f0">
+    <!-- Vertical stroke of 4 -->
+    <rect x="120" y="62" width="42" height="160" rx="2"/>
+    <!-- Horizontal stroke of 4 -->
+    <rect x="68" y="150" width="120" height="42" rx="2"/>
+    <!-- Top-left diagonal part (angled piece) -->
+    <polygon points="68,150 68,192 120,192 120,62 78,62"/>
+  </g>
+
+  <!-- Asterisk / star symbol -->
+  <g transform="translate(270, 120)" fill="#fff8f0">
+    <!-- Vertical bar -->
+    <rect x="-12" y="-45" width="24" height="90" rx="4"/>
+    <!-- Horizontal bar -->
+    <rect x="-45" y="-12" width="90" height="24" rx="4"/>
+    <!-- Diagonal bar 1 (45 degrees) -->
+    <rect x="-12" y="-45" width="24" height="90" rx="4" transform="rotate(45)"/>
+    <!-- Diagonal bar 2 (-45 degrees) -->
+    <rect x="-12" y="-45" width="24" height="90" rx="4" transform="rotate(-45)"/>
+  </g>
+
+  <!-- "LABS" text - bold rounded -->
+  <text x="200" y="295" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="115" font-weight="900" fill="#fff8f0" letter-spacing="2">LABS</text>
+
+  <!-- "solutions" text - italic, lighter -->
+  <text x="200" y="348" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="42" font-weight="400" font-style="italic" fill="white" letter-spacing="1">solutions</text>
 </svg>
