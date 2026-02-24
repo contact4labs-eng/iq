@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,7 +73,7 @@ const Register = () => {
         });
 
       if (companyError) {
-        console.error("Company creation error:", companyError);
+        logger.error("Company creation error:", companyError);
         // Check if company already exists (idempotency guard against duplicates)
         const { data: existingCompany } = await supabase
           .from("companies")
@@ -91,7 +92,7 @@ const Register = () => {
             });
 
           if (retryError) {
-            console.error("Company creation retry also failed:", retryError);
+            logger.error("Company creation retry also failed:", retryError);
             await supabase.auth.signOut();
             setLoading(false);
             toast({
@@ -110,7 +111,7 @@ const Register = () => {
     toast({ title: t("toast.register_success"), description: t("toast.check_email") });
     navigate("/login");
     } catch (err) {
-      console.error("Registration error:", err);
+      logger.error("Registration error:", err);
       setLoading(false);
       toast({
         title: t("toast.register_error"),

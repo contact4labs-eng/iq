@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Settings, Save, LogOut, Download, KeyRound, Loader2, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -21,10 +22,19 @@ interface CompanyInfo {
   address: string;
 }
 
+function sanitizeCsvCell(val: string): string {
+  const escaped = val.replace(/"/g, '""');
+  // Prevent CSV injection: prefix formula-triggering characters with a single quote
+  if (/^[=+\-@\t\r]/.test(escaped)) {
+    return `"'${escaped}"`;
+  }
+  return `"${escaped}"`;
+}
+
 function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
   if (!rows.length) return;
   const keys = Object.keys(rows[0]);
-  const csv = [keys.join(","), ...rows.map((r) => keys.map((k) => `"${String(r[k] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+  const csv = [keys.join(","), ...rows.map((r) => keys.map((k) => sanitizeCsvCell(String(r[k] ?? ""))).join(","))].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -59,7 +69,7 @@ const SettingsPage = () => {
       .maybeSingle()
       .then(({ data, error: fetchErr }) => {
         if (fetchErr) {
-          console.error("Settings fetch error:", fetchErr.message);
+          logger.error("Settings fetch error:", fetchErr.message);
           toast({ title: t("toast.error"), description: fetchErr.message, variant: "destructive" });
         } else if (data) {
           setInfo(data as CompanyInfo);
@@ -67,7 +77,7 @@ const SettingsPage = () => {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Settings fetch exception:", err);
+        logger.error("Settings fetch exception:", err);
         setLoading(false);
       });
   }, [companyId]);
@@ -94,9 +104,17 @@ const SettingsPage = () => {
   };
 
   const EXPORT_LIMIT = 10_000;
+  const EXPORT_COOLDOWN_MS = 5_000;
+  const lastExportRef = useRef<number>(0);
 
   const handleExport = async (table: string, filename: string) => {
     if (!companyId) return;
+    const now = Date.now();
+    if (now - lastExportRef.current < EXPORT_COOLDOWN_MS) {
+      toast({ title: t("toast.error"), description: "Please wait before exporting again.", variant: "destructive" });
+      return;
+    }
+    lastExportRef.current = now;
     setExporting(table);
     const { data, error } = await supabase
       .from(table)

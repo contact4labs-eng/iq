@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Company {
@@ -58,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!isMountedRef.current) return;
 
       if (error) {
-        console.error("Failed to fetch company:", error.message);
+        logger.error("Failed to fetch company:", error.message);
         return;
       }
 
@@ -73,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const companyName = userMeta?.company_name as string | undefined;
       const afm = userMeta?.afm as string | undefined;
       if (companyName && afm) {
-        console.info("No company found — auto-creating from user metadata");
+        logger.info("No company found — auto-creating from user metadata");
         const { data: created, error: createErr } = await supabase
           .from("companies")
           .insert({ owner_user_id: userId, name: companyName, afm })
@@ -83,15 +84,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!isMountedRef.current) return;
 
         if (createErr) {
-          console.error("Auto-create company failed:", createErr.message);
+          logger.error("Auto-create company failed:", createErr.message);
         } else if (created) {
           setCompany(created as Company);
         }
       } else {
-        console.warn("No company found for user and no metadata to auto-create.");
+        logger.warn("No company found for user and no metadata to auto-create.");
       }
     } catch (err) {
-      console.error("Company fetch error:", err);
+      logger.error("Company fetch error:", err);
     }
   }, []);
 
@@ -131,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Safety timeout â if onAuthStateChange never fires (e.g. offline)
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current && loading) {
-        console.warn("Auth initialization timed out after 5s");
+        logger.warn("Auth initialization timed out after 5s");
         setLoading(false);
       }
     }, 5000);
@@ -146,9 +147,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) console.error("Supabase signOut error:", error.message);
+      if (error) logger.error("Supabase signOut error:", error.message);
     } catch (err) {
-      console.error("Sign out failed:", err);
+      logger.error("Sign out failed:", err);
     }
     // Always clear local state regardless of API result
     setUser(null);
@@ -158,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       queryClient.clear();
     } catch (err) {
-      console.error("QueryClient clear error:", err);
+      logger.error("QueryClient clear error:", err);
     }
   }, [queryClient]);
 
