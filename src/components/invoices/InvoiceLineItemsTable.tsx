@@ -105,7 +105,7 @@ export function InvoiceLineItemsTable({ items, onChange }: Props) {
                     <Input type="number" value={formatNum(item.tax_rate)} onChange={(e) => updateItem(i, "tax_rate", e.target.value)} className="h-8 text-sm text-right border-0 bg-transparent px-1 focus-visible:ring-1" />
                   </td>
                   <td className="px-2 py-1.5">
-                    <Input type="number" step="0.01" value={formatNum(item.line_total)} onChange={(e) => updateItem(i, "line_total", e.target.value)} className="h-8 text-sm text-right border-0 bg-transparent px-1 focus-visible:ring-1" readOnly />
+                    <Input type="number" step="0.01" value={formatNum(item.line_total)} onChange={(e) => updateItem(i, "line_total", e.target.value)} className="h-8 text-sm text-right border-0 bg-transparent px-1 focus-visible:ring-1" />
                   </td>
                   <td className="px-1 py-1.5">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeRow(i)}>

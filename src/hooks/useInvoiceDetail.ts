@@ -209,7 +209,11 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
       const deletedIds = originalIds.filter((id) => !existingIds.includes(id));
 
       if (deletedIds.length > 0) {
-        const { error: delErr } = await supabase.from("invoice_line_items").delete().in("id", deletedIds).eq("company_id", company.id);
+        const { error: delErr } = await supabase
+          .from("invoice_line_items")
+          .delete()
+          .in("id", deletedIds)
+          .eq("invoice_id", invoice.id);
         if (delErr) throw new Error(`Line item delete failed: ${delErr.message}`);
       }
 
@@ -217,7 +221,6 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
         if (item.isNew) {
           const { error: insertErr } = await supabase.from("invoice_line_items").insert({
             invoice_id: invoice.id,
-            company_id: company?.id,
             description: item.description,
             quantity: item.quantity,
             unit_price: item.unit_price,
@@ -236,7 +239,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
               line_total: item.line_total,
             })
             .eq("id", item.id)
-            .eq("company_id", company.id);
+            .eq("invoice_id", invoice.id);
           if (updateErr) throw new Error(`Line item update failed: ${updateErr.message}`);
         }
       }

@@ -117,13 +117,21 @@ const InvoiceDetail = () => {
 
   useEffect(() => {
     if (editedItems.length > 0) {
-      const subtotal = editedItems.reduce((sum, i) => sum + (i.quantity ?? 0) * (i.unit_price ?? 0), 0);
-      const vatAmount = editedItems.reduce((sum, i) => sum + (i.quantity ?? 0) * (i.unit_price ?? 0) * ((i.tax_rate ?? 24) / 100), 0);
+      // Use line_total (which includes VAT) to compute totals
+      // line_total = qty * unit_price * (1 + vat/100) from the line items table
+      const totalWithVat = editedItems.reduce((sum, i) => sum + (i.line_total ?? 0), 0);
+      // Back-calculate subtotal and VAT from the line totals
+      const subtotal = editedItems.reduce((sum, i) => {
+        const lt = i.line_total ?? 0;
+        const vatRate = i.tax_rate ?? 0;
+        return sum + (vatRate > 0 ? lt / (1 + vatRate / 100) : lt);
+      }, 0);
+      const vatAmount = totalWithVat - subtotal;
       setForm((f) => ({
         ...f,
         subtotal: Math.round(subtotal * 100) / 100,
         vat_amount: Math.round(vatAmount * 100) / 100,
-        total_amount: Math.round((subtotal + vatAmount) * 100) / 100,
+        total_amount: Math.round(totalWithVat * 100) / 100,
       }));
     }
   }, [editedItems]);
