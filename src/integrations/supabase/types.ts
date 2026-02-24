@@ -373,6 +373,171 @@ export interface Database {
         }
         Relationships: []
       }
+      ingredients: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          category: string
+          unit: string
+          price_per_unit: number
+          supplier_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          category?: string
+          unit?: string
+          price_per_unit?: number
+          supplier_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          name?: string
+          category?: string
+          unit?: string
+          price_per_unit?: number
+          supplier_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          category: string
+          type: string
+          selling_price_dinein: number | null
+          selling_price_delivery: number | null
+          linked_ingredient_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          category?: string
+          type?: string
+          selling_price_dinein?: number | null
+          selling_price_delivery?: number | null
+          linked_ingredient_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          name?: string
+          category?: string
+          type?: string
+          selling_price_dinein?: number | null
+          selling_price_delivery?: number | null
+          linked_ingredient_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_ingredients: {
+        Row: {
+          id: string
+          product_id: string
+          ingredient_id: string | null
+          linked_product_id: string | null
+          quantity: number
+          unit: string
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          ingredient_id?: string | null
+          linked_product_id?: string | null
+          quantity?: number
+          unit?: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          ingredient_id?: string | null
+          linked_product_id?: string | null
+          quantity?: number
+          unit?: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      margin_thresholds: {
+        Row: {
+          id: string
+          company_id: string
+          category: string
+          green_min: number
+          yellow_min: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          category: string
+          green_min?: number
+          yellow_min?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          category?: string
+          green_min?: number
+          yellow_min?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      price_lists: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          name?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expense_entries: {
         Row: {
           id: string

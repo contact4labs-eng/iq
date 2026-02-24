@@ -24,6 +24,7 @@ const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const AutomationPage = lazy(() => import("./pages/AutomationPage"));
 const FixedCosts = lazy(() => import("./pages/FixedCosts"));
 const CustomAlerts = lazy(() => import("./pages/CustomAlerts"));
+const COGS = lazy(() => import("./pages/COGS"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -88,6 +89,7 @@ const App = () => (
                 <Route path="/automation" element={<ProtectedRoute><ErrorBoundary><AutomationPage /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/fixed-costs" element={<ProtectedRoute><ErrorBoundary><FixedCosts /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/alert-rules" element={<ProtectedRoute><ErrorBoundary><CustomAlerts /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/cogs" element={<ProtectedRoute><ErrorBoundary><COGS /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               </Suspense>
