@@ -152,7 +152,23 @@ export function useInvoiceAnalytics() {
         
         setExecutive(mapExecutiveSummary(mergedExec));
         setSuppliers((suppRes.data ?? []).map((s: Record<string, unknown>) => mapSupplierPerformance(s)));
-        setCostAnalytics(costData as CostAnalytics);
+
+        // Clean up cost analytics: sort monthly trends chronologically, filter bad dates
+        const rawCost = costData as CostAnalytics;
+        if (rawCost?.monthly_trends) {
+          const cutoff = new Date();
+          cutoff.setMonth(cutoff.getMonth() + 1);
+          rawCost.monthly_trends = rawCost.monthly_trends
+            .filter((m) => {
+              try {
+                const d = new Date(m.month + (m.month.length <= 7 ? "-01" : ""));
+                return d <= cutoff;
+              } catch { return false; }
+            })
+            .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+        }
+        setCostAnalytics(rawCost);
+
         setPriceVolatility((volRes.data ?? []).map((r: Record<string, unknown>) => mapPriceVolatility(r)));
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Σφάλμα φόρτωσης αναλύσεων";

@@ -420,9 +420,56 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
 
   if (!data.length) return null;
 
+  // Quick summary stats
+  const topScored = sortedData.length > 0
+    ? sortedData.reduce((best, curr) => curr.b.total > best.b.total ? curr : best, sortedData[0])
+    : null;
+  const highestSpender = data.length > 0
+    ? data.reduce((max, s) => s.total_spend > max.total_spend ? s : max, data[0])
+    : null;
+  const totalSupplierSpend = data.reduce((sum, s) => sum + s.total_spend, 0);
+
   return (
     <div className="space-y-4">
-      <Card>
+      {/* Quick summary cards */}
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 mt-4">
+        {topScored && (
+          <Card className="border border-success/30 bg-success/5 shadow-sm">
+            <CardContent className="p-4 flex items-center gap-3">
+              <Trophy className="w-5 h-5 text-success shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{t("analytics.top_supplier")}</p>
+                <p className="text-sm font-bold text-foreground truncate">{topScored.s.supplier_name}</p>
+                <p className="text-xs text-success font-medium">{t("analytics.col_score")}: {topScored.b.total}/100</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {highestSpender && (
+          <Card className="border border-primary/30 bg-primary/5 shadow-sm">
+            <CardContent className="p-4 flex items-center gap-3">
+              <Crown className="w-5 h-5 text-primary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{t("analytics.highest_spend")}</p>
+                <p className="text-sm font-bold text-foreground truncate">{highestSpender.supplier_name}</p>
+                <p className="text-xs text-primary font-medium">{formatCurrency(highestSpender.total_spend)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        <Card className="border border-border/60 bg-muted/30 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Search className="w-5 h-5 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">{t("analytics.total_suppliers_spend")}</p>
+              <p className="text-sm font-bold text-foreground">{data.length} {t("analytics.suppliers_label")}</p>
+              <p className="text-xs text-muted-foreground font-medium">{formatCurrency(totalSupplierSpend)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border border-border/60 shadow-sm">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-lg">{t("analytics.supplier_perf")}</CardTitle>
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -529,7 +576,7 @@ export function SupplierPerformanceSection({ data, priceData = [] }: Props) {
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
+      </Card>  {/* end main supplier table card */}
 
       {/* Comparison Panel */}
       {compareMode && comparisonData.length >= 2 && (

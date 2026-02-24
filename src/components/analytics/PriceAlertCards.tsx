@@ -37,7 +37,14 @@ export function PriceAlertCards({ data }: { data: PriceVolatility[] }) {
   const { t } = useLanguage();
   const alerts = derivePriceAlerts(data);
 
-  if (alerts.length === 0) return null;
+  if (alerts.length === 0) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-4 py-3">
+        <AlertTriangle className="w-4 h-4 text-success" />
+        <p className="text-sm text-foreground">{t("analytics.no_price_alerts")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

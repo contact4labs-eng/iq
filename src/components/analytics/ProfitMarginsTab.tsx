@@ -298,22 +298,32 @@ export function ProfitMarginsTab({ priceData, suppliers, costAnalytics, totalSpe
                   <PieChart>
                     <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%"
                       outerRadius={100} innerRadius={50} paddingAngle={2}
-                      label={({ name, pct }) => `${name}: ${pct}%`} labelLine={{ strokeWidth: 1 }}>
+                      strokeWidth={2} stroke="hsl(var(--card))">
                       {pieData.map((_, idx) => (
                         <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                       ))}
                     </Pie>
                     <RechartsTooltip
-                      contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
                       formatter={(value: number, name: string) => [fmt(value), name]}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm text-center py-8">{t("analytics.no_data")}</p>
+          )}
+          {/* Legend below pie */}
+          {pieData.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3">
+              {pieData.map((item, i) => (
+                <div key={i} className="flex items-center gap-1.5 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                  <span className="text-muted-foreground">{item.name}: {item.pct}%</span>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -448,10 +458,21 @@ export function ProfitMarginsTab({ priceData, suppliers, costAnalytics, totalSpe
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={costHistoryData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} tickFormatter={(v) => {
+                    try {
+                      const d = new Date(v + (v.length <= 7 ? "-01" : ""));
+                      return d.toLocaleDateString("el-GR", { month: "short", year: "numeric" });
+                    } catch { return v; }
+                  }} />
                   <YAxis tickFormatter={(v) => `€${v}`} tick={{ fontSize: 11 }} />
                   <RechartsTooltip
-                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                    labelFormatter={(v) => {
+                      try {
+                        const d = new Date(v + (v.length <= 7 ? "-01" : ""));
+                        return d.toLocaleDateString("el-GR", { month: "long", year: "numeric" });
+                      } catch { return v; }
+                    }}
                     formatter={(value: number) => [fmt(value), t("analytics.spend_label")]}
                   />
                   <Line type="monotone" dataKey="total" stroke="hsl(217, 91%, 60%)" strokeWidth={2} dot={{ r: 4 }} name={t("analytics.spend_label")} />

@@ -543,6 +543,25 @@ export const translations = {
   "analytics.pm_rec_consolidate": { el: "{count} προϊόντα διαθέσιμα από πολλούς προμηθευτές — εξετάστε ενοποίηση", en: "{count} products available from multiple suppliers — consider consolidating" },
   "analytics.pm_cost_history": { el: "Ιστορικό Κόστους", en: "Cost History" },
 
+  // Date range picker
+  "analytics.range_30d": { el: "Τελευταίες 30 ημέρες", en: "Last 30 days" },
+  "analytics.range_90d": { el: "Τελευταίες 90 ημέρες", en: "Last 90 days" },
+  "analytics.range_6m": { el: "Τελευταίοι 6 μήνες", en: "Last 6 months" },
+  "analytics.range_1y": { el: "Τελευταίος χρόνος", en: "Last year" },
+  "analytics.range_all": { el: "Όλα", en: "All time" },
+
+  // Price comparison & empty states
+  "analytics.price_comparison": { el: "Σύγκριση Τιμών Προϊόντων", en: "Product Price Comparison" },
+  "analytics.all_prices_stable": { el: "Όλες οι τιμές είναι σταθερές", en: "All prices are stable" },
+  "analytics.all_prices_stable_sub": { el: "Δεν εντοπίστηκαν σημαντικές αλλαγές τιμών", en: "No significant price changes detected" },
+  "analytics.no_price_alerts": { el: "Δεν υπάρχουν ειδοποιήσεις τιμών — όλες οι τιμές σταθερές", en: "No price alerts — all prices stable" },
+
+  // Supplier performance summary
+  "analytics.top_supplier": { el: "Κορυφαίος Προμηθευτής", en: "Top Supplier" },
+  "analytics.highest_spend": { el: "Υψηλότερη Δαπάνη", en: "Highest Spend" },
+  "analytics.total_suppliers_spend": { el: "Σύνολο Προμηθευτών", en: "Total Suppliers" },
+  "analytics.suppliers_label": { el: "προμηθευτές", en: "suppliers" },
+
   // Automation page
   "nav.automation": { el: "Αυτοματισμοί", en: "Automation" },
   "automation.title": { el: "Αυτοματισμοί", en: "Automation" },
