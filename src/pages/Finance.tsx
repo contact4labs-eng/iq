@@ -193,11 +193,11 @@ const Finance = () => {
 
         {/* ── Row 1: KPI Cards with Sparklines ── */}
         {insightsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
           </div>
         ) : kpi ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <KpiCard
               title={t("insights.revenue_month")}
               value={kpi.revenue}
@@ -224,41 +224,8 @@ const Finance = () => {
               icon={Activity}
               accentClass={kpi.netProfit >= 0 ? "text-success" : "text-destructive"}
             />
-            <KpiCard
-              title={t("insights.outstanding")}
-              value={kpi.netExposure}
-              sparkColor="hsl(221, 83%, 53%)"
-              icon={Wallet}
-              accentClass="text-primary"
-            />
           </div>
         ) : null}
-
-        {/* Outstanding Balance breakdown row */}
-        {kpi && (kpi.outstandingReceivables > 0 || kpi.outstandingPayables > 0) && (
-          <div className="grid grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-[11px] text-muted-foreground mb-0.5">{t("insights.receivables")}</p>
-                <p className="text-lg font-bold text-success">{fmtCompact(kpi.outstandingReceivables)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-[11px] text-muted-foreground mb-0.5">{t("insights.payables")}</p>
-                <p className="text-lg font-bold text-destructive">{fmtCompact(kpi.outstandingPayables)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-[11px] text-muted-foreground mb-0.5">{t("insights.net_exposure")}</p>
-                <p className={`text-lg font-bold ${kpi.netExposure >= 0 ? "text-success" : "text-destructive"}`}>
-                  {fmtCompact(kpi.netExposure)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {/* ── Row 2: Revenue vs Expenses Trends (6 months) ── */}
         <Card>
