@@ -132,13 +132,20 @@ const InvoiceDetail = () => {
     const ok = await saveInvoiceEdits(form, editedItems);
     if (ok) {
       toast({ title: t("detail.saved"), description: t("detail.saved_desc") });
-      navigate("/invoices");
     } else {
       toast({ title: t("toast.error"), description: t("detail.save_error"), variant: "destructive" });
     }
   };
 
   const handleStatusChange = async (status: string) => {
+    // First save all edits (form data + line items)
+    const saveOk = await saveInvoiceEdits(form, editedItems);
+    if (!saveOk) {
+      toast({ title: t("toast.error"), description: t("detail.save_error"), variant: "destructive" });
+      return;
+    }
+
+    // Then update the status
     const notes = status === "flagged" ? flagNotes : undefined;
     const ok = await updateInvoiceStatus(status, notes);
     if (ok) {
@@ -148,7 +155,8 @@ const InvoiceDetail = () => {
         rejected: "detail.status_rejected",
       };
       toast({ title: labelKeys[status] ? t(labelKeys[status]) : status, description: t("detail.status_updated") });
-      navigate("/invoices");
+      setShowFlagInput(false);
+      setFlagNotes("");
     } else {
       toast({ title: t("toast.error"), description: error || t("detail.status_error"), variant: "destructive" });
     }
@@ -265,37 +273,47 @@ const InvoiceDetail = () => {
                   </div>
                 </div>
 
-                {showFlagInput && (
-                  <div className="bg-card border rounded-lg p-4 space-y-2">
-                    <Label className="text-xs text-muted-foreground">{t("detail.flag_notes")}</Label>
-                    <Textarea value={flagNotes} onChange={(e) => setFlagNotes(e.target.value)} placeholder={t("detail.flag_placeholder")} className="text-sm" rows={3} />
-                    <div className="flex gap-2">
-                      <Button size="sm" className="bg-warning text-warning-foreground hover:bg-warning/90" onClick={() => handleStatusChange("flagged")} disabled={saving}>
+                {/* Only show action buttons if invoice is NOT already finalized */}
+                {invoice && !["approved", "flagged", "rejected"].includes(invoice.status) ? (
+                  <>
+                    {showFlagInput && (
+                      <div className="bg-card border rounded-lg p-4 space-y-2">
+                        <Label className="text-xs text-muted-foreground">{t("detail.flag_notes")}</Label>
+                        <Textarea value={flagNotes} onChange={(e) => setFlagNotes(e.target.value)} placeholder={t("detail.flag_placeholder")} className="text-sm" rows={3} />
+                        <div className="flex gap-2">
+                          <Button size="sm" className="bg-warning text-warning-foreground hover:bg-warning/90" onClick={() => handleStatusChange("flagged")} disabled={saving}>
+                            {t("detail.flag")}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setShowFlagInput(false)}>{t("modal.cancel")}</Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={() => handleStatusChange("approved")} disabled={saving}>
+                        <Check className="w-4 h-4 mr-1" />
+                        {t("detail.approve")}
+                      </Button>
+                      <Button className="bg-warning text-warning-foreground hover:bg-warning/90" onClick={() => setShowFlagInput(true)} disabled={saving}>
+                        <Flag className="w-4 h-4 mr-1" />
                         {t("detail.flag")}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setShowFlagInput(false)}>{t("modal.cancel")}</Button>
+                      <Button variant="destructive" onClick={() => handleStatusChange("rejected")} disabled={saving}>
+                        <X className="w-4 h-4 mr-1" />
+                        {t("detail.reject")}
+                      </Button>
+                      <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSave} disabled={saving}>
+                        <Save className="w-4 h-4 mr-1" />
+                        {t("detail.save")}
+                      </Button>
                     </div>
+                  </>
+                ) : invoice && ["approved", "flagged", "rejected"].includes(invoice.status) ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                    <span className="text-sm text-muted-foreground">{t("detail.invoice_finalized")}</span>
+                    <Badge variant="outline" className={statusClass}>{statusLabel}</Badge>
                   </div>
-                )}
-
-                <div className="flex flex-wrap gap-2">
-                  <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={() => handleStatusChange("approved")} disabled={saving}>
-                    <Check className="w-4 h-4 mr-1" />
-                    {t("detail.approve")}
-                  </Button>
-                  <Button className="bg-warning text-warning-foreground hover:bg-warning/90" onClick={() => setShowFlagInput(true)} disabled={saving}>
-                    <Flag className="w-4 h-4 mr-1" />
-                    {t("detail.flag")}
-                  </Button>
-                  <Button variant="destructive" onClick={() => handleStatusChange("rejected")} disabled={saving}>
-                    <X className="w-4 h-4 mr-1" />
-                    {t("detail.reject")}
-                  </Button>
-                  <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSave} disabled={saving}>
-                    <Save className="w-4 h-4 mr-1" />
-                    {t("detail.save")}
-                  </Button>
-                </div>
+                ) : null}
               </>
             )}
           </div>

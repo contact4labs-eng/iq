@@ -16,7 +16,8 @@ export interface InvoicePriceMatch {
 
 /**
  * Hook to search invoice line items for ingredient price suggestions.
- * Searches by description using fuzzy matching (ILIKE).
+ * Primary mode: search by supplier name → get line items from their latest invoice.
+ * Fallback mode: search by ingredient name description (ILIKE).
  */
 export function useIngredientPriceLookup() {
   const { company } = useAuth();
@@ -24,6 +25,87 @@ export function useIngredientPriceLookup() {
 
   const [results, setResults] = useState<InvoicePriceMatch[]>([]);
   const [searching, setSearching] = useState(false);
+
+  /**
+   * Search by supplier name: finds the latest invoice from that supplier
+   * and returns all its line items with prices.
+   */
+  const searchBySupplier = useCallback(
+    async (supplierName: string) => {
+      if (!companyId || !supplierName.trim() || supplierName.trim().length < 2) {
+        setResults([]);
+        return;
+      }
+
+      setSearching(true);
+      try {
+        // First, find suppliers matching the name
+        const { data: suppliers, error: suppErr } = await supabase
+          .from("suppliers")
+          .select("id, name")
+          .eq("company_id", companyId)
+          .ilike("name", `%${supplierName.trim()}%`);
+
+        if (suppErr || !suppliers || suppliers.length === 0) {
+          setResults([]);
+          return;
+        }
+
+        const supplierIds = suppliers.map((s: any) => s.id);
+        const supplierMap = new Map(suppliers.map((s: any) => [s.id, s.name]));
+
+        // Find the latest invoice from these suppliers
+        const { data: invoices, error: invErr } = await supabase
+          .from("invoices")
+          .select("id, invoice_number, invoice_date, supplier_id, status")
+          .eq("company_id", companyId)
+          .in("supplier_id", supplierIds)
+          .neq("status", "rejected")
+          .order("invoice_date", { ascending: false })
+          .limit(1);
+
+        if (invErr || !invoices || invoices.length === 0) {
+          setResults([]);
+          return;
+        }
+
+        const latestInvoice = invoices[0];
+
+        // Get all line items from this latest invoice
+        const { data: lineItems, error: liErr } = await supabase
+          .from("invoice_line_items")
+          .select("id, description, unit_price, quantity, line_total, invoice_id")
+          .eq("invoice_id", latestInvoice.id)
+          .not("unit_price", "is", null)
+          .order("created_at", { ascending: true });
+
+        if (liErr || !lineItems) {
+          setResults([]);
+          return;
+        }
+
+        const matches: InvoicePriceMatch[] = lineItems.map((row: any) => ({
+          line_item_id: row.id,
+          description: row.description ?? "",
+          unit_price: row.unit_price ?? 0,
+          quantity: row.quantity ?? 0,
+          line_total: row.line_total ?? 0,
+          invoice_id: row.invoice_id,
+          invoice_number: latestInvoice.invoice_number ?? null,
+          invoice_date: latestInvoice.invoice_date ?? null,
+          supplier_name: supplierMap.get(latestInvoice.supplier_id) ?? null,
+        }));
+
+        setResults(matches);
+      } catch (err) {
+        console.error("Supplier price lookup error:", err);
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    },
+    [companyId]
+  );
 
   /**
    * Search invoice line items matching a term (ingredient name).
@@ -38,7 +120,6 @@ export function useIngredientPriceLookup() {
 
       setSearching(true);
       try {
-        // Search invoice_line_items with ILIKE and join invoices for date/number
         const { data, error } = await supabase
           .from("invoice_line_items")
           .select(`
@@ -63,7 +144,7 @@ export function useIngredientPriceLookup() {
 
         if (error) throw error;
 
-        // Now fetch supplier names for the results
+        // Fetch supplier names
         const supplierIds = new Set<string>();
         (data ?? []).forEach((row: any) => {
           if (row.invoices?.supplier_id) supplierIds.add(row.invoices.supplier_id);
@@ -96,7 +177,6 @@ export function useIngredientPriceLookup() {
               : null,
           }));
 
-        // Sort by date descending (most recent first)
         matches.sort((a, b) => {
           if (!a.invoice_date && !b.invoice_date) return 0;
           if (!a.invoice_date) return 1;
@@ -115,19 +195,15 @@ export function useIngredientPriceLookup() {
     [companyId]
   );
 
-  /** Get the latest (most recent) price from results */
   const latestPrice = results.length > 0 ? results[0].unit_price : null;
-
-  /** Get the latest supplier from results */
   const latestSupplier = results.length > 0 ? results[0].supplier_name : null;
-
-  /** Clear results */
   const clearResults = useCallback(() => setResults([]), []);
 
   return {
     results,
     searching,
     searchPrices,
+    searchBySupplier,
     latestPrice,
     latestSupplier,
     clearResults,

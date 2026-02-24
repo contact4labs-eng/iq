@@ -69,8 +69,9 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
   };
 
   /**
-   * Refresh all ingredient prices from the latest matching invoice line items.
-   * For each ingredient, searches invoice_line_items by name (ILIKE) and takes the most recent price.
+   * Refresh all ingredient prices from latest invoices.
+   * For each ingredient with a supplier_name, finds the latest invoice from that supplier
+   * and matches line items by ingredient name. Falls back to name-only search if no supplier.
    */
   const handleRefreshPrices = async () => {
     if (!company?.id || data.length === 0) return;
@@ -78,9 +79,83 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
     let updated = 0;
 
     try {
+      // Group ingredients by supplier for efficiency
+      const bySupplier = new Map<string, typeof data>();
+      const noSupplier: typeof data = [];
+
       for (const ingredient of data) {
-        // Search for matching line items
-        const { data: matches, error } = await supabase
+        if (ingredient.supplier_name?.trim()) {
+          const key = ingredient.supplier_name.trim().toLowerCase();
+          if (!bySupplier.has(key)) bySupplier.set(key, []);
+          bySupplier.get(key)!.push(ingredient);
+        } else {
+          noSupplier.push(ingredient);
+        }
+      }
+
+      // Process ingredients with supplier name
+      for (const [, ingredients] of bySupplier) {
+        const supplierName = ingredients[0].supplier_name!;
+
+        // Find supplier ID
+        const { data: suppliers } = await supabase
+          .from("suppliers")
+          .select("id, name")
+          .eq("company_id", company.id)
+          .ilike("name", `%${supplierName}%`)
+          .limit(1);
+
+        if (!suppliers || suppliers.length === 0) continue;
+
+        // Find latest invoice from this supplier
+        const { data: invoices } = await supabase
+          .from("invoices")
+          .select("id")
+          .eq("company_id", company.id)
+          .eq("supplier_id", suppliers[0].id)
+          .neq("status", "rejected")
+          .order("invoice_date", { ascending: false })
+          .limit(1);
+
+        if (!invoices || invoices.length === 0) continue;
+
+        // Get all line items from this invoice
+        const { data: lineItems } = await supabase
+          .from("invoice_line_items")
+          .select("description, unit_price")
+          .eq("invoice_id", invoices[0].id)
+          .not("unit_price", "is", null);
+
+        if (!lineItems || lineItems.length === 0) continue;
+
+        // Match each ingredient to best line item by name
+        for (const ingredient of ingredients) {
+          const nameLower = ingredient.name.toLowerCase();
+          // Try exact-ish match first, then partial
+          const match = lineItems.find((li: any) =>
+            li.description?.toLowerCase().includes(nameLower)
+          ) || lineItems.find((li: any) => {
+            // Try matching any word from the ingredient name
+            const words = nameLower.split(/\s+/).filter((w: string) => w.length >= 3);
+            return words.some((word: string) => li.description?.toLowerCase().includes(word));
+          });
+
+          if (match && match.unit_price && match.unit_price !== ingredient.price_per_unit) {
+            await supabase
+              .from("ingredients")
+              .update({
+                price_per_unit: match.unit_price,
+                supplier_name: suppliers[0].name,
+              })
+              .eq("id", ingredient.id);
+            updated++;
+          }
+        }
+      }
+
+      // Fallback: ingredients without supplier — search by name in all invoices
+      for (const ingredient of noSupplier) {
+        const { data: matches } = await supabase
           .from("invoice_line_items")
           .select(`
             unit_price,
@@ -92,9 +167,8 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
           .order("created_at", { ascending: false })
           .limit(5);
 
-        if (error || !matches || matches.length === 0) continue;
+        if (!matches || matches.length === 0) continue;
 
-        // Filter out rejected invoices and pick the latest
         const validMatches = matches.filter(
           (m: any) => m.invoices?.status !== "rejected"
         );
@@ -102,8 +176,7 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
 
         const latestPrice = (validMatches[0] as any).unit_price;
         if (latestPrice && latestPrice !== ingredient.price_per_unit) {
-          // Also try to get supplier name
-          let supplierName = ingredient.supplier_name;
+          let newSupplierName = ingredient.supplier_name;
           const supplierId = (validMatches[0] as any).invoices?.supplier_id;
           if (supplierId) {
             const { data: sup } = await supabase
@@ -111,12 +184,12 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
               .select("name")
               .eq("id", supplierId)
               .single();
-            if (sup?.name) supplierName = sup.name;
+            if (sup?.name) newSupplierName = sup.name;
           }
 
           await supabase
             .from("ingredients")
-            .update({ price_per_unit: latestPrice, supplier_name: supplierName })
+            .update({ price_per_unit: latestPrice, supplier_name: newSupplierName })
             .eq("id", ingredient.id);
           updated++;
         }

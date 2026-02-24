@@ -810,7 +810,7 @@ export const translations = {
   "cogs.col_margin_dinein": { el: "Κέρδος Καταστ.", en: "Dine-in Margin" },
   "cogs.col_margin_delivery": { el: "Κέρδος Deliv.", en: "Delivery Margin" },
 
-  // Invoice price lookup
+  // Invoice price lookup (supplier-based)
   "cogs.invoice_price_found": { el: "Βρέθηκε τιμή από τιμολόγια", en: "Price found in invoices" },
   "cogs.use_price": { el: "Χρήση", en: "Use" },
   "cogs.show_price_history": { el: "Ιστορικό τιμών ({n} εγγραφές)", en: "Price history ({n} entries)" },
@@ -820,6 +820,15 @@ export const translations = {
   "cogs.refresh_prices": { el: "Ανανέωση τιμών από τιμολόγια", en: "Refresh prices from invoices" },
   "cogs.prices_refreshed": { el: "Οι τιμές ενημερώθηκαν", en: "Prices refreshed" },
   "cogs.no_invoice_match": { el: "Δεν βρέθηκαν αντιστοιχίες", en: "No matches found" },
+  "cogs.supplier_search_hint": { el: "Πληκτρολογήστε όνομα προμηθευτή για εύρεση τιμών από τιμολόγια", en: "Type supplier name to find prices from invoices" },
+  "cogs.latest_invoice_items": { el: "Είδη τελευταίου τιμολογίου", en: "Latest invoice items" },
+  "cogs.show_all_items": { el: "Εμφάνιση όλων ({n} είδη)", en: "Show all ({n} items)" },
+  "cogs.show_less_items": { el: "Εμφάνιση λιγότερων", en: "Show less" },
+  "cogs.qty": { el: "Ποσ.", en: "Qty" },
+  "cogs.total": { el: "Σύνολο", en: "Total" },
+
+  // Invoice detail
+  "detail.invoice_finalized": { el: "Αυτό το τιμολόγιο έχει ολοκληρωθεί", en: "This invoice has been finalized" },
 
   // Responsive nav
   "nav.more": { el: "Περισσότερα", en: "More" },
