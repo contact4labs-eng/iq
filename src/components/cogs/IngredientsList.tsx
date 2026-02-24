@@ -86,7 +86,7 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
             unit_price,
             invoices!inner ( invoice_date, status, supplier_id )
           `)
-          .eq("company_id", company.id)
+          .eq("invoices.company_id", company.id)
           .ilike("description", `%${ingredient.name}%`)
           .not("unit_price", "is", null)
           .order("created_at", { ascending: false })

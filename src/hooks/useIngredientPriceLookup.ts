@@ -55,7 +55,7 @@ export function useIngredientPriceLookup() {
               status
             )
           `)
-          .eq("company_id", companyId)
+          .eq("invoices.company_id", companyId)
           .ilike("description", `%${searchTerm.trim()}%`)
           .not("unit_price", "is", null)
           .order("created_at", { ascending: false })
