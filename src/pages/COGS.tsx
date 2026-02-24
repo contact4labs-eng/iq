@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Package, BarChart3 } from "lucide-react";
 import { useIngredients } from "@/hooks/useIngredients";
+import { useProducts } from "@/hooks/useProducts";
+import { useMarginThresholds } from "@/hooks/useMarginThresholds";
+import { calculateAllProductCosts } from "@/hooks/useProductCost";
 import { IngredientsList } from "@/components/cogs/IngredientsList";
+import { ProductsList } from "@/components/cogs/ProductsList";
+import { MarginThresholdSettings } from "@/components/cogs/MarginThresholdSettings";
+import { COGSDashboardTable } from "@/components/cogs/COGSDashboardTable";
 
 function COGS() {
   const { t } = useLanguage();
@@ -12,7 +18,24 @@ function COGS() {
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = () => setRefreshKey((k) => k + 1);
 
-  const { data: ingredients, loading: ingredientsLoading, categories } = useIngredients(refreshKey);
+  const { data: ingredients, loading: ingredientsLoading, categories: ingredientCategories } = useIngredients(refreshKey);
+  const { data: products, loading: productsLoading, categories: productCategories } = useProducts(refreshKey);
+  const { data: thresholds, getMarginColor, refetch: refetchThresholds } = useMarginThresholds(refreshKey);
+
+  // Calculate costs
+  const [costMap, setCostMap] = useState<Map<string, number>>(new Map());
+  const [costsLoading, setCostsLoading] = useState(false);
+
+  useEffect(() => {
+    if (products.length === 0 || ingredients.length === 0) {
+      setCostMap(new Map());
+      return;
+    }
+    setCostsLoading(true);
+    calculateAllProductCosts(products, ingredients)
+      .then(setCostMap)
+      .finally(() => setCostsLoading(false));
+  }, [products, ingredients, refreshKey]);
 
   return (
     <DashboardLayout>
@@ -49,20 +72,34 @@ function COGS() {
             <IngredientsList
               data={ingredients}
               loading={ingredientsLoading}
-              categories={categories}
+              categories={ingredientCategories}
               onRefresh={refresh}
             />
           </TabsContent>
 
           <TabsContent value="products" className="mt-4">
-            <div className="text-sm text-muted-foreground py-8 text-center">
-              {t("cogs.tab_products")} — {t("cogs.coming_soon")}
-            </div>
+            <ProductsList
+              data={products}
+              loading={productsLoading || costsLoading}
+              categories={productCategories}
+              ingredients={ingredients}
+              costMap={costMap}
+              onRefresh={refresh}
+            />
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-4">
-            <div className="text-sm text-muted-foreground py-8 text-center">
-              {t("cogs.tab_dashboard")} — {t("cogs.coming_soon")}
+            <div className="space-y-6">
+              <MarginThresholdSettings
+                thresholds={thresholds}
+                allCategories={productCategories}
+                onRefresh={() => { refetchThresholds(); refresh(); }}
+              />
+              <COGSDashboardTable
+                products={products}
+                costMap={costMap}
+                getMarginColor={getMarginColor}
+              />
             </div>
           </TabsContent>
         </Tabs>
