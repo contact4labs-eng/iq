@@ -28,11 +28,14 @@ export function InvoiceLineItemsTable({ items, onChange }: Props) {
       (item as Record<string, unknown>)[field] = value || null;
     }
     updated[index] = item as LineItem;
+    // Only auto-recalculate line_total when both qty AND price are set
     if (["quantity", "unit_price", "tax_rate"].includes(field)) {
       const qty = updated[index].quantity ?? 0;
       const price = updated[index].unit_price ?? 0;
       const vat = updated[index].tax_rate ?? 0;
-      updated[index].line_total = Math.round((qty * price * (1 + vat / 100)) * 100) / 100;
+      if (qty > 0 && price > 0) {
+        updated[index].line_total = Math.round((qty * price * (1 + vat / 100)) * 100) / 100;
+      }
     }
     onChange(updated);
   };
