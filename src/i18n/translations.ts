@@ -735,6 +735,17 @@ export const translations = {
   "cogs.success_ingredient_edit": { el: "Το υλικό ενημερώθηκε", en: "Ingredient updated" },
   "cogs.success_ingredient_delete": { el: "Το υλικό διαγράφηκε", en: "Ingredient deleted" },
   "cogs.confirm_delete_ingredient": { el: "Διαγραφή αυτού του υλικού;", en: "Delete this ingredient?" },
+  "cogs.ingredient_modal_add": { el: "Νέο Υλικό", en: "New Ingredient" },
+  "cogs.ingredient_modal_edit": { el: "Επεξεργασία Υλικού", en: "Edit Ingredient" },
+  "cogs.search_ingredients": { el: "Αναζήτηση υλικών...", en: "Search ingredients..." },
+  "cogs.category_existing": { el: "Υπάρχουσα", en: "Existing" },
+  "cogs.category_new": { el: "Νέα", en: "New" },
+  "cogs.category_placeholder": { el: "π.χ. Κρεατικά", en: "e.g. Meats" },
+  "cogs.error_name_required": { el: "Το όνομα είναι υποχρεωτικό", en: "Name is required" },
+  "cogs.error_price_required": { el: "Εισάγετε έγκυρη τιμή", en: "Enter a valid price" },
+  "cogs.no_results": { el: "Δεν βρέθηκαν αποτελέσματα", en: "No results found" },
+  "cogs.uncategorized": { el: "Χωρίς κατηγορία", en: "Uncategorized" },
+  "cogs.coming_soon": { el: "Σύντομα διαθέσιμο", en: "Coming soon" },
   "cogs.per_unit": { el: "ανά", en: "per" },
 
   // Products

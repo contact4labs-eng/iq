@@ -3,10 +3,16 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Package, BarChart3 } from "lucide-react";
+import { useIngredients } from "@/hooks/useIngredients";
+import { IngredientsList } from "@/components/cogs/IngredientsList";
 
 function COGS() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("ingredients");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
+
+  const { data: ingredients, loading: ingredientsLoading, categories } = useIngredients(refreshKey);
 
   return (
     <DashboardLayout>
@@ -40,15 +46,24 @@ function COGS() {
           </TabsList>
 
           <TabsContent value="ingredients" className="mt-4">
-            <div className="text-sm text-muted-foreground">Ingredients tab — loading...</div>
+            <IngredientsList
+              data={ingredients}
+              loading={ingredientsLoading}
+              categories={categories}
+              onRefresh={refresh}
+            />
           </TabsContent>
 
           <TabsContent value="products" className="mt-4">
-            <div className="text-sm text-muted-foreground">Products tab — loading...</div>
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              {t("cogs.tab_products")} — {t("cogs.coming_soon")}
+            </div>
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-4">
-            <div className="text-sm text-muted-foreground">Dashboard tab — loading...</div>
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              {t("cogs.tab_dashboard")} — {t("cogs.coming_soon")}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
