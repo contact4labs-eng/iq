@@ -33,7 +33,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2.5">
-          <img src="/4labs-logo.svg" alt="4Labs" className="w-9 h-9 rounded-lg shrink-0" />
+          <img src="/4labs-logo.png" alt="4Labs" className="w-9 h-9 rounded-lg shrink-0" />
           {!collapsed && (
             <span className="text-lg font-bold font-display text-sidebar-primary">
               4Labs

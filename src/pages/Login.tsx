@@ -44,7 +44,7 @@ const Login = () => {
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
-            <img src="/4labs-logo.svg" alt="4Labs" className="w-11 h-11 rounded-lg" />
+            <img src="/4labs-logo.png" alt="4Labs" className="w-11 h-11 rounded-lg" />
             <h1 className="text-2xl font-bold font-display text-foreground">4Labs</h1>
           </div>
           <p className="text-muted-foreground">{t("auth.login_title")}</p>

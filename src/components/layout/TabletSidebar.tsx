@@ -40,7 +40,7 @@ export function TabletSidebar() {
       >
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-4 h-14 border-b border-sidebar-border shrink-0 overflow-hidden">
-          <img src="/4labs-logo.svg" alt="4Labs" className="w-9 h-9 rounded-lg shrink-0" />
+          <img src="/4labs-logo.png" alt="4Labs" className="w-9 h-9 rounded-lg shrink-0" />
           {expanded && (
             <span className="text-lg font-bold font-display text-sidebar-primary whitespace-nowrap">4Labs</span>
           )}
