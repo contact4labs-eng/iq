@@ -30,7 +30,7 @@ import { useFinanceExtras } from "@/hooks/useFinanceExtras";
 import { ProfitabilityCalendar } from "@/components/finance/ProfitabilityCalendar";
 import { SupplierPerformanceSection } from "@/components/invoices/analytics/SupplierPerformance";
 import { ExecutiveSummarySection } from "@/components/invoices/analytics/ExecutiveSummary";
-import { CostAnalyticsSection } from "@/components/invoices/analytics/CostAnalytics";
+// CostAnalytics removed — expense breakdown only in Financial Overview
 import { PriceTrendAnalysis } from "@/components/analytics/PriceTrendAnalysis";
 import { ProfitMarginsTab } from "@/components/analytics/ProfitMarginsTab";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -739,7 +739,6 @@ const Finance = () => {
                   </CardContent>
                 </Card>
 
-                <CostAnalyticsSection data={filteredCostAnalytics} suppliers={suppliers} />
               </>
             )}
           </TabsContent>
