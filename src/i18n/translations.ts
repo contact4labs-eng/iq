@@ -329,6 +329,7 @@ export const translations = {
   "analytics.level_high": { el: "Υψηλή", en: "High" },
   "analytics.level_medium": { el: "Μεσαία", en: "Medium" },
   "analytics.level_low": { el: "Χαμηλή", en: "Low" },
+  "bi.tab_financial_overview": { el: "Οικονομική Επισκόπηση", en: "Financial Overview" },
   "analytics.tab_price_trends": { el: "Τάσεις Τιμών", en: "Price Trends" },
   "analytics.tab_supplier_perf": { el: "Απόδοση Προμηθευτών", en: "Supplier Performance" },
   "analytics.price_alerts": { el: "Ειδοπ. Τιμών", en: "Price Alerts" },

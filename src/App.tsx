@@ -17,7 +17,7 @@ const Invoices = lazy(() => import("./pages/Invoices"));
 const InvoiceDetail = lazy(() => import("./pages/InvoiceDetail"));
 const Finance = lazy(() => import("./pages/Finance"));
 const AiInsights = lazy(() => import("./pages/AiInsights"));
-const Analytics = lazy(() => import("./pages/Analytics"));
+// Analytics page merged into Finance (Business Insights)
 const Alerts = lazy(() => import("./pages/Alerts"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -82,7 +82,7 @@ const App = () => (
                 <Route path="/invoices/:id" element={<ProtectedRoute><ErrorBoundary><InvoiceDetail /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/finance" element={<ProtectedRoute><ErrorBoundary><Finance /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/ai-insights" element={<ProtectedRoute><ErrorBoundary><AiInsights /></ErrorBoundary></ProtectedRoute>} />
-                <Route path="/analytics" element={<ProtectedRoute><ErrorBoundary><Analytics /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/analytics" element={<Navigate to="/finance" replace />} />
                 <Route path="/alerts" element={<ProtectedRoute><ErrorBoundary><Alerts /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><ErrorBoundary><NotificationsPage /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><ErrorBoundary><SettingsPage /></ErrorBoundary></ProtectedRoute>} />
