@@ -810,6 +810,21 @@ export const translations = {
   "cogs.col_margin_dinein": { el: "Κέρδος Καταστ.", en: "Dine-in Margin" },
   "cogs.col_margin_delivery": { el: "Κέρδος Deliv.", en: "Delivery Margin" },
 
+  // COGS Dashboard
+  "cogs.dash_total_products": { el: "Σύνολο Προϊόντων", en: "Total Products" },
+  "cogs.dash_avg_margin": { el: "Μέσο Κέρδος", en: "Avg Margin" },
+  "cogs.dash_at_risk": { el: "Σε Κίνδυνο", en: "At Risk" },
+  "cogs.dash_ingredients": { el: "Υλικά", en: "Ingredients" },
+  "cogs.dash_margin_distribution": { el: "Κατανομή Περιθωρίου", en: "Margin Distribution" },
+  "cogs.dash_margin_by_category": { el: "Μέσο Κέρδος ανά Κατηγορία", en: "Avg Margin by Category" },
+  "cogs.dash_lowest_margin": { el: "Προϊόντα με Χαμηλότερο Κέρδος", en: "Lowest Margin Products" },
+  "cogs.dash_all_products": { el: "Όλα τα Προϊόντα", en: "All Products" },
+  "cogs.dash_healthy": { el: "Υγιές", en: "Healthy" },
+  "cogs.dash_warning": { el: "Προσοχή", en: "Warning" },
+  "cogs.dash_critical": { el: "Κρίσιμο", en: "Critical" },
+  "cogs.dash_products_label": { el: "προϊόντα", en: "products" },
+  "cogs.dash_no_data": { el: "Δεν υπάρχουν δεδομένα", en: "No data available" },
+
   // Invoice price lookup (supplier-based)
   "cogs.invoice_price_found": { el: "Βρέθηκε τιμή από τιμολόγια", en: "Price found in invoices" },
   "cogs.use_price": { el: "Χρήση", en: "Use" },

@@ -10,7 +10,7 @@ import { calculateAllProductCosts } from "@/hooks/useProductCost";
 import { IngredientsList } from "@/components/cogs/IngredientsList";
 import { ProductsList } from "@/components/cogs/ProductsList";
 import { MarginThresholdSettings } from "@/components/cogs/MarginThresholdSettings";
-import { COGSDashboardTable } from "@/components/cogs/COGSDashboardTable";
+import { COGSDashboard } from "@/components/cogs/COGSDashboard";
 
 function COGS() {
   const { t } = useLanguage();
@@ -90,15 +90,16 @@ function COGS() {
 
           <TabsContent value="dashboard" className="mt-4">
             <div className="space-y-6">
+              <COGSDashboard
+                products={products}
+                ingredients={ingredients}
+                costMap={costMap}
+                getMarginColor={getMarginColor}
+              />
               <MarginThresholdSettings
                 thresholds={thresholds}
                 allCategories={productCategories}
                 onRefresh={() => { refetchThresholds(); refresh(); }}
-              />
-              <COGSDashboardTable
-                products={products}
-                costMap={costMap}
-                getMarginColor={getMarginColor}
               />
             </div>
           </TabsContent>
