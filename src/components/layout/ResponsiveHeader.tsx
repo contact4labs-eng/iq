@@ -16,7 +16,8 @@ export function ResponsiveHeader() {
     <header className="h-14 border-b border-topbar-border bg-topbar flex items-center justify-between px-4 shrink-0">
       {/* Mobile: centered title */}
       <div className="flex items-center gap-2 md:hidden">
-        <span className="text-base font-bold font-display text-foreground">InvoiceIQ</span>
+        <img src="/4labs-logo.svg" alt="4Labs" className="w-7 h-7 rounded-md" />
+        <span className="text-base font-bold font-display text-foreground">4Labs</span>
       </div>
 
       {/* Tablet/Desktop: company name or spacer */}

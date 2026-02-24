@@ -43,11 +43,9 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <FileText className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold font-display text-foreground">InvoiceIQ</h1>
+          <div className="inline-flex items-center gap-3 mb-4">
+            <img src="/4labs-logo.svg" alt="4Labs" className="w-11 h-11 rounded-lg" />
+            <h1 className="text-2xl font-bold font-display text-foreground">4Labs</h1>
           </div>
           <p className="text-muted-foreground">{t("auth.login_title")}</p>
         </div>

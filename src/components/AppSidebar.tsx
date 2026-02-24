@@ -32,13 +32,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-ring flex items-center justify-center shrink-0">
-            <FileText className="w-4 h-4 text-accent-foreground" />
-          </div>
+        <div className="flex items-center gap-2.5">
+          <img src="/4labs-logo.svg" alt="4Labs" className="w-9 h-9 rounded-lg shrink-0" />
           {!collapsed && (
             <span className="text-lg font-bold font-display text-sidebar-primary">
-              InvoiceIQ
+              4Labs
             </span>
           )}
         </div>

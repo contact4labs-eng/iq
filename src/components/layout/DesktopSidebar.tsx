@@ -22,11 +22,9 @@ export function DesktopSidebar() {
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 w-64 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-5 h-14 border-b border-sidebar-border shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <FileText className="w-4 h-4 text-primary-foreground" />
-        </div>
-        <span className="text-lg font-bold font-display text-sidebar-primary">InvoiceIQ</span>
+      <div className="flex items-center gap-2.5 px-5 h-14 border-b border-sidebar-border shrink-0">
+        <img src="/4labs-logo.svg" alt="4Labs" className="w-9 h-9 rounded-lg shrink-0" />
+        <span className="text-lg font-bold font-display text-sidebar-primary">4Labs</span>
       </div>
 
       {/* Nav */}

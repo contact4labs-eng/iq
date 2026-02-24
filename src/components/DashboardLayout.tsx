@@ -21,7 +21,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         </main>
         <footer className="hidden md:block border-t border-border px-4 py-3 text-center bg-card/50">
           <span className="text-xs text-muted-foreground">
-            {t("footer.made_with")} <span className="font-semibold text-primary">InvoiceIQ</span>
+            {t("footer.made_with")} <span className="font-semibold text-primary">4Labs</span>
           </span>
         </footer>
       </div>
