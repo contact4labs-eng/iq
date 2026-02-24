@@ -1,4 +1,4 @@
-import { Home, FileText, Wallet, Brain, TrendingUp, Bell, Settings, Zap, CalendarClock, ShieldAlert, ShoppingCart } from "lucide-react";
+import { Home, FileText, Wallet, Brain, Bell, Settings, Zap, CalendarClock, ShieldAlert, ShoppingCart } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/contexts/LanguageContext";
@@ -8,7 +8,6 @@ const navItems: { titleKey: TranslationKey; url: string; icon: typeof Home }[] =
   { titleKey: "nav.invoices", url: "/invoices", icon: FileText },
   { titleKey: "nav.finance", url: "/finance", icon: Wallet },
   { titleKey: "nav.ai", url: "/ai-insights", icon: Brain },
-  { titleKey: "nav.analytics", url: "/analytics", icon: TrendingUp },
   { titleKey: "nav.alerts", url: "/alerts", icon: Bell },
   { titleKey: "nav.alert_rules", url: "/alert-rules", icon: ShieldAlert },
   { titleKey: "nav.fixed_costs", url: "/fixed-costs", icon: CalendarClock },
