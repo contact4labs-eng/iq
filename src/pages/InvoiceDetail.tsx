@@ -281,8 +281,8 @@ const InvoiceDetail = () => {
                   </div>
                 </div>
 
-                {/* Only show action buttons if invoice is NOT already finalized */}
-                {invoice && !["approved", "flagged", "rejected"].includes(invoice.status) ? (
+                {/* Status change buttons only for non-finalized invoices */}
+                {invoice && !["approved", "flagged", "rejected"].includes(invoice.status) && (
                   <>
                     {showFlagInput && (
                       <div className="bg-card border rounded-lg p-4 space-y-2">
@@ -310,18 +310,27 @@ const InvoiceDetail = () => {
                         <X className="w-4 h-4 mr-1" />
                         {t("detail.reject")}
                       </Button>
-                      <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSave} disabled={saving}>
-                        <Save className="w-4 h-4 mr-1" />
-                        {t("detail.save")}
-                      </Button>
                     </div>
                   </>
-                ) : invoice && ["approved", "flagged", "rejected"].includes(invoice.status) ? (
+                )}
+
+                {/* Finalized status badge */}
+                {invoice && ["approved", "flagged", "rejected"].includes(invoice.status) && (
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
                     <span className="text-sm text-muted-foreground">{t("detail.invoice_finalized")}</span>
                     <Badge variant="outline" className={statusClass}>{statusLabel}</Badge>
                   </div>
-                ) : null}
+                )}
+
+                {/* Save button always visible */}
+                {invoice && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSave} disabled={saving}>
+                      <Save className="w-4 h-4 mr-1" />
+                      {t("detail.save")}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
