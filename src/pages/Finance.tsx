@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import {
-  Wallet, Plus, BarChart3, TrendingUp, TrendingDown,
+  Wallet, Plus, TrendingUp, TrendingDown,
   PieChart as PieChartIcon, Activity, Users, FileText, ArrowUpRight,
   ArrowDownRight, Database, Search, Calendar,
 } from "lucide-react";
@@ -23,15 +23,19 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, PieChart, Pie,
+  XAxis, YAxis, CartesianGrid, Cell, PieChart, Pie,
   AreaChart, Area, LineChart, Line, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useFinanceExtras } from "@/hooks/useFinanceExtras";
+import { useProducts } from "@/hooks/useProducts";
+import { useIngredients } from "@/hooks/useIngredients";
+import { calculateAllProductCosts } from "@/hooks/useProductCost";
+import { useMarginThresholds } from "@/hooks/useMarginThresholds";
 import { ProfitabilityCalendar } from "@/components/finance/ProfitabilityCalendar";
 import { SupplierPerformanceSection } from "@/components/invoices/analytics/SupplierPerformance";
 import { ExecutiveSummarySection } from "@/components/invoices/analytics/ExecutiveSummary";
-// CostAnalytics removed — expense breakdown only in Financial Overview
 import { PriceTrendAnalysis } from "@/components/analytics/PriceTrendAnalysis";
+import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -119,13 +123,16 @@ function KpiCard({
 /* ── Main Component ───────────────────────────────────────── */
 const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { weeklyCashFlow, loading, error } = useFinanceDashboard(refreshKey);
+  const { error } = useFinanceDashboard(refreshKey);
   const { kpi, topSuppliers, invoiceActivity, loading: insightsLoading } = useBusinessInsights(refreshKey);
   const { monthlyPL, expenseBreakdown, monthlyTrends } = useFinanceExtras(refreshKey);
   const {
     executive, suppliers, costAnalytics, priceVolatility,
     loading: analyticsLoading, error: analyticsError,
   } = useInvoiceAnalytics();
+  const { data: products, loading: productsLoading } = useProducts(refreshKey);
+  const { data: ingredients } = useIngredients(refreshKey);
+  const { getMarginColor } = useMarginThresholds(refreshKey);
   const { t } = useLanguage();
   const { company } = useAuth();
   const { toast } = useToast();
@@ -136,11 +143,6 @@ const Finance = () => {
 
   // Analytics-specific state
   const [dateRange, setDateRange] = useState<DateRangePreset>("all");
-
-  const chartConfig: ChartConfig = {
-    inflows: { label: t("finance.inflows"), color: "hsl(var(--success))" },
-    outflows: { label: t("finance.outflows"), color: "hsl(var(--destructive))" },
-  };
 
   const trendConfig: ChartConfig = {
     revenue: { label: t("dashboard.revenue"), color: "hsl(var(--success))" },
@@ -165,19 +167,54 @@ const Finance = () => {
     }
   };
 
-  const hasChartData = useMemo(
-    () => weeklyCashFlow.some((w) => w.inflows > 0 || w.outflows > 0),
-    [weeklyCashFlow]
-  );
+  // Profit margin data from products (COGS)
+  const [costMap, setCostMap] = useState<Map<string, number>>(new Map());
+  useMemo(() => {
+    if (products.length > 0 && ingredients.length > 0) {
+      calculateAllProductCosts(products, ingredients).then(setCostMap);
+    }
+  }, [products, ingredients]);
 
-  const cashFlowData = useMemo(
-    () => weeklyCashFlow.map((w) => ({
-      week: w.week,
-      inflows: safe(w.inflows),
-      outflows: safe(w.outflows),
-    })),
-    [weeklyCashFlow]
-  );
+  const marginData = useMemo(() => {
+    if (products.length === 0 || costMap.size === 0) return null;
+
+    const marginFn = (sell: number, cost: number) =>
+      sell > 0 ? ((sell - cost) / sell) * 100 : 0;
+
+    const productMargins = products.map((p) => {
+      const cost = costMap.get(p.id) ?? 0;
+      const mDinein = marginFn(p.selling_price_dinein, cost);
+      const mDelivery = marginFn(p.selling_price_delivery, cost);
+      const color = getMarginColor(p.category, mDinein > 0 ? mDinein : mDelivery);
+      return { name: p.name, category: p.category, cost, mDinein, mDelivery, color };
+    });
+
+    const withDinein = productMargins.filter((p) => p.mDinein > 0);
+    const withDelivery = productMargins.filter((p) => p.mDelivery > 0);
+    const avgDinein = withDinein.length > 0
+      ? withDinein.reduce((s, p) => s + p.mDinein, 0) / withDinein.length : 0;
+    const avgDelivery = withDelivery.length > 0
+      ? withDelivery.reduce((s, p) => s + p.mDelivery, 0) / withDelivery.length : 0;
+
+    const greenCount = productMargins.filter((p) => p.color === "green").length;
+    const yellowCount = productMargins.filter((p) => p.color === "yellow").length;
+    const redCount = productMargins.filter((p) => p.color === "red").length;
+
+    // Category averages
+    const catMap = new Map<string, { sum: number; count: number }>();
+    productMargins.forEach((p) => {
+      const m = p.mDinein > 0 ? p.mDinein : p.mDelivery;
+      if (m > 0) {
+        const prev = catMap.get(p.category) ?? { sum: 0, count: 0 };
+        catMap.set(p.category, { sum: prev.sum + m, count: prev.count + 1 });
+      }
+    });
+    const categories = Array.from(catMap.entries())
+      .map(([cat, v]) => ({ category: cat, avg: v.sum / v.count, count: v.count }))
+      .sort((a, b) => b.avg - a.avg);
+
+    return { avgDinein, avgDelivery, greenCount, yellowCount, redCount, total: products.length, categories };
+  }, [products, costMap, getMarginColor]);
 
   // Determine if we're on an analytics tab (to show analytics KPIs vs finance KPIs)
   const isAnalyticsTab = activeTab !== "financial-overview";
@@ -523,43 +560,123 @@ const Finance = () => {
               </div>
             )}
 
-            {/* Cash Flow 30 Days */}
-            {loading ? (
+            {/* Profit Margin Overview */}
+            {productsLoading ? (
               <Skeleton className="h-72 rounded-lg" />
+            ) : marginData ? (
+              <Card>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 mb-5">
+                    <PieChartIcon className="w-4 h-4 text-accent" />
+                    <h2 className="text-sm font-semibold text-foreground">{t("cogs.profit_margin_overview") || "Profit Margin Overview"}</h2>
+                  </div>
+
+                  {/* Average margins */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    {marginData.avgDinein > 0 && (
+                      <div className="rounded-lg border p-4 text-center space-y-2">
+                        <p className="text-xs text-muted-foreground">{t("cogs.avg_margin_dinein") || "Avg. Margin (Dine-in)"}</p>
+                        <p className={`text-3xl font-bold ${
+                          marginData.avgDinein >= 65 ? "text-success" : marginData.avgDinein >= 45 ? "text-warning" : "text-destructive"
+                        }`}>
+                          {marginData.avgDinein.toFixed(1)}%
+                        </p>
+                        <Progress
+                          value={Math.min(marginData.avgDinein, 100)}
+                          className={`h-2 bg-muted ${
+                            marginData.avgDinein >= 65 ? "[&>div]:bg-success" : marginData.avgDinein >= 45 ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"
+                          }`}
+                        />
+                      </div>
+                    )}
+                    {marginData.avgDelivery > 0 && (
+                      <div className="rounded-lg border p-4 text-center space-y-2">
+                        <p className="text-xs text-muted-foreground">{t("cogs.avg_margin_delivery") || "Avg. Margin (Delivery)"}</p>
+                        <p className={`text-3xl font-bold ${
+                          marginData.avgDelivery >= 65 ? "text-success" : marginData.avgDelivery >= 45 ? "text-warning" : "text-destructive"
+                        }`}>
+                          {marginData.avgDelivery.toFixed(1)}%
+                        </p>
+                        <Progress
+                          value={Math.min(marginData.avgDelivery, 100)}
+                          className={`h-2 bg-muted ${
+                            marginData.avgDelivery >= 65 ? "[&>div]:bg-success" : marginData.avgDelivery >= 45 ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"
+                          }`}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Health distribution */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="w-2.5 h-2.5 rounded-full bg-success inline-block" />
+                      <span className="text-muted-foreground">{t("cogs.healthy") || "Healthy"}: <span className="font-semibold text-foreground">{marginData.greenCount}</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="w-2.5 h-2.5 rounded-full bg-warning inline-block" />
+                      <span className="text-muted-foreground">{t("cogs.at_risk") || "At Risk"}: <span className="font-semibold text-foreground">{marginData.yellowCount}</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="w-2.5 h-2.5 rounded-full bg-destructive inline-block" />
+                      <span className="text-muted-foreground">{t("cogs.critical") || "Critical"}: <span className="font-semibold text-foreground">{marginData.redCount}</span></span>
+                    </div>
+                    <span className="text-xs text-muted-foreground ml-auto">{marginData.total} {t("cogs.products_label") || "products"}</span>
+                  </div>
+
+                  {/* Distribution bar */}
+                  <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-5">
+                    {marginData.greenCount > 0 && (
+                      <div className="bg-success transition-all" style={{ width: `${(marginData.greenCount / marginData.total) * 100}%` }} />
+                    )}
+                    {marginData.yellowCount > 0 && (
+                      <div className="bg-warning transition-all" style={{ width: `${(marginData.yellowCount / marginData.total) * 100}%` }} />
+                    )}
+                    {marginData.redCount > 0 && (
+                      <div className="bg-destructive transition-all" style={{ width: `${(marginData.redCount / marginData.total) * 100}%` }} />
+                    )}
+                  </div>
+
+                  {/* Category breakdown */}
+                  {marginData.categories.length > 0 && (
+                    <div className="space-y-2.5">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">{t("cogs.by_category") || "By Category"}</p>
+                      {marginData.categories.map((cat) => (
+                        <div key={cat.category}>
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="font-medium text-foreground truncate max-w-[60%]">{cat.category}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{cat.count} {t("cogs.products_label") || "products"}</span>
+                              <span className={`font-bold ${
+                                cat.avg >= 65 ? "text-success" : cat.avg >= 45 ? "text-warning" : "text-destructive"
+                              }`}>
+                                {cat.avg.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                          <Progress
+                            value={Math.min(cat.avg, 100)}
+                            className={`h-1.5 bg-muted ${
+                              cat.avg >= 65 ? "[&>div]:bg-success" : cat.avg >= 45 ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"
+                            }`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             ) : (
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-4">
-                    <BarChart3 className="w-4 h-4 text-accent" />
-                    <h2 className="text-sm font-semibold text-foreground">{t("finance.cash_flow_30d")}</h2>
+                    <PieChartIcon className="w-4 h-4 text-accent" />
+                    <h2 className="text-sm font-semibold text-foreground">{t("cogs.profit_margin_overview") || "Profit Margin Overview"}</h2>
                   </div>
-                  {hasChartData ? (
-                    <>
-                      <ChartContainer config={chartConfig} className="aspect-video max-h-[260px]">
-                        <BarChart data={cashFlowData} barGap={4} barCategoryGap="20%">
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-                          <XAxis dataKey="week" className="text-xs" tickLine={false} axisLine={false} />
-                          <YAxis tickFormatter={(v) => fmtShort(v)} className="text-xs" tickLine={false} axisLine={false} />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="inflows" name={t("finance.inflows")} radius={[4, 4, 0, 0]} fill="hsl(var(--success))" />
-                          <Bar dataKey="outflows" name={t("finance.outflows")} radius={[4, 4, 0, 0]} fill="hsl(var(--destructive))" />
-                        </BarChart>
-                      </ChartContainer>
-                      <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded-sm bg-success inline-block" /> {t("finance.inflows")}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> {t("finance.outflows")}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <BarChart3 className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                      <p className="text-sm text-muted-foreground">{t("finance.no_cash_flow")}</p>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <PieChartIcon className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">{t("cogs.no_products") || "No products configured yet"}</p>
+                  </div>
                 </CardContent>
               </Card>
             )}
