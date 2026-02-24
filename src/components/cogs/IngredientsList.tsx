@@ -128,17 +128,29 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
 
         if (!lineItems || lineItems.length === 0) continue;
 
-        // Match each ingredient to best line item by name
+        // Match each ingredient to best line item by name (score-based)
         for (const ingredient of ingredients) {
           const nameLower = ingredient.name.toLowerCase();
-          // Try exact-ish match first, then partial
-          const match = lineItems.find((li: any) =>
+          // Try exact full-name match first
+          let match = lineItems.find((li: any) =>
             li.description?.toLowerCase().includes(nameLower)
-          ) || lineItems.find((li: any) => {
-            // Try matching any word from the ingredient name
+          );
+
+          // If no exact match, find best partial match by word overlap score
+          if (!match) {
             const words = nameLower.split(/\s+/).filter((w: string) => w.length >= 3);
-            return words.some((word: string) => li.description?.toLowerCase().includes(word));
-          });
+            let bestScore = 0;
+            let bestMatch: any = null;
+            for (const li of lineItems) {
+              const desc = (li.description ?? "").toLowerCase();
+              const score = words.filter((word: string) => desc.includes(word)).length;
+              if (score > bestScore) {
+                bestScore = score;
+                bestMatch = li;
+              }
+            }
+            if (bestScore >= 1) match = bestMatch;
+          }
 
           if (match && match.unit_price) {
             // Compute real price per unit:
