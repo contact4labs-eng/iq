@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { IngredientModal } from "./IngredientModal";
 import type { Ingredient } from "@/hooks/useIngredients";
 
@@ -16,6 +17,7 @@ interface IngredientsListProps {
 }
 
 export function IngredientsList({ data, loading, categories, onRefresh }: IngredientsListProps) {
+  const { company } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -23,6 +25,7 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Ingredient | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
 
   const filtered = data.filter((i) => {
     const q = search.toLowerCase();
@@ -65,6 +68,73 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
     }
   };
 
+  /**
+   * Refresh all ingredient prices from the latest matching invoice line items.
+   * For each ingredient, searches invoice_line_items by name (ILIKE) and takes the most recent price.
+   */
+  const handleRefreshPrices = async () => {
+    if (!company?.id || data.length === 0) return;
+    setRefreshingPrices(true);
+    let updated = 0;
+
+    try {
+      for (const ingredient of data) {
+        // Search for matching line items
+        const { data: matches, error } = await supabase
+          .from("invoice_line_items")
+          .select(`
+            unit_price,
+            invoices!inner ( invoice_date, status, supplier_id )
+          `)
+          .eq("company_id", company.id)
+          .ilike("description", `%${ingredient.name}%`)
+          .not("unit_price", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (error || !matches || matches.length === 0) continue;
+
+        // Filter out rejected invoices and pick the latest
+        const validMatches = matches.filter(
+          (m: any) => m.invoices?.status !== "rejected"
+        );
+        if (validMatches.length === 0) continue;
+
+        const latestPrice = (validMatches[0] as any).unit_price;
+        if (latestPrice && latestPrice !== ingredient.price_per_unit) {
+          // Also try to get supplier name
+          let supplierName = ingredient.supplier_name;
+          const supplierId = (validMatches[0] as any).invoices?.supplier_id;
+          if (supplierId) {
+            const { data: sup } = await supabase
+              .from("suppliers")
+              .select("name")
+              .eq("id", supplierId)
+              .single();
+            if (sup?.name) supplierName = sup.name;
+          }
+
+          await supabase
+            .from("ingredients")
+            .update({ price_per_unit: latestPrice, supplier_name: supplierName })
+            .eq("id", ingredient.id);
+          updated++;
+        }
+      }
+
+      if (updated > 0) {
+        toast({ title: t("toast.success"), description: `${t("cogs.prices_refreshed")} (${updated})` });
+        onRefresh();
+      } else {
+        toast({ title: t("cogs.no_invoice_match"), description: t("cogs.no_invoice_match") });
+      }
+    } catch (err: unknown) {
+      toast({ title: t("toast.error"), description: err instanceof Error ? err.message : t("modal.unexpected_error"), variant: "destructive" });
+    } finally {
+      setRefreshingPrices(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -78,10 +148,23 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
             className="pl-9"
           />
         </div>
-        <Button onClick={handleAdd} className="gap-1.5 shrink-0">
-          <Plus className="w-4 h-4" />
-          {t("cogs.add_ingredient")}
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          {data.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleRefreshPrices}
+              disabled={refreshingPrices}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshingPrices ? "animate-spin" : ""}`} />
+              {t("cogs.refresh_prices")}
+            </Button>
+          )}
+          <Button onClick={handleAdd} className="gap-1.5">
+            <Plus className="w-4 h-4" />
+            {t("cogs.add_ingredient")}
+          </Button>
+        </div>
       </div>
 
       {/* Content */}

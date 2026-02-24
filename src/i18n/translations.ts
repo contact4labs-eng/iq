@@ -810,6 +810,17 @@ export const translations = {
   "cogs.col_margin_dinein": { el: "Κέρδος Καταστ.", en: "Dine-in Margin" },
   "cogs.col_margin_delivery": { el: "Κέρδος Deliv.", en: "Delivery Margin" },
 
+  // Invoice price lookup
+  "cogs.invoice_price_found": { el: "Βρέθηκε τιμή από τιμολόγια", en: "Price found in invoices" },
+  "cogs.use_price": { el: "Χρήση", en: "Use" },
+  "cogs.show_price_history": { el: "Ιστορικό τιμών ({n} εγγραφές)", en: "Price history ({n} entries)" },
+  "cogs.hide_price_history": { el: "Απόκρυψη ιστορικού", en: "Hide history" },
+  "cogs.auto_price_update": { el: "Αυτόματη ενημέρωση τιμών", en: "Auto-update prices" },
+  "cogs.auto_price_updated": { el: "Η τιμή ενημερώθηκε από τιμολόγιο", en: "Price updated from invoice" },
+  "cogs.refresh_prices": { el: "Ανανέωση τιμών από τιμολόγια", en: "Refresh prices from invoices" },
+  "cogs.prices_refreshed": { el: "Οι τιμές ενημερώθηκαν", en: "Prices refreshed" },
+  "cogs.no_invoice_match": { el: "Δεν βρέθηκαν αντιστοιχίες", en: "No matches found" },
+
   // Responsive nav
   "nav.more": { el: "Περισσότερα", en: "More" },
 } as const;
