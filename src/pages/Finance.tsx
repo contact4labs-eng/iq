@@ -32,14 +32,11 @@ import { SupplierPerformanceSection } from "@/components/invoices/analytics/Supp
 import { ExecutiveSummarySection } from "@/components/invoices/analytics/ExecutiveSummary";
 // CostAnalytics removed — expense breakdown only in Financial Overview
 import { PriceTrendAnalysis } from "@/components/analytics/PriceTrendAnalysis";
-import { ProfitMarginsTab } from "@/components/analytics/ProfitMarginsTab";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { seedDemoData } from "@/utils/seedDemoData";
-import {
-  type DateRangePreset, getDateRangeStart,
-} from "@/components/analytics/constants";
+import { type DateRangePreset } from "@/components/analytics/constants";
 
 const safe = (v: any): number => (v == null || isNaN(v)) ? 0 : Number(v);
 
@@ -182,20 +179,6 @@ const Finance = () => {
     [weeklyCashFlow]
   );
 
-  const filteredCostAnalytics = useMemo(() => {
-    if (!costAnalytics) return null;
-    const rangeStart = getDateRangeStart(dateRange);
-    if (!rangeStart) return costAnalytics;
-    return {
-      ...costAnalytics,
-      monthly_trends: (costAnalytics.monthly_trends ?? []).filter((m) => {
-        try {
-          return new Date(m.month) >= rangeStart;
-        } catch { return true; }
-      }),
-    };
-  }, [costAnalytics, dateRange]);
-
   // Determine if we're on an analytics tab (to show analytics KPIs vs finance KPIs)
   const isAnalyticsTab = activeTab !== "financial-overview";
 
@@ -315,10 +298,6 @@ const Finance = () => {
             <TabsTrigger value="price-analysis" className="gap-1.5">
               <Search className="w-4 h-4" />
               {t("analytics.tab_price_analysis")}
-            </TabsTrigger>
-            <TabsTrigger value="profit-margins" className="gap-1.5">
-              <PieChartIcon className="w-4 h-4" />
-              {t("analytics.tab_profit_margins")}
             </TabsTrigger>
           </TabsList>
 
@@ -607,19 +586,6 @@ const Finance = () => {
             )}
           </TabsContent>
 
-          {/* ═══════ Profit & Margins Tab ═══════ */}
-          <TabsContent value="profit-margins">
-            {analyticsLoading ? (
-              <Skeleton className="h-64 rounded-lg" />
-            ) : (
-              <ProfitMarginsTab
-                priceData={priceVolatility}
-                suppliers={suppliers}
-                costAnalytics={filteredCostAnalytics}
-                totalSpend={executive?.total_spend ?? 0}
-              />
-            )}
-          </TabsContent>
         </Tabs>
       </div>
 
