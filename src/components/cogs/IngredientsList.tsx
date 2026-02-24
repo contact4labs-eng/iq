@@ -122,7 +122,7 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
         // Get all line items from this invoice
         const { data: lineItems } = await supabase
           .from("invoice_line_items")
-          .select("description, unit_price")
+          .select("description, unit_price, quantity, line_total")
           .eq("invoice_id", invoices[0].id)
           .not("unit_price", "is", null);
 
@@ -140,15 +140,31 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
             return words.some((word: string) => li.description?.toLowerCase().includes(word));
           });
 
-          if (match && match.unit_price && match.unit_price !== ingredient.price_per_unit) {
-            await supabase
-              .from("ingredients")
-              .update({
-                price_per_unit: match.unit_price,
-                supplier_name: suppliers[0].name,
-              })
-              .eq("id", ingredient.id);
-            updated++;
+          if (match && match.unit_price) {
+            // Compute real price per unit:
+            // When quantity is NULL, unit_price holds the qty, so price = line_total / unit_price
+            const qty = match.quantity ?? 0;
+            const up = match.unit_price ?? 0;
+            const total = match.line_total ?? 0;
+            let realPrice: number;
+            if (qty > 0 && total > 0) {
+              realPrice = Math.round((total / qty) * 100) / 100;
+            } else if (qty === 0 && up > 0 && total > 0) {
+              realPrice = Math.round((total / up) * 100) / 100;
+            } else {
+              realPrice = up;
+            }
+
+            if (realPrice !== ingredient.price_per_unit) {
+              await supabase
+                .from("ingredients")
+                .update({
+                  price_per_unit: realPrice,
+                  supplier_name: suppliers[0].name,
+                })
+                .eq("id", ingredient.id);
+              updated++;
+            }
           }
         }
       }
@@ -159,6 +175,8 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
           .from("invoice_line_items")
           .select(`
             unit_price,
+            quantity,
+            line_total,
             invoices!inner ( invoice_date, status, supplier_id )
           `)
           .eq("invoices.company_id", company.id)
@@ -174,7 +192,20 @@ export function IngredientsList({ data, loading, categories, onRefresh }: Ingred
         );
         if (validMatches.length === 0) continue;
 
-        const latestPrice = (validMatches[0] as any).unit_price;
+        // Compute real price per unit
+        const m0 = validMatches[0] as any;
+        const qty0 = m0.quantity ?? 0;
+        const up0 = m0.unit_price ?? 0;
+        const total0 = m0.line_total ?? 0;
+        let latestPrice: number;
+        if (qty0 > 0 && total0 > 0) {
+          latestPrice = Math.round((total0 / qty0) * 100) / 100;
+        } else if (qty0 === 0 && up0 > 0 && total0 > 0) {
+          latestPrice = Math.round((total0 / up0) * 100) / 100;
+        } else {
+          latestPrice = up0;
+        }
+
         if (latestPrice && latestPrice !== ingredient.price_per_unit) {
           let newSupplierName = ingredient.supplier_name;
           const supplierId = (validMatches[0] as any).invoices?.supplier_id;

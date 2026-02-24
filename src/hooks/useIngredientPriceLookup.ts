@@ -8,10 +8,39 @@ export interface InvoicePriceMatch {
   unit_price: number;
   quantity: number;
   line_total: number;
+  /** The actual computed price per unit (line_total / quantity when available) */
+  price_per_unit: number;
   invoice_id: string;
   invoice_number: string | null;
   invoice_date: string | null;
   supplier_name: string | null;
+}
+
+/**
+ * Compute the real price per unit from invoice line item data.
+ * When quantity is NULL/0, the unit_price field often contains the quantity (kg),
+ * so the real price = line_total / unit_price.
+ * When quantity is set, price = line_total / quantity.
+ * Falls back to unit_price if line_total is missing.
+ */
+function computePricePerUnit(quantity: number | null, unitPrice: number | null, lineTotal: number | null): number {
+  const qty = quantity ?? 0;
+  const up = unitPrice ?? 0;
+  const total = lineTotal ?? 0;
+
+  // If we have both quantity and line_total, use those
+  if (qty > 0 && total > 0) {
+    return Math.round((total / qty) * 100) / 100;
+  }
+
+  // If quantity is NULL/0 but unit_price and line_total are set,
+  // unit_price likely holds the quantity, so real price = line_total / unit_price
+  if (qty === 0 && up > 0 && total > 0) {
+    return Math.round((total / up) * 100) / 100;
+  }
+
+  // Fallback: use unit_price as-is
+  return up;
 }
 
 /**
@@ -90,6 +119,7 @@ export function useIngredientPriceLookup() {
           unit_price: row.unit_price ?? 0,
           quantity: row.quantity ?? 0,
           line_total: row.line_total ?? 0,
+          price_per_unit: computePricePerUnit(row.quantity, row.unit_price, row.line_total),
           invoice_id: row.invoice_id,
           invoice_number: latestInvoice.invoice_number ?? null,
           invoice_date: latestInvoice.invoice_date ?? null,
@@ -169,6 +199,7 @@ export function useIngredientPriceLookup() {
             unit_price: row.unit_price ?? 0,
             quantity: row.quantity ?? 0,
             line_total: row.line_total ?? 0,
+            price_per_unit: computePricePerUnit(row.quantity, row.unit_price, row.line_total),
             invoice_id: row.invoice_id,
             invoice_number: row.invoices?.invoice_number ?? null,
             invoice_date: row.invoices?.invoice_date ?? null,
@@ -195,7 +226,7 @@ export function useIngredientPriceLookup() {
     [companyId]
   );
 
-  const latestPrice = results.length > 0 ? results[0].unit_price : null;
+  const latestPrice = results.length > 0 ? results[0].price_per_unit : null;
   const latestSupplier = results.length > 0 ? results[0].supplier_name : null;
   const clearResults = useCallback(() => setResults([]), []);
 

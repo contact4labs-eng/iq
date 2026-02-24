@@ -97,7 +97,7 @@ export function IngredientModal({ open, onOpenChange, onSuccess, editing, existi
 
   /** Apply a price match to the form */
   const applyPriceMatch = (match: InvoicePriceMatch) => {
-    setPricePerUnit(String(match.unit_price));
+    setPricePerUnit(String(match.price_per_unit));
     // Also set the ingredient name from the invoice description if empty
     if (!name.trim() && match.description) {
       setName(match.description);
@@ -225,11 +225,11 @@ export function IngredientModal({ open, onOpenChange, onSuccess, editing, existi
                           {match.description}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {t("cogs.qty")}: {match.quantity} · {t("cogs.total")}: €{match.line_total?.toFixed(2)}
+                          {t("cogs.qty")}: {match.quantity || match.unit_price} · {t("cogs.total")}: €{match.line_total?.toFixed(2)}
                         </div>
                       </div>
                       <div className="text-right shrink-0 ml-3">
-                        <div className="text-sm font-mono font-semibold">€{match.unit_price.toFixed(2)}</div>
+                        <div className="text-sm font-mono font-semibold">€{match.price_per_unit.toFixed(2)}/kg</div>
                         <div className="text-xs text-blue-600 dark:text-blue-400">{t("cogs.use_price")}</div>
                       </div>
                     </div>
