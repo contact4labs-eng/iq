@@ -12,11 +12,13 @@ import { IngredientsList } from "@/components/cogs/IngredientsList";
 import { ProductsList } from "@/components/cogs/ProductsList";
 import { MarginThresholdSettings } from "@/components/cogs/MarginThresholdSettings";
 import { COGSDashboard } from "@/components/cogs/COGSDashboard";
+import { PricingAdvisor, PricingAdvisorFAB } from "@/components/cogs/PricingAdvisor";
 
 function COGS() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("ingredients");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [pricingAdvisorOpen, setPricingAdvisorOpen] = useState(false);
   const refresh = () => setRefreshKey((k) => k + 1);
 
   const {
@@ -134,6 +136,19 @@ function COGS() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Pricing Advisor FAB + Drawer */}
+        <PricingAdvisorFAB onClick={() => setPricingAdvisorOpen(true)} />
+        <PricingAdvisor
+          open={pricingAdvisorOpen}
+          onOpenChange={setPricingAdvisorOpen}
+          products={products}
+          ingredients={ingredients}
+          costMap={costMap}
+          thresholds={thresholds}
+          platforms={platforms}
+          getMarginColor={getMarginColor}
+        />
       </div>
     </DashboardLayout>
   );

@@ -913,6 +913,28 @@ export const translations = {
 
   // Toast extras
   "toast.export_truncated": { el: "Η εξαγωγή περιορίστηκε", en: "Export truncated" },
+
+  // Pricing Advisor
+  "pricing.title": { el: "Σύμβουλος Τιμολόγησης", en: "Pricing Advisor" },
+  "pricing.subtitle": { el: "Ανάλυση τιμών, κερδών και συστάσεις βελτιστοποίησης.", en: "Price analysis, margin insights, and optimization advice." },
+  "pricing.fab_label": { el: "Τιμολόγηση", en: "Pricing" },
+  "pricing.tab_overview": { el: "Επισκόπηση", en: "Overview" },
+  "pricing.tab_single": { el: "Ανά Προϊόν", en: "Per Product" },
+  "pricing.critical": { el: "Κρίσιμα", en: "Critical" },
+  "pricing.warning": { el: "Προσοχή", en: "Warning" },
+  "pricing.healthy": { el: "Υγιή", en: "Healthy" },
+  "pricing.potential_uplift": { el: "Δυνητική αύξηση εσόδων αν εφαρμοστούν οι προτεινόμενες τιμές", en: "Potential revenue uplift if suggested prices are applied" },
+  "pricing.per_item": { el: "ανά τεμάχιο", en: "per item" },
+  "pricing.search": { el: "Αναζήτηση προϊόντος...", en: "Search product..." },
+  "pricing.no_products": { el: "Δεν βρέθηκαν προϊόντα", en: "No products found" },
+  "pricing.select_product": { el: "Επιλέξτε προϊόν", en: "Select a product" },
+  "pricing.select_prompt": { el: "Επιλέξτε ένα προϊόν για αναλυτική αξιολόγηση τιμών.", en: "Select a product for detailed pricing analysis." },
+  "pricing.cost": { el: "Κόστος", en: "Cost" },
+  "pricing.target_margin": { el: "Στόχος Κέρδους", en: "Target Margin" },
+  "pricing.price_comparison": { el: "Σύγκριση Τιμών", en: "Price Comparison" },
+  "pricing.suggested": { el: "Προτεινόμενη", en: "Suggested" },
+  "pricing.delivery_gap": { el: "Ανάλυση Πλατφορμών Delivery", en: "Delivery Platform Analysis" },
+  "pricing.advice": { el: "Συμβουλές", en: "Advice" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
