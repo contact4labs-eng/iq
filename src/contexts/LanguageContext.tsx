@@ -8,7 +8,7 @@ export type { TranslationKey };
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey | (string & Record<never, never>)) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -24,8 +24,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("invoiceiq-lang", lang);
   }, []);
 
-  const t = useCallback((key: TranslationKey): string => {
-    const entry = translations[key];
+  const t = useCallback((key: TranslationKey | (string & Record<never, never>)): string => {
+    const entry = (translations as Record<string, { el: string; en: string }>)[key];
     if (!entry) return key;
     return entry[language] || entry.el;
   }, [language]);

@@ -937,5 +937,7 @@ export const translations = {
   "pricing.advice": { el: "Συμβουλές", en: "Advice" },
 } as const;
 
+// Derive translation key type from the translations object.
+// Every key in the object above is a valid TranslationKey.
 export type TranslationKey = keyof typeof translations;
 
