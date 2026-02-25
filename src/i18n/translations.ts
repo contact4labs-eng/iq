@@ -904,15 +904,15 @@ export const translations = {
   "nav.more": { el: "Περισσότερα", en: "More" },
 
   // Dashboard extras
-  "dashboard.no_company_title": { el: "Δεν υπάρχει συνδεδεμένη εταιρεία", en: "No company linked to your account" },
-  "dashboard.no_company_desc": { el: "Επικοινωνήστε με την υποστήριξη ή εγγραφείτε ξανά.", en: "Please contact support or re-register to create your company profile." },
+  "dashboard.no_company_title": { el: "Δεν βρέθηκε εταιρεία", en: "No company found" },
+  "dashboard.no_company_desc": { el: "Παρακαλώ επικοινωνήστε με τον διαχειριστή", en: "Please contact the administrator" },
 
   // Errors
   "errors.page_not_found": { el: "Η σελίδα δεν βρέθηκε", en: "Page not found" },
-  "errors.return_home": { el: "Επιστροφή στην αρχική", en: "Return to home" },
+  "errors.return_home": { el: "Επιστροφή στην αρχική", en: "Return home" },
 
   // Toast extras
-  "toast.export_truncated": { el: "Η εξαγωγή περικόπηκε", en: "Export truncated" },
+  "toast.export_truncated": { el: "Η εξαγωγή περιορίστηκε", en: "Export truncated" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
