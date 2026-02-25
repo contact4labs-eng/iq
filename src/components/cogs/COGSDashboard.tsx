@@ -1,23 +1,49 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, Legend,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from "recharts";
 import {
-  TrendingUp, TrendingDown, AlertTriangle, Package,
-  DollarSign, ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  Package,
+  DollarSign,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DeliveryPlatformManager } from "./DeliveryPlatformManager";
 import type { Product } from "@/hooks/useProducts";
 import type { Ingredient } from "@/hooks/useIngredients";
+import type { DeliveryPlatform } from "@/hooks/useDeliveryPlatforms";
 
 interface COGSDashboardProps {
   products: Product[];
   ingredients: Ingredient[];
   costMap: Map<string, number>;
   getMarginColor: (category: string, marginPercent: number) => "green" | "yellow" | "red";
+  platforms: DeliveryPlatform[];
+  onAddPlatform: (name: string, commission: number) => Promise<void>;
+  onUpdatePlatform: (id: string, updates: { name?: string; commission_percent?: number }) => Promise<void>;
+  onDeletePlatform: (id: string) => Promise<void>;
 }
 
 const COLORS = {
@@ -37,39 +63,67 @@ function marginPercent(sellingPrice: number, cost: number): number {
   return ((sellingPrice - cost) / sellingPrice) * 100;
 }
 
-export function COGSDashboard({ products, ingredients, costMap, getMarginColor }: COGSDashboardProps) {
+function deliveryMarginPercent(sellingPrice: number, cost: number, commissionPercent: number): number {
+  if (sellingPrice <= 0) return 0;
+  const netRevenue = sellingPrice * (1 - commissionPercent / 100);
+  return ((netRevenue - cost) / sellingPrice) * 100;
+}
+
+export function COGSDashboard({
+  products,
+  ingredients,
+  costMap,
+  getMarginColor,
+  platforms,
+  onAddPlatform,
+  onUpdatePlatform,
+  onDeletePlatform,
+}: COGSDashboardProps) {
   const { t } = useLanguage();
+  const [selectedPlatformId, setSelectedPlatformId] = useState<string>("none");
+
+  const selectedCommission = useMemo(() => {
+    if (selectedPlatformId === "none") return 0;
+    const platform = platforms.find((p) => p.id === selectedPlatformId);
+    return platform?.commission_percent ?? 0;
+  }, [selectedPlatformId, platforms]);
+
+  const selectedPlatformName = useMemo(() => {
+    if (selectedPlatformId === "none") return null;
+    return platforms.find((p) => p.id === selectedPlatformId)?.name ?? null;
+  }, [selectedPlatformId, platforms]);
 
   const analytics = useMemo(() => {
-    // Product margin data
     const productData = products.map((p) => {
       const cost = costMap.get(p.id) ?? 0;
       const mDinein = marginPercent(p.selling_price_dinein, cost);
-      const mDelivery = marginPercent(p.selling_price_delivery, cost);
+      const mDelivery = deliveryMarginPercent(p.selling_price_delivery, cost, selectedCommission);
       const colorDinein = p.selling_price_dinein > 0 ? getMarginColor(p.category, mDinein) : "red";
       const colorDelivery = p.selling_price_delivery > 0 ? getMarginColor(p.category, mDelivery) : "red";
       return { ...p, cost, mDinein, mDelivery, colorDinein, colorDelivery };
     });
 
-    // KPI: Average margin (dine-in, only products with price > 0)
     const withDinein = productData.filter((p) => p.selling_price_dinein > 0);
-    const avgMarginDinein = withDinein.length > 0
-      ? withDinein.reduce((sum, p) => sum + p.mDinein, 0) / withDinein.length
-      : 0;
+    const avgMarginDinein =
+      withDinein.length > 0
+        ? withDinein.reduce((sum, p) => sum + p.mDinein, 0) / withDinein.length
+        : 0;
 
-    // KPI: Average margin (delivery)
     const withDelivery = productData.filter((p) => p.selling_price_delivery > 0);
-    const avgMarginDelivery = withDelivery.length > 0
-      ? withDelivery.reduce((sum, p) => sum + p.mDelivery, 0) / withDelivery.length
-      : 0;
+    const avgMarginDelivery =
+      withDelivery.length > 0
+        ? withDelivery.reduce((sum, p) => sum + p.mDelivery, 0) / withDelivery.length
+        : 0;
 
-    // KPI: Products at risk (red margin on either channel)
-    const atRisk = productData.filter((p) => p.colorDinein === "red" || p.colorDelivery === "red");
+    const atRisk = productData.filter(
+      (p) => p.colorDinein === "red" || p.colorDelivery === "red"
+    );
 
-    // KPI: Total ingredient cost (sum all ingredient prices)
-    const totalIngredientValue = ingredients.reduce((sum, ing) => sum + (ing.price_per_unit ?? 0), 0);
+    const totalIngredientValue = ingredients.reduce(
+      (sum, ing) => sum + (ing.price_per_unit ?? 0),
+      0
+    );
 
-    // Margin distribution (dine-in): green / yellow / red counts
     const distribution = { green: 0, yellow: 0, red: 0 };
     for (const p of productData) {
       if (p.selling_price_dinein > 0) {
@@ -77,7 +131,6 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
       }
     }
 
-    // Category breakdown: avg margin by category
     const categoryMap = new Map<string, { margins: number[]; count: number }>();
     for (const p of productData) {
       if (p.selling_price_dinein <= 0) continue;
@@ -87,18 +140,18 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
       entry.margins.push(p.mDinein);
       entry.count++;
     }
-    const categoryData = Array.from(categoryMap.entries()).map(([name, data]) => {
-      const avg = data.margins.reduce((s, m) => s + m, 0) / data.margins.length;
-      return { name, avgMargin: Math.round(avg * 10) / 10, count: data.count };
-    }).sort((a, b) => b.avgMargin - a.avgMargin);
+    const categoryData = Array.from(categoryMap.entries())
+      .map(([name, data]) => {
+        const avg = data.margins.reduce((s, m) => s + m, 0) / data.margins.length;
+        return { name, avgMargin: Math.round(avg * 10) / 10, count: data.count };
+      })
+      .sort((a, b) => b.avgMargin - a.avgMargin);
 
-    // Top 5 highest-cost products
     const highestCost = [...productData]
       .filter((p) => p.cost > 0)
       .sort((a, b) => b.cost - a.cost)
       .slice(0, 5);
 
-    // Lowest margin products (at risk, sorted by margin ascending)
     const lowestMargin = [...productData]
       .filter((p) => p.selling_price_dinein > 0)
       .sort((a, b) => a.mDinein - b.mDinein)
@@ -115,7 +168,7 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
       highestCost,
       lowestMargin,
     };
-  }, [products, ingredients, costMap, getMarginColor, t]);
+  }, [products, ingredients, costMap, getMarginColor, selectedCommission, t]);
 
   const distributionData = [
     { name: t("cogs.dash_healthy"), value: analytics.distribution.green, color: COLORS.green },
@@ -130,6 +183,10 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
       </div>
     );
   }
+
+  const deliveryMarginLabel = selectedPlatformName
+    ? `${t("cogs.col_margin_delivery")} (${selectedPlatformName})`
+    : t("cogs.col_margin_delivery");
 
   return (
     <div className="space-y-6">
@@ -166,12 +223,14 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
         <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "p-2 rounded-lg",
-                analytics.atRisk.length > 0
-                  ? "bg-red-100 dark:bg-red-900/30"
-                  : "bg-green-100 dark:bg-green-900/30"
-              )}>
+              <div
+                className={cn(
+                  "p-2 rounded-lg",
+                  analytics.atRisk.length > 0
+                    ? "bg-red-100 dark:bg-red-900/30"
+                    : "bg-green-100 dark:bg-green-900/30"
+                )}
+              >
                 {analytics.atRisk.length > 0 ? (
                   <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 ) : (
@@ -226,12 +285,19 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
                       <Cell key={i} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`${value} ${t("cogs.dash_products_label")}`, ""]} />
+                  <Tooltip
+                    formatter={(value: number) => [
+                      `${value} ${t("cogs.dash_products_label")}`,
+                      "",
+                    ]}
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-muted-foreground text-sm text-center py-8">{t("cogs.dash_no_data")}</p>
+              <p className="text-muted-foreground text-sm text-center py-8">
+                {t("cogs.dash_no_data")}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -244,27 +310,71 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
           <CardContent>
             {analytics.categoryData.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={analytics.categoryData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                <BarChart
+                  data={analytics.categoryData}
+                  layout="vertical"
+                  margin={{ left: 10, right: 20 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                   <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(value: number) => [`${value}%`, t("cogs.dash_avg_margin")]} />
+                  <Tooltip
+                    formatter={(value: number) => [`${value}%`, t("cogs.dash_avg_margin")]}
+                  />
                   <Bar dataKey="avgMargin" radius={[0, 4, 4, 0]}>
                     {analytics.categoryData.map((entry, i) => (
                       <Cell
                         key={i}
-                        fill={entry.avgMargin >= 65 ? COLORS.green : entry.avgMargin >= 45 ? COLORS.yellow : COLORS.red}
+                        fill={
+                          entry.avgMargin >= 65
+                            ? COLORS.green
+                            : entry.avgMargin >= 45
+                            ? COLORS.yellow
+                            : COLORS.red
+                        }
                       />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-muted-foreground text-sm text-center py-8">{t("cogs.dash_no_data")}</p>
+              <p className="text-muted-foreground text-sm text-center py-8">
+                {t("cogs.dash_no_data")}
+              </p>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Delivery Platforms Manager */}
+      <DeliveryPlatformManager
+        platforms={platforms}
+        onAdd={onAddPlatform}
+        onUpdate={onUpdatePlatform}
+        onDelete={onDeletePlatform}
+      />
+
+      {/* Platform Selector for margin tables */}
+      {platforms.length > 0 && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-muted-foreground">
+            {t("cogs.select_platform")}:
+          </span>
+          <Select value={selectedPlatformId} onValueChange={setSelectedPlatformId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t("cogs.no_commission")}</SelectItem>
+              {platforms.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} ({p.commission_percent}%)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Lowest Margin Products */}
       {analytics.lowestMargin.length > 0 && (
@@ -280,13 +390,27 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="text-left px-4 py-2 font-semibold">{t("cogs.col_product")}</th>
-                    <th className="text-left px-4 py-2 font-semibold">{t("cogs.product_category")}</th>
-                    <th className="text-right px-4 py-2 font-semibold">{t("cogs.col_cost")}</th>
-                    <th className="text-right px-4 py-2 font-semibold">{t("cogs.col_dinein")}</th>
-                    <th className="text-center px-4 py-2 font-semibold">{t("cogs.col_margin_dinein")}</th>
-                    <th className="text-right px-4 py-2 font-semibold">{t("cogs.col_delivery")}</th>
-                    <th className="text-center px-4 py-2 font-semibold">{t("cogs.col_margin_delivery")}</th>
+                    <th className="text-left px-4 py-2 font-semibold">
+                      {t("cogs.col_product")}
+                    </th>
+                    <th className="text-left px-4 py-2 font-semibold">
+                      {t("cogs.product_category")}
+                    </th>
+                    <th className="text-right px-4 py-2 font-semibold">
+                      {t("cogs.col_cost")}
+                    </th>
+                    <th className="text-right px-4 py-2 font-semibold">
+                      {t("cogs.col_dinein")}
+                    </th>
+                    <th className="text-center px-4 py-2 font-semibold">
+                      {t("cogs.col_margin_dinein")}
+                    </th>
+                    <th className="text-right px-4 py-2 font-semibold">
+                      {t("cogs.col_delivery")}
+                    </th>
+                    <th className="text-center px-4 py-2 font-semibold">
+                      {deliveryMarginLabel}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -294,26 +418,46 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
                     <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-2 font-medium">{p.name}</td>
                       <td className="px-4 py-2 text-muted-foreground">{p.category}</td>
-                      <td className="px-4 py-2 text-right font-mono">€{p.cost.toFixed(2)}</td>
                       <td className="px-4 py-2 text-right font-mono">
-                        {p.selling_price_dinein > 0 ? `€${p.selling_price_dinein.toFixed(2)}` : "—"}
+                        €{p.cost.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono">
+                        {p.selling_price_dinein > 0
+                          ? `€${p.selling_price_dinein.toFixed(2)}`
+                          : "—"}
                       </td>
                       <td className="px-4 py-2 text-center">
                         {p.selling_price_dinein > 0 ? (
-                          <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold", colorClasses[p.colorDinein])}>
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded-full text-xs font-semibold",
+                              colorClasses[p.colorDinein]
+                            )}
+                          >
                             {p.mDinein.toFixed(1)}%
                           </span>
-                        ) : "—"}
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-4 py-2 text-right font-mono">
-                        {p.selling_price_delivery > 0 ? `€${p.selling_price_delivery.toFixed(2)}` : "—"}
+                        {p.selling_price_delivery > 0
+                          ? `€${p.selling_price_delivery.toFixed(2)}`
+                          : "—"}
                       </td>
                       <td className="px-4 py-2 text-center">
                         {p.selling_price_delivery > 0 ? (
-                          <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold", colorClasses[p.colorDelivery])}>
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded-full text-xs font-semibold",
+                              colorClasses[p.colorDelivery]
+                            )}
+                          >
                             {p.mDelivery.toFixed(1)}%
                           </span>
-                        ) : "—"}
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -334,13 +478,27 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="text-left px-4 py-2.5 font-semibold">{t("cogs.col_product")}</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">{t("cogs.product_category")}</th>
-                  <th className="text-right px-4 py-2.5 font-semibold">{t("cogs.col_cost")}</th>
-                  <th className="text-right px-4 py-2.5 font-semibold">{t("cogs.col_dinein")}</th>
-                  <th className="text-center px-4 py-2.5 font-semibold">{t("cogs.col_margin_dinein")}</th>
-                  <th className="text-right px-4 py-2.5 font-semibold">{t("cogs.col_delivery")}</th>
-                  <th className="text-center px-4 py-2.5 font-semibold">{t("cogs.col_margin_delivery")}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">
+                    {t("cogs.col_product")}
+                  </th>
+                  <th className="text-left px-4 py-2.5 font-semibold">
+                    {t("cogs.product_category")}
+                  </th>
+                  <th className="text-right px-4 py-2.5 font-semibold">
+                    {t("cogs.col_cost")}
+                  </th>
+                  <th className="text-right px-4 py-2.5 font-semibold">
+                    {t("cogs.col_dinein")}
+                  </th>
+                  <th className="text-center px-4 py-2.5 font-semibold">
+                    {t("cogs.col_margin_dinein")}
+                  </th>
+                  <th className="text-right px-4 py-2.5 font-semibold">
+                    {t("cogs.col_delivery")}
+                  </th>
+                  <th className="text-center px-4 py-2.5 font-semibold">
+                    {deliveryMarginLabel}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -348,26 +506,46 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
                   <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-2.5 font-medium">{p.name}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p.category}</td>
-                    <td className="px-4 py-2.5 text-right font-mono">€{p.cost.toFixed(2)}</td>
                     <td className="px-4 py-2.5 text-right font-mono">
-                      {p.selling_price_dinein > 0 ? `€${p.selling_price_dinein.toFixed(2)}` : "—"}
+                      €{p.cost.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono">
+                      {p.selling_price_dinein > 0
+                        ? `€${p.selling_price_dinein.toFixed(2)}`
+                        : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {p.selling_price_dinein > 0 ? (
-                        <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold", colorClasses[p.colorDinein])}>
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-full text-xs font-semibold",
+                            colorClasses[p.colorDinein]
+                          )}
+                        >
                           {p.mDinein.toFixed(1)}%
                         </span>
-                      ) : "—"}
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono">
-                      {p.selling_price_delivery > 0 ? `€${p.selling_price_delivery.toFixed(2)}` : "—"}
+                      {p.selling_price_delivery > 0
+                        ? `€${p.selling_price_delivery.toFixed(2)}`
+                        : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {p.selling_price_delivery > 0 ? (
-                        <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold", colorClasses[p.colorDelivery])}>
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-full text-xs font-semibold",
+                            colorClasses[p.colorDelivery]
+                          )}
+                        >
                           {p.mDelivery.toFixed(1)}%
                         </span>
-                      ) : "—"}
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -378,4 +556,4 @@ export function COGSDashboard({ products, ingredients, costMap, getMarginColor }
       </Card>
     </div>
   );
-}
+                            }
