@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Sheet,
@@ -596,16 +597,19 @@ export function PricingAdvisor({
 export function PricingAdvisorFAB({ onClick }: { onClick: () => void }) {
   const { t } = useLanguage();
 
-  return (
+  // Use portal to render on document.body so that ancestor transforms
+  // (e.g. animate-fade-in on <main>) don't break fixed positioning.
+  return createPortal(
     <button
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-3 text-white shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-105 transition-all duration-200 group"
+      className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-3 text-white shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-105 transition-all duration-200 group"
       title={t("pricing.title")}
     >
       <Lightbulb className="w-5 h-5" />
       <span className="text-sm font-medium max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">
         {t("pricing.fab_label")}
       </span>
-    </button>
+    </button>,
+    document.body
   );
 }
