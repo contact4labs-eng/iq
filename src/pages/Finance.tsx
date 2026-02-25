@@ -340,6 +340,9 @@ const Finance = () => {
 
           {/* ═══════ Financial Overview Tab ═══════ */}
           <TabsContent value="financial-overview" className="space-y-6">
+            {/* Profitability Calendar — first */}
+            <ProfitabilityCalendar refreshKey={refreshKey} />
+
             {/* Revenue vs Expenses Trends */}
             <Card>
               <CardContent className="p-5">
@@ -681,8 +684,6 @@ const Finance = () => {
               </Card>
             )}
 
-            {/* Profitability Calendar */}
-            <ProfitabilityCalendar refreshKey={refreshKey} />
           </TabsContent>
 
           {/* ═══════ Supplier Performance Tab ═══════ */}

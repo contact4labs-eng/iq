@@ -49,9 +49,14 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
   const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month + 1, 0).getDate();
-  const monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const monthEndRaw = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  // Never fetch beyond today — prevents showing data on future dates
+  const monthEnd = monthEndRaw > todayStr ? todayStr : monthEndRaw;
 
   useEffect(() => {
     if (!companyId) return;
@@ -107,7 +112,11 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
   }, [year, month, lastDay]);
 
   const goToPrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const goToNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+  const isFutureMonth = year > today.getFullYear() || (year === today.getFullYear() && month >= today.getMonth());
+  const goToNextMonth = () => {
+    if (!isFutureMonth) setCurrentDate(new Date(year, month + 1, 1));
+  };
 
   const selectedData = selectedDay ? dayMap.get(selectedDay) : null;
 
@@ -137,7 +146,7 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
             <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
               {t(MONTH_KEYS[month])} {year}
             </span>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToNextMonth}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToNextMonth} disabled={isFutureMonth}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -166,26 +175,29 @@ export function ProfitabilityCalendar({ refreshKey = 0 }: ProfitabilityCalendarP
                 const profit = data ? data.profit : 0;
                 const hasData = !!data;
                 const isSelected = selectedDay === dateStr;
-                const today = new Date();
                 const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                const isFutureDay = isCurrentMonth && day > today.getDate();
 
                 return (
                   <button
                     key={dateStr}
-                    onClick={() => setSelectedDay(isSelected ? null : dateStr)}
+                    onClick={() => !isFutureDay && setSelectedDay(isSelected ? null : dateStr)}
+                    disabled={isFutureDay}
                     className={cn(
                       "aspect-square rounded-md flex flex-col items-center justify-center text-xs transition-all border",
                       isSelected ? "border-accent ring-1 ring-accent" : "border-transparent",
-                      hasData
-                        ? profit > 0 ? "bg-success/15 text-success hover:bg-success/25"
-                          : profit < 0 ? "bg-destructive/15 text-destructive hover:bg-destructive/25"
-                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                        : "bg-card text-muted-foreground/50 hover:bg-muted/30",
+                      isFutureDay
+                        ? "bg-card text-muted-foreground/25 cursor-default"
+                        : hasData
+                          ? profit > 0 ? "bg-success/15 text-success hover:bg-success/25"
+                            : profit < 0 ? "bg-destructive/15 text-destructive hover:bg-destructive/25"
+                            : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                          : "bg-card text-muted-foreground/50 hover:bg-muted/30",
                       isToday && "ring-1 ring-accent/50"
                     )}
                   >
                     <span className={cn("font-medium", isToday && "font-bold text-accent")}>{day}</span>
-                    {hasData && (
+                    {hasData && !isFutureDay && (
                       <span className="text-[9px] font-semibold leading-tight mt-0.5">
                         {profit >= 0 ? "+" : ""}{fmt(profit)}
                       </span>
