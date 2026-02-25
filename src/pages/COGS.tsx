@@ -6,6 +6,7 @@ import { ShoppingCart, Package, BarChart3 } from "lucide-react";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useProducts } from "@/hooks/useProducts";
 import { useMarginThresholds } from "@/hooks/useMarginThresholds";
+import { useDeliveryPlatforms } from "@/hooks/useDeliveryPlatforms";
 import { calculateAllProductCosts } from "@/hooks/useProductCost";
 import { IngredientsList } from "@/components/cogs/IngredientsList";
 import { ProductsList } from "@/components/cogs/ProductsList";
@@ -18,9 +19,30 @@ function COGS() {
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = () => setRefreshKey((k) => k + 1);
 
-  const { data: ingredients, loading: ingredientsLoading, categories: ingredientCategories } = useIngredients(refreshKey);
-  const { data: products, loading: productsLoading, categories: productCategories } = useProducts(refreshKey);
-  const { data: thresholds, getMarginColor, refetch: refetchThresholds } = useMarginThresholds(refreshKey);
+  const {
+    data: ingredients,
+    loading: ingredientsLoading,
+    categories: ingredientCategories,
+  } = useIngredients(refreshKey);
+
+  const {
+    data: products,
+    loading: productsLoading,
+    categories: productCategories,
+  } = useProducts(refreshKey);
+
+  const {
+    data: thresholds,
+    getMarginColor,
+    refetch: refetchThresholds,
+  } = useMarginThresholds(refreshKey);
+
+  const {
+    data: platforms,
+    addPlatform,
+    updatePlatform,
+    deletePlatform,
+  } = useDeliveryPlatforms(refreshKey);
 
   // Calculate costs
   const [costMap, setCostMap] = useState<Map<string, number>>(new Map());
@@ -85,6 +107,7 @@ function COGS() {
               ingredients={ingredients}
               costMap={costMap}
               onRefresh={refresh}
+              platforms={platforms}
             />
           </TabsContent>
 
@@ -95,11 +118,18 @@ function COGS() {
                 ingredients={ingredients}
                 costMap={costMap}
                 getMarginColor={getMarginColor}
+                platforms={platforms}
+                onAddPlatform={addPlatform}
+                onUpdatePlatform={updatePlatform}
+                onDeletePlatform={deletePlatform}
               />
               <MarginThresholdSettings
                 thresholds={thresholds}
                 allCategories={productCategories}
-                onRefresh={() => { refetchThresholds(); refresh(); }}
+                onRefresh={() => {
+                  refetchThresholds();
+                  refresh();
+                }}
               />
             </div>
           </TabsContent>
