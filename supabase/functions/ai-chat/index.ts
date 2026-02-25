@@ -37,10 +37,13 @@ export interface ToolResult {
 /*  System prompt                                                       */
 /* ------------------------------------------------------------------ */
 
-function buildSystemPrompt(language: string): string {
+function buildSystemPrompt(language: string, today: string): string {
   const lang = language === "el" ? "Greek" : "English";
 
   return `You are the AI financial analyst and business assistant for 4Labs, a business management platform for food & beverage companies. You help business owners understand their finances, suppliers, costs, products, and make better decisions.
+
+## Current Date
+Today's date is ${today}. Always use this as your reference point when interpreting relative dates like "last month", "this week", "yesterday", etc.
 
 ## Your Personality
 - Professional yet friendly and approachable — like a trusted financial advisor
@@ -378,13 +381,15 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: "query_invoice_line_items",
-    description: "Get the detailed line items (products/items) of one or more invoices. Each line item includes the product description, quantity, unit price, unit of measure, and line total. Use this when the user asks about specific products in invoices, wants to find the price of a product from an invoice, or needs to see what was purchased in a particular invoice. You can search by invoice_id, by product description, or by supplier name (which joins through the invoices table).",
+    description: "Get the detailed line items (products/items) of one or more invoices. Each line item includes the product description, quantity, unit price, and line total. Use this when the user asks about specific products in invoices, wants to find the price of a product from an invoice, or needs to see what was purchased in a particular invoice or time period. You can search by invoice_id, by product description, by supplier name, and/or by date range (filtering on the parent invoice's date). This is the best tool for questions like 'how much did I spend on X last month'.",
     input_schema: {
       type: "object",
       properties: {
         invoice_id: { type: "string", description: "UUID of a specific invoice to get line items for" },
-        description_search: { type: "string", description: "Search line items by product description (partial match, case insensitive). E.g. 'αγκιναρα', 'μοσχαρι', 'pollock'" },
+        description_search: { type: "string", description: "Search line items by product description (partial match, case insensitive). E.g. 'αγκιναρα', 'μοσχαρι', 'pollock', 'κρεας'" },
         supplier_name: { type: "string", description: "Filter line items by supplier name (joins through invoices→suppliers)" },
+        from_date: { type: "string", description: "Filter by invoice date >= this date (YYYY-MM-DD)" },
+        to_date: { type: "string", description: "Filter by invoice date <= this date (YYYY-MM-DD)" },
         min_unit_price: { type: "number", description: "Filter items with unit price >= this value" },
         max_unit_price: { type: "number", description: "Filter items with unit price <= this value" },
         limit: { type: "number", description: "Max results to return (default 50, max 200)" },
@@ -1066,7 +1071,7 @@ async function executeTool(
         if (toolInput.invoice_id) {
           let query = sb
             .from("invoice_line_items")
-            .select("id, invoice_id, description, quantity, unit_of_measure, unit_price, line_total, tax_rate, discount_amount, sku")
+            .select("id, invoice_id, description, quantity, unit_price, line_total, tax_rate")
             .eq("invoice_id", toolInput.invoice_id as string);
 
           if (toolInput.description_search) {
@@ -1103,13 +1108,17 @@ async function executeTool(
         // We need to join with invoices (and suppliers) for context
         let query = sb
           .from("invoice_line_items")
-          .select("id, invoice_id, description, quantity, unit_of_measure, unit_price, line_total, tax_rate, invoices!inner(id, invoice_number, invoice_date, total_amount, supplier_id, suppliers!inner(name))");
-
-        // Filter by company through invoices
-        query = query.eq("invoices.company_id", companyId);
+          .select("id, invoice_id, description, quantity, unit_price, line_total, tax_rate, invoices!inner(id, invoice_number, invoice_date, total_amount, supplier_id, suppliers(name))")
+          .eq("company_id", companyId);
 
         if (toolInput.description_search) {
           query = query.ilike("description", `%${toolInput.description_search}%`);
+        }
+        if (toolInput.from_date) {
+          query = query.gte("invoices.invoice_date", toolInput.from_date);
+        }
+        if (toolInput.to_date) {
+          query = query.lte("invoices.invoice_date", toolInput.to_date);
         }
         if (toolInput.supplier_name) {
           query = query.ilike("invoices.suppliers.name", `%${toolInput.supplier_name}%`);
@@ -1126,7 +1135,6 @@ async function executeTool(
         const items = (data || []).map((item: any) => ({
           description: item.description,
           quantity: item.quantity,
-          unit_of_measure: item.unit_of_measure,
           unit_price: item.unit_price,
           line_total: item.line_total,
           tax_rate: item.tax_rate,
@@ -1135,9 +1143,11 @@ async function executeTool(
           supplier: item.invoices?.suppliers?.name,
         }));
 
+        const totalSpent = items.reduce((s: number, i: any) => s + (i.line_total || 0), 0);
         return JSON.stringify({
           line_items: items,
           count: items.length,
+          total_line_items_amount: `€${fmt(totalSpent)}`,
           note: items.length === lim ? `Results limited to ${lim}. Use a more specific search or increase limit.` : undefined,
         });
       }
@@ -1194,7 +1204,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const systemPrompt = buildSystemPrompt(language || "el");
+    const todayStr = new Date().toISOString().split("T")[0];
+    const systemPrompt = buildSystemPrompt(language || "el", todayStr);
 
     // Build the API messages from conversation history
     const apiMessages: AnthropicMessage[] = messages.map((m) => ({
