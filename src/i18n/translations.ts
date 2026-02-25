@@ -184,6 +184,10 @@ export const translations = {
   "finance.no_pl_data": { el: "Δεν υπάρχουν δεδομένα P&L", en: "No P&L data available" },
   "finance.net_profit": { el: "Καθαρό Κέρδος", en: "Net Profit" },
   "finance.margin": { el: "Περιθώριο", en: "Margin" },
+  "finance.ytd_summary": { el: "Σύνοψη Έτους", en: "Year-to-Date" },
+  "finance.ytd_vs_prev": { el: "vs ίδια περίοδο πέρυσι", en: "vs same period last year" },
+  "finance.ytd_profit_margin": { el: "Περιθώριο Κέρδους", en: "Profit Margin" },
+  "finance.no_ytd_data": { el: "Δεν υπάρχουν δεδομένα έτους", en: "No year-to-date data" },
 
   // Business Insights
   "insights.subtitle": { el: "Επισκόπηση απόδοσης και βασικοί δείκτες", en: "Performance overview and key metrics" },

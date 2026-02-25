@@ -28,6 +28,19 @@ export interface MonthlyTrend {
   expenses: number;
 }
 
+export interface YtdSummary {
+  revenue: number;
+  expenses: number;
+  net_profit: number;
+  prev_revenue: number;
+  prev_expenses: number;
+  prev_net_profit: number;
+  revenue_change_pct: number;
+  expenses_change_pct: number;
+  profit_change_pct: number;
+  margin_pct: number;
+}
+
 export function useFinanceExtras(refreshKey = 0) {
   const { company } = useAuth();
   const companyId = company?.id;
@@ -35,6 +48,7 @@ export function useFinanceExtras(refreshKey = 0) {
   const [monthlyPL, setMonthlyPL] = useState<MonthlyPL | null>(null);
   const [expenseBreakdown, setExpenseBreakdown] = useState<ExpenseCategory[]>([]);
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
+  const [ytdSummary, setYtdSummary] = useState<YtdSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +75,14 @@ export function useFinanceExtras(refreshKey = 0) {
         const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
         const sixMonthsAgoStr = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, "0")}-01`;
 
-        const [curRevRes, curExpRes, prevRevRes, prevExpRes, trendRevRes, trendExpRes] = await Promise.all([
+        // YTD date ranges
+        const ytdStart = `${now.getFullYear()}-01-01`;
+        const ytdEnd = curMonthEnd;
+        const prevYtdStart = `${now.getFullYear() - 1}-01-01`;
+        // Same day last year for fair comparison
+        const prevYtdEnd = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+        const [curRevRes, curExpRes, prevRevRes, prevExpRes, trendRevRes, trendExpRes, ytdRevRes, ytdExpRes, prevYtdRevRes, prevYtdExpRes] = await Promise.all([
           // Current month revenue
           supabase
             .from("revenue_entries")
@@ -104,6 +125,34 @@ export function useFinanceExtras(refreshKey = 0) {
             .eq("company_id", companyId)
             .gte("entry_date", sixMonthsAgoStr)
             .lte("entry_date", curMonthEnd),
+          // YTD revenue
+          supabase
+            .from("revenue_entries")
+            .select("amount")
+            .eq("company_id", companyId)
+            .gte("entry_date", ytdStart)
+            .lte("entry_date", ytdEnd),
+          // YTD expenses
+          supabase
+            .from("expense_entries")
+            .select("amount")
+            .eq("company_id", companyId)
+            .gte("entry_date", ytdStart)
+            .lte("entry_date", ytdEnd),
+          // Previous YTD revenue (same period last year)
+          supabase
+            .from("revenue_entries")
+            .select("amount")
+            .eq("company_id", companyId)
+            .gte("entry_date", prevYtdStart)
+            .lte("entry_date", prevYtdEnd),
+          // Previous YTD expenses (same period last year)
+          supabase
+            .from("expense_entries")
+            .select("amount")
+            .eq("company_id", companyId)
+            .gte("entry_date", prevYtdStart)
+            .lte("entry_date", prevYtdEnd),
         ]);
 
         // Monthly P&L
@@ -126,6 +175,27 @@ export function useFinanceExtras(refreshKey = 0) {
           revenue_change_pct: pctChange(curRev, prevRev),
           expenses_change_pct: pctChange(curExp, prevExp),
           profit_change_pct: pctChange(curProfit, prevProfit),
+        });
+
+        // YTD Summary
+        const ytdRev = (ytdRevRes.data ?? []).reduce((s, r: any) => s + safe(r.amount), 0);
+        const ytdExp = (ytdExpRes.data ?? []).reduce((s, r: any) => s + safe(r.amount), 0);
+        const ytdProfit = ytdRev - ytdExp;
+        const prevYtdRev = (prevYtdRevRes.data ?? []).reduce((s, r: any) => s + safe(r.amount), 0);
+        const prevYtdExp = (prevYtdExpRes.data ?? []).reduce((s, r: any) => s + safe(r.amount), 0);
+        const prevYtdProfit = prevYtdRev - prevYtdExp;
+
+        setYtdSummary({
+          revenue: ytdRev,
+          expenses: ytdExp,
+          net_profit: ytdProfit,
+          prev_revenue: prevYtdRev,
+          prev_expenses: prevYtdExp,
+          prev_net_profit: prevYtdProfit,
+          revenue_change_pct: pctChange(ytdRev, prevYtdRev),
+          expenses_change_pct: pctChange(ytdExp, prevYtdExp),
+          profit_change_pct: pctChange(ytdProfit, prevYtdProfit),
+          margin_pct: ytdRev > 0 ? (ytdProfit / ytdRev) * 100 : 0,
         });
 
         // Expense breakdown by description
@@ -177,5 +247,5 @@ export function useFinanceExtras(refreshKey = 0) {
     fetchAll();
   }, [companyId, refreshKey]);
 
-  return { monthlyPL, expenseBreakdown, monthlyTrends, loading, error };
+  return { monthlyPL, expenseBreakdown, monthlyTrends, ytdSummary, loading, error };
 }

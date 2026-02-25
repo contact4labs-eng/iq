@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   Wallet, Plus, TrendingUp, TrendingDown,
-  PieChart as PieChartIcon, Activity, Users, FileText, ArrowUpRight,
+  PieChart as PieChartIcon, Activity, Users, ArrowUpRight,
   ArrowDownRight, Database, Search, Calendar,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -124,8 +124,8 @@ function KpiCard({
 const Finance = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const { error } = useFinanceDashboard(refreshKey);
-  const { kpi, topSuppliers, invoiceActivity, loading: insightsLoading } = useBusinessInsights(refreshKey);
-  const { monthlyPL, expenseBreakdown, monthlyTrends } = useFinanceExtras(refreshKey);
+  const { kpi, topSuppliers, loading: insightsLoading } = useBusinessInsights(refreshKey);
+  const { monthlyPL, expenseBreakdown, monthlyTrends, ytdSummary } = useFinanceExtras(refreshKey);
   const {
     executive, suppliers, costAnalytics, priceVolatility,
     loading: analyticsLoading, error: analyticsError,
@@ -343,45 +343,46 @@ const Finance = () => {
             {/* Profitability Calendar — first */}
             <ProfitabilityCalendar refreshKey={refreshKey} />
 
-            {/* Revenue vs Expenses Trends */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">{t("finance.monthly_trends")}</h2>
-                </div>
-                {monthlyTrends.length > 0 && monthlyTrends.some(tr => tr.revenue > 0 || tr.expenses > 0) ? (
-                  <>
-                    <ChartContainer config={trendConfig} className="aspect-video max-h-[260px]">
-                      <AreaChart data={monthlyTrends}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-                        <XAxis dataKey="month" className="text-xs" tickLine={false} axisLine={false} />
-                        <YAxis tickFormatter={(v) => fmtShort(v)} className="text-xs" tickLine={false} axisLine={false} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Area type="monotone" dataKey="revenue" name={t("dashboard.revenue")} stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.15} strokeWidth={2} />
-                        <Area type="monotone" dataKey="expenses" name={t("dashboard.expenses")} stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} strokeWidth={2} />
-                      </AreaChart>
-                    </ChartContainer>
-                    <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-success inline-block" /> {t("dashboard.revenue")}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> {t("dashboard.expenses")}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <TrendingUp className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">{t("finance.no_trends")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* P&L Summary + Expense Breakdown */}
+            {/* Revenue Trends + Monthly P&L side by side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Revenue vs Expenses Trends */}
+              <Card>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="w-4 h-4 text-accent" />
+                    <h2 className="text-sm font-semibold text-foreground">{t("finance.monthly_trends")}</h2>
+                  </div>
+                  {monthlyTrends.length > 0 && monthlyTrends.some(tr => tr.revenue > 0 || tr.expenses > 0) ? (
+                    <>
+                      <ChartContainer config={trendConfig} className="aspect-video max-h-[200px]">
+                        <AreaChart data={monthlyTrends}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                          <XAxis dataKey="month" className="text-xs" tickLine={false} axisLine={false} />
+                          <YAxis tickFormatter={(v) => fmtShort(v)} className="text-xs" tickLine={false} axisLine={false} />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Area type="monotone" dataKey="revenue" name={t("dashboard.revenue")} stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.15} strokeWidth={2} />
+                          <Area type="monotone" dataKey="expenses" name={t("dashboard.expenses")} stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} strokeWidth={2} />
+                        </AreaChart>
+                      </ChartContainer>
+                      <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded-sm bg-success inline-block" /> {t("dashboard.revenue")}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded-sm bg-destructive inline-block" /> {t("dashboard.expenses")}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <TrendingUp className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                      <p className="text-sm text-muted-foreground">{t("finance.no_trends")}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Monthly P&L */}
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-4">
@@ -428,7 +429,10 @@ const Finance = () => {
                   )}
                 </CardContent>
               </Card>
+            </div>
 
+            {/* Expense Breakdown + Top Suppliers */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-4">
@@ -479,13 +483,10 @@ const Finance = () => {
                   )}
                 </CardContent>
               </Card>
-            </div>
 
-            {/* Top Suppliers + Invoice Activity */}
-            {insightsLoading ? (
-              <Skeleton className="h-48 rounded-lg" />
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {insightsLoading ? (
+                <Skeleton className="h-48 rounded-lg" />
+              ) : (
                 <Card>
                   <CardContent className="p-5">
                     <div className="flex items-center gap-2 mb-4">
@@ -524,44 +525,74 @@ const Finance = () => {
                     )}
                   </CardContent>
                 </Card>
+              )}
+            </div>
 
-                <Card>
-                  <CardContent className="p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <FileText className="w-4 h-4 text-accent" />
-                      <h2 className="text-sm font-semibold text-foreground">{t("insights.invoice_activity")}</h2>
+            {/* Year-to-Date Summary */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-accent" />
+                    <h2 className="text-sm font-semibold text-foreground">{t("finance.ytd_summary")}</h2>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{t("finance.ytd_vs_prev")}</span>
+                </div>
+                {ytdSummary && (ytdSummary.revenue > 0 || ytdSummary.expenses > 0) ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <p className="text-[11px] text-muted-foreground">{t("dashboard.revenue")}</p>
+                      <p className="text-lg font-bold text-success">{fmtCompact(ytdSummary.revenue)}</p>
+                      {ytdSummary.revenue_change_pct !== 0 && (
+                        <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${ytdSummary.revenue_change_pct > 0 ? "text-success" : "text-destructive"}`}>
+                          {ytdSummary.revenue_change_pct > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          {ytdSummary.revenue_change_pct > 0 ? "+" : ""}{ytdSummary.revenue_change_pct.toFixed(1)}%
+                        </span>
+                      )}
                     </div>
-                    {invoiceActivity ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="rounded-lg bg-muted/50 p-4 text-center">
-                          <p className="text-2xl font-bold text-foreground">{invoiceActivity.receivedThisMonth}</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">{t("insights.received")}</p>
-                          <p className="text-[10px] text-muted-foreground/70">{t("insights.this_month")}</p>
-                        </div>
-                        <div className="rounded-lg bg-muted/50 p-4 text-center">
-                          <p className="text-2xl font-bold text-success">{invoiceActivity.paidThisMonth}</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">{t("insights.paid")}</p>
-                          <p className="text-[10px] text-muted-foreground/70">{t("insights.this_month")}</p>
-                        </div>
-                        <div className="rounded-lg bg-destructive/10 p-4 text-center">
-                          <p className="text-2xl font-bold text-destructive">{invoiceActivity.overdue}</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">{t("insights.overdue")}</p>
-                        </div>
-                        <div className="rounded-lg bg-muted/50 p-4 text-center">
-                          <p className="text-2xl font-bold text-foreground">{invoiceActivity.avgDaysToPay}</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">{t("insights.avg_days_to_pay")}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <FileText className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                        <p className="text-sm text-muted-foreground">{t("finance.no_pl_data")}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <p className="text-[11px] text-muted-foreground">{t("dashboard.expenses")}</p>
+                      <p className="text-lg font-bold text-destructive">{fmtCompact(ytdSummary.expenses)}</p>
+                      {ytdSummary.expenses_change_pct !== 0 && (
+                        <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${ytdSummary.expenses_change_pct < 0 ? "text-success" : "text-destructive"}`}>
+                          {ytdSummary.expenses_change_pct > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          {ytdSummary.expenses_change_pct > 0 ? "+" : ""}{ytdSummary.expenses_change_pct.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <p className="text-[11px] text-muted-foreground">{t("finance.net_profit")}</p>
+                      <p className={`text-lg font-bold ${ytdSummary.net_profit >= 0 ? "text-success" : "text-destructive"}`}>
+                        {fmtCompact(ytdSummary.net_profit)}
+                      </p>
+                      {ytdSummary.profit_change_pct !== 0 && (
+                        <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${ytdSummary.profit_change_pct > 0 ? "text-success" : "text-destructive"}`}>
+                          {ytdSummary.profit_change_pct > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          {ytdSummary.profit_change_pct > 0 ? "+" : ""}{ytdSummary.profit_change_pct.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <p className="text-[11px] text-muted-foreground">{t("finance.ytd_profit_margin")}</p>
+                      <p className={`text-lg font-bold ${ytdSummary.margin_pct >= 0 ? "text-success" : "text-destructive"}`}>
+                        {ytdSummary.margin_pct.toFixed(1)}%
+                      </p>
+                      <Progress
+                        value={Math.max(0, Math.min(ytdSummary.margin_pct, 100))}
+                        className={`h-1.5 bg-muted ${
+                          ytdSummary.margin_pct >= 20 ? "[&>div]:bg-success" : ytdSummary.margin_pct >= 10 ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Calendar className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">{t("finance.no_ytd_data")}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Profit Margin Overview */}
             {productsLoading ? (
