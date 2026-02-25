@@ -1,3 +1,4 @@
+// Connected to dumyurixihhincxzyonu Supabase project
 import { createClient } from "@supabase/supabase-js";
 
 // Hardcoded to ensure the app always connects to the correct Supabase project
