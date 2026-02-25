@@ -24,11 +24,21 @@ import {
   ArrowRight,
   CheckCircle2,
   Info,
+  Grid3X3,
+  Sliders,
 } from "lucide-react";
 import type { Product } from "@/hooks/useProducts";
 import type { Ingredient } from "@/hooks/useIngredients";
 import type { MarginThreshold } from "@/hooks/useMarginThresholds";
 import type { DeliveryPlatform } from "@/hooks/useDeliveryPlatforms";
+
+// Sub-components
+import { MenuMatrix } from "./pricing/MenuMatrix";
+import { PricingAlerts } from "./pricing/PricingAlerts";
+import { DeliverySuggestions } from "./pricing/DeliverySuggestions";
+import { PlatformOptimizer } from "./pricing/PlatformOptimizer";
+import { WhatIfBuilder, BreakEvenCalculator, FoodCostTarget } from "./pricing/PricingSimulator";
+import { PricingExportButton } from "./pricing/PricingExport";
 
 // ── Industry standard food margins by category ───────────────────────────
 const INDUSTRY_MARGINS: Record<string, { target: number; min: number; label_el: string; label_en: string }> = {
@@ -130,7 +140,6 @@ function analyzeProduct(
 
   const suggestedPriceDinein = cost > 0 ? roundPrice(priceForTargetMargin(cost, targetMargin)) : 0;
 
-  // Delivery gap analysis using user's actual platforms from DB
   const deliveryGapAnalysis: DeliveryGapItem[] = platforms.map((platform) => {
     const commission = platform.commission_percent / 100;
     const effectiveRevenue = product.selling_price_delivery * (1 - commission);
@@ -140,20 +149,13 @@ function analyzeProduct(
       : 0;
     const gap = suggestedDeliveryPrice - product.selling_price_delivery;
 
-    return {
-      platformName: platform.name,
-      commission,
-      effectiveMargin,
-      suggestedDeliveryPrice,
-      gap,
-    };
+    return { platformName: platform.name, commission, effectiveMargin, suggestedDeliveryPrice, gap };
   });
 
   const suggestedPriceDelivery = deliveryGapAnalysis.length > 0
     ? deliveryGapAnalysis[0].suggestedDeliveryPrice
     : (cost > 0 ? roundPrice(priceForTargetMargin(cost, targetMargin)) : 0);
 
-  // Status
   let status: "healthy" | "warning" | "critical" = "healthy";
   if (currentMarginDinein < industryMinMargin || (product.selling_price_delivery > 0 && currentMarginDelivery < industryMinMargin)) {
     status = "critical";
@@ -161,7 +163,6 @@ function analyzeProduct(
     status = "warning";
   }
 
-  // Generate advice
   const advice: { el: string; en: string }[] = [];
 
   if (cost === 0) {
@@ -210,17 +211,9 @@ function analyzeProduct(
   }
 
   return {
-    product,
-    cost,
-    currentMarginDinein,
-    currentMarginDelivery,
-    targetMargin,
-    industryMinMargin,
-    suggestedPriceDinein,
-    suggestedPriceDelivery,
-    deliveryGapAnalysis,
-    status,
-    advice,
+    product, cost, currentMarginDinein, currentMarginDelivery,
+    targetMargin, industryMinMargin, suggestedPriceDinein,
+    suggestedPriceDelivery, deliveryGapAnalysis, status, advice,
   };
 }
 
@@ -235,7 +228,7 @@ export function PricingAdvisor({
   platforms,
 }: PricingAdvisorProps) {
   const { t, language } = useLanguage();
-  const [advisorTab, setAdvisorTab] = useState<"overview" | "single">("overview");
+  const [advisorTab, setAdvisorTab] = useState<"overview" | "single" | "matrix" | "tools">("overview");
   const [search, setSearch] = useState("");
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
@@ -275,6 +268,18 @@ export function PricingAdvisor({
 
     return { critical, warning, healthy, potentialRevenue, total: analyses.length };
   }, [analyses]);
+
+  // Matrix data
+  const matrixProducts = useMemo(() => {
+    return products
+      .filter((p) => p.selling_price_dinein > 0 && costMap.has(p.id) && (costMap.get(p.id) ?? 0) > 0)
+      .map((p) => {
+        const cost = costMap.get(p.id) || 0;
+        const margin = marginPercent(p.selling_price_dinein, cost);
+        const contribution = p.selling_price_dinein - cost;
+        return { id: p.id, name: p.name, category: p.category, marginPct: margin, contribution };
+      });
+  }, [products, costMap]);
 
   const toggleExpanded = (id: string) => {
     setExpandedProducts((prev) => {
@@ -435,29 +440,44 @@ export function PricingAdvisor({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4 border-b">
-          <SheetTitle className="flex items-center gap-2">
-            <Lightbulb className="w-5 h-5 text-yellow-500" />
-            {t("pricing.title")}
-          </SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-yellow-500" />
+              {t("pricing.title")}
+            </SheetTitle>
+            <PricingExportButton products={products} costMap={costMap} platforms={platforms} />
+          </div>
           <SheetDescription>
             {t("pricing.subtitle")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
-          <Tabs value={advisorTab} onValueChange={(v) => setAdvisorTab(v as "overview" | "single")}>
-            <TabsList className="w-full">
-              <TabsTrigger value="overview" className="flex-1 gap-1.5 text-xs">
+          <Tabs value={advisorTab} onValueChange={(v) => setAdvisorTab(v as any)}>
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="overview" className="gap-1 text-[11px] px-1">
                 <BarChart3 className="w-3.5 h-3.5" />
-                {t("pricing.tab_overview")}
+                <span className="hidden sm:inline">{t("pricing.tab_overview")}</span>
               </TabsTrigger>
-              <TabsTrigger value="single" className="flex-1 gap-1.5 text-xs">
+              <TabsTrigger value="single" className="gap-1 text-[11px] px-1">
                 <Target className="w-3.5 h-3.5" />
-                {t("pricing.tab_single")}
+                <span className="hidden sm:inline">{t("pricing.tab_single")}</span>
+              </TabsTrigger>
+              <TabsTrigger value="matrix" className="gap-1 text-[11px] px-1">
+                <Grid3X3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{language === "el" ? "Μήτρα" : "Matrix"}</span>
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="gap-1 text-[11px] px-1">
+                <Sliders className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{language === "el" ? "Εργαλεία" : "Tools"}</span>
               </TabsTrigger>
             </TabsList>
 
+            {/* ─── Overview Tab ─────────────────────────────────────── */}
             <TabsContent value="overview" className="mt-4 space-y-4">
+              {/* Price Sensitivity Alerts */}
+              <PricingAlerts products={products} costMap={costMap} platforms={platforms} />
+
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg border bg-red-50 dark:bg-red-900/20 p-2.5 text-center">
                   <p className="text-lg font-bold text-red-600 dark:text-red-400">{summary.critical}</p>
@@ -484,6 +504,12 @@ export function PricingAdvisor({
                   </div>
                 </div>
               )}
+
+              {/* Delivery-only Menu Suggestions */}
+              <DeliverySuggestions products={products} costMap={costMap} platforms={platforms} />
+
+              {/* Platform Price Optimizer */}
+              <PlatformOptimizer products={products} costMap={costMap} platforms={platforms} />
 
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -542,6 +568,7 @@ export function PricingAdvisor({
               </div>
             </TabsContent>
 
+            {/* ─── Per Product Tab ──────────────────────────────────── */}
             <TabsContent value="single" className="mt-4 space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-medium">{t("pricing.select_product")}</label>
@@ -585,6 +612,20 @@ export function PricingAdvisor({
                 </div>
               )}
             </TabsContent>
+
+            {/* ─── Matrix Tab ──────────────────────────────────────── */}
+            <TabsContent value="matrix" className="mt-4">
+              <MenuMatrix products={matrixProducts} />
+            </TabsContent>
+
+            {/* ─── Tools Tab ───────────────────────────────────────── */}
+            <TabsContent value="tools" className="mt-4 space-y-6">
+              <WhatIfBuilder products={products} costMap={costMap} platforms={platforms} />
+              <div className="border-t" />
+              <BreakEvenCalculator products={products} costMap={costMap} platforms={platforms} />
+              <div className="border-t" />
+              <FoodCostTarget products={products} costMap={costMap} />
+            </TabsContent>
           </Tabs>
         </div>
       </SheetContent>
@@ -597,8 +638,6 @@ export function PricingAdvisor({
 export function PricingAdvisorFAB({ onClick }: { onClick: () => void }) {
   const { t } = useLanguage();
 
-  // Use portal to render on document.body so that ancestor transforms
-  // (e.g. animate-fade-in on <main>) don't break fixed positioning.
   return createPortal(
     <button
       onClick={onClick}
