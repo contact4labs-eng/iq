@@ -131,13 +131,17 @@ async function callAnthropic(
   if (!response.ok) {
     const errText = await response.text();
     console.error("Anthropic API error:", response.status, errText);
-    throw new Error(`Anthropic API error: ${response.status}`);
+    // Return a graceful fallback instead of throwing — avoids 500 on retries
+    return {
+      stop_reason: "end_turn",
+      content: [{ type: "text", text: `⚠️ Υπήρξε πρόβλημα επικοινωνίας με τον AI. Παρακαλώ δοκιμάστε ξανά. (API error ${response.status})` }],
+    };
   }
 
   const result = await response.json();
   return {
     stop_reason: result.stop_reason,
-    content: result.content,
+    content: result.content || [],
   };
 }
 
@@ -1088,7 +1092,7 @@ async function executeTool(
           // Also get the invoice info for context
           const { data: inv } = await sb
             .from("invoices")
-            .select("invoice_number, invoice_date, total_amount, supplier_id, suppliers!inner(name)")
+            .select("invoice_number, invoice_date, total_amount, supplier_id, suppliers(name)")
             .eq("id", toolInput.invoice_id as string)
             .single();
 
@@ -1104,24 +1108,85 @@ async function executeTool(
           });
         }
 
-        // Search across all invoices by description and/or supplier
-        // We need to join with invoices (and suppliers) for context
+        // ── Step 1: If supplier_name is given, resolve matching invoice IDs first ──
+        let invoiceIdFilter: string[] | null = null;
+
+        if (toolInput.supplier_name) {
+          // Find supplier IDs matching the name
+          const { data: matchedSuppliers } = await sb
+            .from("suppliers")
+            .select("id")
+            .eq("company_id", companyId)
+            .ilike("name", `%${toolInput.supplier_name}%`);
+
+          if (!matchedSuppliers || matchedSuppliers.length === 0) {
+            return JSON.stringify({
+              line_items: [],
+              count: 0,
+              total_line_items_amount: "€0,00",
+              note: `No suppliers found matching "${toolInput.supplier_name}"`,
+            });
+          }
+
+          const supplierIds = matchedSuppliers.map((s: any) => s.id);
+
+          // Find invoices from those suppliers in the date range
+          let invQuery = sb
+            .from("invoices")
+            .select("id")
+            .eq("company_id", companyId)
+            .in("supplier_id", supplierIds);
+
+          if (toolInput.from_date) invQuery = invQuery.gte("invoice_date", toolInput.from_date);
+          if (toolInput.to_date) invQuery = invQuery.lte("invoice_date", toolInput.to_date);
+
+          const { data: matchedInvoices } = await invQuery;
+          if (!matchedInvoices || matchedInvoices.length === 0) {
+            return JSON.stringify({
+              line_items: [],
+              count: 0,
+              total_line_items_amount: "€0,00",
+              note: `No invoices found for supplier "${toolInput.supplier_name}" in the given date range`,
+            });
+          }
+
+          invoiceIdFilter = matchedInvoices.map((inv: any) => inv.id);
+        }
+
+        // ── Step 2: If date filters are given but no supplier, resolve invoice IDs by date ──
+        if (!invoiceIdFilter && (toolInput.from_date || toolInput.to_date)) {
+          let invQuery = sb
+            .from("invoices")
+            .select("id")
+            .eq("company_id", companyId);
+
+          if (toolInput.from_date) invQuery = invQuery.gte("invoice_date", toolInput.from_date);
+          if (toolInput.to_date) invQuery = invQuery.lte("invoice_date", toolInput.to_date);
+
+          const { data: matchedInvoices } = await invQuery;
+          if (!matchedInvoices || matchedInvoices.length === 0) {
+            return JSON.stringify({
+              line_items: [],
+              count: 0,
+              total_line_items_amount: "€0,00",
+              note: "No invoices found in the given date range",
+            });
+          }
+
+          invoiceIdFilter = matchedInvoices.map((inv: any) => inv.id);
+        }
+
+        // ── Step 3: Query line items with simple flat filters ──
         let query = sb
           .from("invoice_line_items")
-          .select("id, invoice_id, description, quantity, unit_price, line_total, tax_rate, invoices!inner(id, invoice_number, invoice_date, total_amount, supplier_id, suppliers(name))")
+          .select("id, invoice_id, description, quantity, unit_price, line_total, tax_rate")
           .eq("company_id", companyId);
 
+        if (invoiceIdFilter) {
+          query = query.in("invoice_id", invoiceIdFilter);
+        }
         if (toolInput.description_search) {
           query = query.ilike("description", `%${toolInput.description_search}%`);
-        }
-        if (toolInput.from_date) {
-          query = query.gte("invoices.invoice_date", toolInput.from_date);
-        }
-        if (toolInput.to_date) {
-          query = query.lte("invoices.invoice_date", toolInput.to_date);
-        }
-        if (toolInput.supplier_name) {
-          query = query.ilike("invoices.suppliers.name", `%${toolInput.supplier_name}%`);
         }
         if (toolInput.min_unit_price) query = query.gte("unit_price", toolInput.min_unit_price);
         if (toolInput.max_unit_price) query = query.lte("unit_price", toolInput.max_unit_price);
@@ -1131,17 +1196,38 @@ async function executeTool(
         const { data, error } = await query;
         if (error) return JSON.stringify({ error: error.message });
 
-        // Flatten the response for readability
-        const items = (data || []).map((item: any) => ({
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          line_total: item.line_total,
-          tax_rate: item.tax_rate,
-          invoice_number: item.invoices?.invoice_number,
-          invoice_date: item.invoices?.invoice_date,
-          supplier: item.invoices?.suppliers?.name,
-        }));
+        // ── Step 4: Enrich with invoice + supplier info (batch lookup) ──
+        const uniqueInvoiceIds = [...new Set((data || []).map((item: any) => item.invoice_id))];
+        const invoiceMap = new Map<string, { invoice_number: string; invoice_date: string; supplier_name: string }>();
+
+        if (uniqueInvoiceIds.length > 0) {
+          const { data: invoices } = await sb
+            .from("invoices")
+            .select("id, invoice_number, invoice_date, suppliers(name)")
+            .in("id", uniqueInvoiceIds);
+
+          for (const inv of (invoices || [])) {
+            invoiceMap.set(inv.id, {
+              invoice_number: inv.invoice_number,
+              invoice_date: inv.invoice_date,
+              supplier_name: (inv as any).suppliers?.name || "Unknown",
+            });
+          }
+        }
+
+        const items = (data || []).map((item: any) => {
+          const inv = invoiceMap.get(item.invoice_id);
+          return {
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            line_total: item.line_total,
+            tax_rate: item.tax_rate,
+            invoice_number: inv?.invoice_number,
+            invoice_date: inv?.invoice_date,
+            supplier: inv?.supplier_name,
+          };
+        });
 
         const totalSpent = items.reduce((s: number, i: any) => s + (i.line_total || 0), 0);
         return JSON.stringify({
@@ -1235,7 +1321,25 @@ Deno.serve(async (req: Request) => {
       const toolResults = await Promise.all(
         toolUseBlocks.map(async (block: any) => {
           console.log(`Executing tool: ${block.name}`, JSON.stringify(block.input).slice(0, 200));
-          const result = await executeTool(block.name, block.input, company_id, sb);
+          let result = await executeTool(block.name, block.input, company_id, sb);
+          // Cap tool result size to prevent context overflow (max ~12KB per result)
+          if (result.length > 12000) {
+            console.warn(`Tool ${block.name} result truncated from ${result.length} to 12000 chars`);
+            try {
+              const parsed = JSON.parse(result);
+              // If it has an array of items, truncate the array and re-serialize
+              for (const key of Object.keys(parsed)) {
+                if (Array.isArray(parsed[key]) && JSON.stringify(parsed[key]).length > 10000) {
+                  const originalLen = parsed[key].length;
+                  parsed[key] = parsed[key].slice(0, 30);
+                  parsed._truncated = `${key} truncated from ${originalLen} to 30 items`;
+                }
+              }
+              result = JSON.stringify(parsed);
+            } catch {
+              result = result.slice(0, 12000) + '... [truncated]';
+            }
+          }
           console.log('Tool result for ' + block.name + ':', result.substring(0, 300));
           return {
             type: "tool_result",
@@ -1262,8 +1366,9 @@ Deno.serve(async (req: Request) => {
     // If the last result already has text (non-streaming from tool loop), we can stream it ourselves
     // OR do a final streaming call for the best UX
 
-    const textBlocks = lastResult.content.filter((b: any) => b.type === "text");
-    const toolCallBlocks = lastResult.content.filter((b: any) => b.type === "tool_use");
+    const contentBlocks = lastResult.content || [];
+    const textBlocks = contentBlocks.filter((b: any) => b.type === "text");
+    const toolCallBlocks = contentBlocks.filter((b: any) => b.type === "tool_use");
 
     // If there are tool call results to report, include them in the stream
     const responseHeaders = {
