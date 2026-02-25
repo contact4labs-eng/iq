@@ -118,27 +118,56 @@ async function callAnthropic(
     body.tools = TOOL_DEFINITIONS;
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  });
+  const MAX_RETRIES = 3;
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("Anthropic API error:", response.status, errText);
-    throw new Error(`Anthropic API error: ${response.status}`);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return {
+          stop_reason: result.stop_reason,
+          content: result.content,
+        };
+      }
+
+      const errText = await response.text();
+      console.error(`Anthropic API error (attempt ${attempt + 1}):`, response.status, errText);
+
+      // Retry on transient errors
+      if ([429, 529, 503].includes(response.status) && attempt < MAX_RETRIES) {
+        const retryAfter = response.headers.get("retry-after");
+        const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : Math.pow(2, attempt) * 1000;
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+
+      throw new Error(`Anthropic API error: ${response.status} - ${errText.slice(0, 200)}`);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < MAX_RETRIES && !(lastError.message.startsWith("Anthropic API error:"))) {
+        // Network error — retry
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Network error, retrying in ${delay}ms...`, lastError.message);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw lastError;
+    }
   }
 
-  const result = await response.json();
-  return {
-    stop_reason: result.stop_reason,
-    content: result.content,
-  };
+  throw lastError || new Error("callAnthropic failed after retries");
 }
 
 /* ------------------------------------------------------------------ */
@@ -1207,8 +1236,46 @@ Deno.serve(async (req: Request) => {
     const todayStr = new Date().toISOString().split("T")[0];
     const systemPrompt = buildSystemPrompt(language || "el", todayStr);
 
-    // Build the API messages from conversation history
-    const apiMessages: AnthropicMessage[] = messages.map((m) => ({
+    // Validate and sanitize messages — filter out empty content, ensure valid roles
+    const validMessages = messages.filter((m) => {
+      if (!m.content || typeof m.content !== "string" || m.content.trim() === "") {
+        console.warn("Skipping message with empty content, role:", m.role);
+        return false;
+      }
+      if (m.role !== "user" && m.role !== "assistant") {
+        console.warn("Skipping message with invalid role:", m.role);
+        return false;
+      }
+      return true;
+    });
+
+    if (validMessages.length === 0) {
+      return new Response(JSON.stringify({ error: "No valid messages provided" }), {
+        status: 400,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+
+    // Ensure alternating roles (Anthropic requirement) — merge consecutive same-role messages
+    const sanitizedMessages: typeof validMessages = [];
+    for (const msg of validMessages) {
+      if (sanitizedMessages.length > 0 && sanitizedMessages[sanitizedMessages.length - 1].role === msg.role) {
+        sanitizedMessages[sanitizedMessages.length - 1] = {
+          ...sanitizedMessages[sanitizedMessages.length - 1],
+          content: sanitizedMessages[sanitizedMessages.length - 1].content + "\n\n" + msg.content,
+        };
+      } else {
+        sanitizedMessages.push({ ...msg });
+      }
+    }
+
+    // Ensure conversation starts with a user message (Anthropic requirement)
+    if (sanitizedMessages[0].role !== "user") {
+      sanitizedMessages.unshift({ role: "user", content: "Continue our conversation." });
+    }
+
+    // Build the API messages from sanitized conversation history
+    const apiMessages: AnthropicMessage[] = sanitizedMessages.map((m) => ({
       role: m.role === "user" ? "user" as const : "assistant" as const,
       content: m.content,
     }));
@@ -1231,7 +1298,7 @@ Deno.serve(async (req: Request) => {
       });
 
       // Execute all tool calls in parallel
-      const toolUseBlocks = lastResult.content.filter((b: any) => b.type === "tool_use");
+      const toolUseBlocks = (lastResult.content || []).filter((b: any) => b.type === "tool_use");
       const toolResults = await Promise.all(
         toolUseBlocks.map(async (block: any) => {
           console.log(`Executing tool: ${block.name}`, JSON.stringify(block.input).slice(0, 200));
@@ -1262,8 +1329,13 @@ Deno.serve(async (req: Request) => {
     // If the last result already has text (non-streaming from tool loop), we can stream it ourselves
     // OR do a final streaming call for the best UX
 
-    const textBlocks = lastResult.content.filter((b: any) => b.type === "text");
-    const toolCallBlocks = lastResult.content.filter((b: any) => b.type === "tool_use");
+    const contentBlocks = lastResult.content || [];
+    if (!Array.isArray(contentBlocks)) {
+      console.error("Unexpected API response format:", JSON.stringify(lastResult).slice(0, 500));
+      throw new Error("Unexpected response format from AI model");
+    }
+    const textBlocks = contentBlocks.filter((b: any) => b.type === "text");
+    const toolCallBlocks = contentBlocks.filter((b: any) => b.type === "tool_use");
 
     // If there are tool call results to report, include them in the stream
     const responseHeaders = {
@@ -1329,8 +1401,9 @@ Deno.serve(async (req: Request) => {
     });
 
   } catch (err) {
-    console.error("ai-chat error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("ai-chat error:", message, err);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });

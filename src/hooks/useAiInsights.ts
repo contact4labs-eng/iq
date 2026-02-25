@@ -270,11 +270,17 @@ export function useAiInsights() {
           saveMessage(convId, "assistant", answer);
         }
       } else {
-        throw new Error(`Service error (${res.status})`);
+        let errorMsg = `Service error (${res.status})`;
+        try {
+          const errData = await res.json();
+          if (errData?.error) errorMsg = errData.error;
+        } catch { /* ignore parse errors */ }
+        throw new Error(errorMsg);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       const msg = err instanceof Error ? err.message : "An error occurred";
+      console.error("[AI Chat Error]", msg, err);
       setQaMessages((prev) => [
         ...prev,
         { role: "assistant", content: `⚠️ ${msg}`, timestamp: Date.now() },
