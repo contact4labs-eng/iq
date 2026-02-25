@@ -367,6 +367,18 @@ export const translations = {
   "ai.suggestion_4": { el: "Υπάρχουν ληξιπρόθεσμα τιμολόγια;", en: "Are there any overdue invoices?" },
   "ai.suggestion_5": { el: "Δώσε μου μια ανάλυση εσόδων-εξόδων", en: "Give me a revenue-expense analysis" },
   "ai.suggestion_6": { el: "Τι δείχνουν οι τάσεις του τελευταίου 6μηνου;", en: "What do the last 6 months trends show?" },
+  "ai.conversations": { el: "Συνομιλίες", en: "Conversations" },
+  "ai.no_conversations": { el: "Δεν υπάρχουν συνομιλίες", en: "No conversations yet" },
+  "ai.delete_conversation": { el: "Διαγραφή", en: "Delete" },
+  "ai.querying_data": { el: "Αναζήτηση δεδομένων...", en: "Querying data..." },
+  "ai.analyzing": { el: "Ανάλυση...", en: "Analyzing..." },
+  "ai.tool_used": { el: "Χρησιμοποιήθηκε", en: "Used" },
+  "ai.tools_used": { el: "εργαλεία δεδομένων", en: "data tools" },
+  "ai.attach_file": { el: "Επισύναψη αρχείου", en: "Attach file" },
+  "ai.cat_actions": { el: "Ενέργειες", en: "Actions" },
+  "ai.cat_analysis": { el: "Ανάλυση", en: "Analysis" },
+  "ai.suggestion_7": { el: "Αναλυτική κατανομή εξόδων ανά κατηγορία", en: "Detailed expense breakdown by category" },
+  "ai.suggestion_8": { el: "Σύγκριση κερδοφορίας τελευταίων 3 μηνών", en: "Profitability comparison for last 3 months" },
 
   // Alerts
   "alerts.subtitle": { el: "Ενημερώσεις και σημαντικές ειδοποιήσεις", en: "Updates and important notifications" },

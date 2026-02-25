@@ -1,25 +1,41 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { SUPABASE_URL } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAiConversations, type AiMessage } from "./useAiConversations";
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                               */
+/* ------------------------------------------------------------------ */
 
 export interface QaMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  toolCalls?: Array<{ name: string; input: Record<string, unknown> }>;
+}
+
+export interface ToolCallInfo {
+  name: string;
+  input: Record<string, unknown>;
 }
 
 const AI_CHAT_URL = `${SUPABASE_URL}/functions/v1/ai-chat`;
-const LEGACY_URL = `${SUPABASE_URL}/functions/v1/dynamic-task`;
 const MIN_INTERVAL_MS = 800;
 
 /* ------------------------------------------------------------------ */
-/*  SSE stream parser                                                   */
+/*  SSE stream parser (enhanced with tool call events)                  */
 /* ------------------------------------------------------------------ */
+
+interface StreamEvent {
+  type: "text" | "tool_calls" | "done";
+  text?: string;
+  tools?: ToolCallInfo[];
+}
 
 async function* parseSSEStream(
   reader: ReadableStreamDefaultReader<Uint8Array>
-): AsyncGenerator<string> {
+): AsyncGenerator<StreamEvent> {
   const decoder = new TextDecoder();
   let buffer = "";
 
@@ -31,37 +47,48 @@ async function* parseSSEStream(
     const lines = buffer.split("\n");
     buffer = lines.pop() || "";
 
+    let currentEvent = "";
+
     for (const line of lines) {
+      if (line.startsWith("event: ")) {
+        currentEvent = line.slice(7).trim();
+        continue;
+      }
+
       if (line.startsWith("data: ")) {
         const data = line.slice(6).trim();
-        if (data === "[DONE]") return;
+        if (data === "[DONE]") {
+          yield { type: "done" };
+          return;
+        }
+
         try {
           const parsed = JSON.parse(data);
-          // Anthropic streaming format
+
+          // Handle tool call events
+          if (currentEvent === "tool_calls" && parsed.tools) {
+            yield { type: "tool_calls", tools: parsed.tools };
+            currentEvent = "";
+            continue;
+          }
+
+          // Handle message stop
+          if (currentEvent === "message_stop" || parsed.type === "message_stop") {
+            yield { type: "done" };
+            return;
+          }
+
+          // Handle content deltas (streaming text)
           if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-            yield parsed.delta.text;
+            yield { type: "text", text: parsed.delta.text };
           }
         } catch {
           // Skip malformed JSON
         }
+        currentEvent = "";
       }
     }
   }
-}
-
-/* ------------------------------------------------------------------ */
-/*  Legacy (non-streaming) fallback                                     */
-/* ------------------------------------------------------------------ */
-
-function extractAnswer(obj: Record<string, unknown>): string | null {
-  if (obj.insights && typeof obj.insights === "object") {
-    const ins = obj.insights as Record<string, unknown>;
-    if (typeof ins.answer === "string" && ins.answer.trim()) return ins.answer;
-  }
-  if (typeof obj.answer === "string" && obj.answer.trim()) return obj.answer;
-  if (typeof obj.response === "string" && obj.response.trim()) return obj.response;
-  if (typeof obj.message === "string" && obj.message.trim()) return obj.message;
-  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,23 +101,62 @@ export function useAiInsights() {
   const companyId = company?.id;
   const token = session?.access_token;
 
+  const {
+    conversations,
+    isLoading: conversationsLoading,
+    createConversation,
+    updateTitle,
+    archiveConversation,
+    fetchMessages,
+    saveMessage,
+  } = useAiConversations();
+
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [qaMessages, setQaMessages] = useState<QaMessage[]>([]);
   const [qaLoading, setQaLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [activeToolCalls, setActiveToolCalls] = useState<ToolCallInfo[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const lastSentRef = useRef<number>(0);
 
-  const clearChat = useCallback(() => {
+  // Load messages when switching conversations
+  const loadConversation = useCallback(async (conversationId: string) => {
+    setActiveConversationId(conversationId);
+    const messages = await fetchMessages(conversationId);
+    setQaMessages(
+      messages.map((m: AiMessage) => ({
+        role: m.role,
+        content: m.content,
+        timestamp: new Date(m.created_at).getTime(),
+        toolCalls: m.tool_calls || undefined,
+      }))
+    );
+  }, [fetchMessages]);
+
+  // Start a new conversation
+  const newConversation = useCallback(() => {
     abortRef.current?.abort();
+    setActiveConversationId(null);
     setQaMessages([]);
     setStreamingText("");
+    setActiveToolCalls([]);
     setQaLoading(false);
   }, []);
+
+  const clearChat = newConversation;
 
   const stopGeneration = useCallback(() => {
     abortRef.current?.abort();
     setQaLoading(false);
+    setActiveToolCalls([]);
   }, []);
+
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    await archiveConversation(conversationId);
+    if (activeConversationId === conversationId) {
+      newConversation();
+    }
+  }, [archiveConversation, activeConversationId, newConversation]);
 
   const askQuestion = useCallback(async (question: string) => {
     if (!companyId || !token) return;
@@ -108,16 +174,32 @@ export function useAiInsights() {
     setQaMessages((prev) => [...prev, userMsg]);
     setQaLoading(true);
     setStreamingText("");
+    setActiveToolCalls([]);
 
-    // Build conversation history for the API (last 20 messages)
-    const prevMessages = [...qaMessages, userMsg].slice(-20);
+    // Create or reuse conversation
+    let convId = activeConversationId;
+    if (!convId) {
+      // Auto-generate title from first message (first 60 chars)
+      const title = question.length > 60 ? question.slice(0, 57) + "..." : question;
+      convId = await createConversation(title);
+      if (convId) {
+        setActiveConversationId(convId);
+      }
+    }
+
+    // Save user message to DB
+    if (convId) {
+      saveMessage(convId, "user", question);
+    }
+
+    // Build conversation history for the API (last 40 messages for richer context)
+    const prevMessages = [...qaMessages, userMsg].slice(-40);
     const apiMessages = prevMessages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
     try {
-      // Try new streaming endpoint first
       const res = await fetch(AI_CHAT_URL, {
         method: "POST",
         headers: {
@@ -133,55 +215,62 @@ export function useAiInsights() {
       });
 
       if (res.ok && res.headers.get("content-type")?.includes("text/event-stream")) {
-        // Streaming response
         const reader = res.body!.getReader();
         let fullText = "";
+        let toolCalls: ToolCallInfo[] = [];
 
-        for await (const chunk of parseSSEStream(reader)) {
+        for await (const event of parseSSEStream(reader)) {
           if (controller.signal.aborted) break;
-          fullText += chunk;
-          setStreamingText(fullText);
+
+          if (event.type === "tool_calls" && event.tools) {
+            toolCalls = event.tools;
+            setActiveToolCalls(event.tools);
+          } else if (event.type === "text" && event.text) {
+            fullText += event.text;
+            setStreamingText(fullText);
+          } else if (event.type === "done") {
+            break;
+          }
         }
 
         if (!controller.signal.aborted && fullText.trim()) {
-          setQaMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: fullText, timestamp: Date.now() },
-          ]);
+          const assistantMsg: QaMessage = {
+            role: "assistant",
+            content: fullText,
+            timestamp: Date.now(),
+            toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+          };
+          setQaMessages((prev) => [...prev, assistantMsg]);
+
+          // Save assistant message to DB
+          if (convId) {
+            saveMessage(convId, "assistant", fullText, toolCalls.length > 0 ? toolCalls : null);
+          }
+
+          // Auto-update conversation title if it's the first exchange
+          if (convId && qaMessages.length === 0 && fullText.length > 20) {
+            // Use first line of response as a better title (if it's short enough)
+            const firstLine = fullText.split("\n")[0].replace(/[#*]/g, "").trim();
+            if (firstLine.length > 5 && firstLine.length < 80) {
+              // Keep original user question as title — it's more descriptive
+            }
+          }
         }
         setStreamingText("");
+        setActiveToolCalls([]);
       } else if (res.ok) {
-        // Non-streaming JSON response (new endpoint returned JSON)
+        // Non-streaming JSON response
         const data = await res.json();
-        const answer = extractAnswer(data as Record<string, unknown>) ||
-          (data as any)?.content?.[0]?.text ||
+        const answer = (data as any)?.content?.[0]?.text ||
+          (data as any)?.answer ||
           "I couldn't process that request. Please try again.";
-        setQaMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: answer, timestamp: Date.now() },
-        ]);
+        const assistantMsg: QaMessage = { role: "assistant", content: answer, timestamp: Date.now() };
+        setQaMessages((prev) => [...prev, assistantMsg]);
+        if (convId) {
+          saveMessage(convId, "assistant", answer);
+        }
       } else {
-        // New endpoint failed, try legacy fallback
-        console.warn("ai-chat returned", res.status, "— falling back to legacy");
-        const legacyRes = await fetch(LEGACY_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ company_id: companyId, mode: "qa", question }),
-          signal: controller.signal,
-        });
-
-        if (!legacyRes.ok) throw new Error("Service unavailable");
-
-        const data = await legacyRes.json();
-        const answer = extractAnswer(data as Record<string, unknown>) ||
-          "I couldn't process that request. Please try again.";
-        setQaMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: answer, timestamp: Date.now() },
-        ]);
+        throw new Error(`Service error (${res.status})`);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -193,8 +282,26 @@ export function useAiInsights() {
     } finally {
       setQaLoading(false);
       setStreamingText("");
+      setActiveToolCalls([]);
     }
-  }, [companyId, token, qaMessages, language]);
+  }, [companyId, token, qaMessages, language, activeConversationId, createConversation, saveMessage]);
 
-  return { qaMessages, qaLoading, streamingText, askQuestion, clearChat, stopGeneration };
+  return {
+    // Chat state
+    qaMessages,
+    qaLoading,
+    streamingText,
+    activeToolCalls,
+    // Actions
+    askQuestion,
+    clearChat,
+    stopGeneration,
+    // Conversation management
+    conversations,
+    conversationsLoading,
+    activeConversationId,
+    loadConversation,
+    newConversation,
+    deleteConversation,
+  };
 }

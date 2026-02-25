@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { QaMessage } from "@/hooks/useAiInsights";
+import type { QaMessage, ToolCallInfo } from "@/hooks/useAiInsights";
 import { Button } from "@/components/ui/button";
-import { Send, Bot, User, Copy, Check, RotateCcw, Square, Sparkles } from "lucide-react";
+import { Send, Bot, User, Copy, Check, Square, Sparkles, Paperclip, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/contexts/LanguageContext";
+import { ActiveToolIndicator, ToolCallBadge } from "./ToolCallIndicator";
 
 /* ------------------------------------------------------------------ */
 /*  Suggestion categories                                               */
@@ -33,15 +34,21 @@ const SUGGESTION_CATEGORIES: SuggestionCategory[] = [
     icon: "📄",
     keys: ["ai.suggestion_4", "ai.suggestion_6"],
   },
+  {
+    labelKey: "ai.cat_analysis",
+    icon: "📊",
+    keys: ["ai.suggestion_7", "ai.suggestion_8"],
+  },
 ];
 
 /* ------------------------------------------------------------------ */
 /*  Sub-components                                                      */
 /* ------------------------------------------------------------------ */
 
-function TypingIndicator() {
+function TypingIndicator({ label }: { label?: string }) {
   return (
-    <div className="flex items-center gap-1.5 px-1 py-1">
+    <div className="flex items-center gap-2 px-1 py-1">
+      {label && <span className="text-xs text-muted-foreground">{label}</span>}
       <div className="flex gap-1">
         <span className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce [animation-delay:0ms]" />
         <span className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce [animation-delay:150ms]" />
@@ -97,7 +104,7 @@ function AutoResizeTextarea({
   useEffect(() => {
     if (ref.current) {
       ref.current.style.height = "auto";
-      ref.current.style.height = Math.min(ref.current.scrollHeight, 160) + "px";
+      ref.current.style.height = Math.min(ref.current.scrollHeight, 200) + "px";
     }
   }, [value]);
 
@@ -118,7 +125,7 @@ function AutoResizeTextarea({
       placeholder={placeholder}
       rows={1}
       className="flex-1 resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 scrollbar-thin"
-      style={{ minHeight: "42px", maxHeight: "160px" }}
+      style={{ minHeight: "44px", maxHeight: "200px" }}
     />
   );
 }
@@ -131,12 +138,21 @@ interface BusinessQAProps {
   messages: QaMessage[];
   loading: boolean;
   streamingText: string;
+  activeToolCalls: ToolCallInfo[];
   onAsk: (q: string) => void;
   onClearChat: () => void;
   onStopGeneration: () => void;
 }
 
-export function BusinessQA({ messages, loading, streamingText, onAsk, onClearChat, onStopGeneration }: BusinessQAProps) {
+export function BusinessQA({
+  messages,
+  loading,
+  streamingText,
+  activeToolCalls,
+  onAsk,
+  onClearChat,
+  onStopGeneration,
+}: BusinessQAProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
@@ -223,6 +239,10 @@ export function BusinessQA({ messages, loading, streamingText, onAsk, onClearCha
                 </div>
               )}
               <div className="max-w-[85%] space-y-1">
+                {/* Tool call badge for assistant messages */}
+                {m.role === "assistant" && m.toolCalls && (
+                  <ToolCallBadge tools={m.toolCalls} />
+                )}
                 <div
                   className={cn(
                     "rounded-2xl px-4 py-3 text-sm",
@@ -232,7 +252,7 @@ export function BusinessQA({ messages, loading, streamingText, onAsk, onClearCha
                   )}
                 >
                   {m.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>table]:mb-2 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>blockquote]:border-accent/30">
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>table]:mb-2 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>blockquote]:border-accent/30 [&>table]:text-xs [&>table_th]:bg-muted [&>table_td]:px-2">
                       <ReactMarkdown>{m.content}</ReactMarkdown>
                     </div>
                   ) : (
@@ -255,13 +275,31 @@ export function BusinessQA({ messages, loading, streamingText, onAsk, onClearCha
             </div>
           ))}
 
+          {/* Active tool call indicator */}
+          {loading && activeToolCalls.length > 0 && !streamingText && (
+            <div className="flex gap-3 justify-start animate-fade-in">
+              <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Bot className="w-4 h-4 text-accent" />
+              </div>
+              <div className="space-y-2">
+                <ActiveToolIndicator tools={activeToolCalls} />
+                <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-2.5">
+                  <TypingIndicator label={t("ai.analyzing")} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Streaming response */}
           {streamingText && (
             <div className="flex gap-3 justify-start animate-fade-in">
               <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="w-4 h-4 text-accent" />
               </div>
-              <div className="max-w-[85%]">
+              <div className="max-w-[85%] space-y-1">
+                {activeToolCalls.length > 0 && (
+                  <ToolCallBadge tools={activeToolCalls} />
+                )}
                 <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3 text-sm">
                   <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>table]:mb-2 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>blockquote]:border-accent/30">
                     <ReactMarkdown>{streamingText}</ReactMarkdown>
@@ -272,14 +310,14 @@ export function BusinessQA({ messages, loading, streamingText, onAsk, onClearCha
             </div>
           )}
 
-          {/* Loading indicator (no streaming yet) */}
-          {loading && !streamingText && (
+          {/* Loading indicator (no streaming or tool calls yet) */}
+          {loading && !streamingText && activeToolCalls.length === 0 && (
             <div className="flex gap-3 justify-start animate-fade-in">
               <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
                 <Bot className="w-4 h-4 text-accent" />
               </div>
               <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-2.5">
-                <TypingIndicator />
+                <TypingIndicator label={t("ai.querying_data")} />
               </div>
             </div>
           )}
@@ -290,7 +328,7 @@ export function BusinessQA({ messages, loading, streamingText, onAsk, onClearCha
       <div className="border-t border-border bg-card/80 backdrop-blur-sm px-4 py-3">
         <div className="max-w-3xl mx-auto space-y-2">
           {/* Action buttons row */}
-          {messages.length > 0 && (
+          {(messages.length > 0 || loading) && (
             <div className="flex items-center gap-2 justify-center">
               {loading ? (
                 <Button
@@ -302,17 +340,7 @@ export function BusinessQA({ messages, loading, streamingText, onAsk, onClearCha
                   <Square className="w-3 h-3" />
                   {t("ai.stop")}
                 </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-xs h-7 text-muted-foreground"
-                  onClick={onClearChat}
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  {t("ai.new_chat")}
-                </Button>
-              )}
+              ) : null}
             </div>
           )}
 
@@ -329,7 +357,7 @@ export function BusinessQA({ messages, loading, streamingText, onAsk, onClearCha
               size="icon"
               onClick={submit}
               disabled={loading || !input.trim()}
-              className="rounded-xl shrink-0 h-[42px] w-[42px]"
+              className="rounded-xl shrink-0 h-[44px] w-[44px]"
             >
               <Send className="w-4 h-4" />
             </Button>

@@ -3,6 +3,7 @@
 // Required secret: ANTHROPIC_API_KEY (set via supabase secrets set ANTHROPIC_API_KEY=sk-ant-...)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { TOOL_DEFINITIONS, executeTool } from "./tools.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -13,262 +14,155 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-/* ------------------------------------------------------------------ */
-/*  Fetch business context from DB                                     */
-/* ------------------------------------------------------------------ */
-
-async function fetchBusinessContext(companyId: string): Promise<string> {
-  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
-  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString().split("T")[0];
-
-  // Run all queries in parallel
-  const [
-    revenueThisMonth,
-    expensesThisMonth,
-    revenuePrevMonth,
-    expensesPrevMonth,
-    topSuppliers,
-    overdueInvoices,
-    recentInvoices,
-    scheduledPayments,
-    products,
-    ingredients,
-    fixedCosts,
-    cashPosition,
-    invoiceActivity,
-    expenseBreakdown,
-  ] = await Promise.all([
-    // Revenue this month
-    sb.from("revenue_entries").select("amount").eq("company_id", companyId)
-      .gte("entry_date", startOfMonth),
-    // Expenses this month
-    sb.from("expense_entries").select("amount").eq("company_id", companyId)
-      .gte("entry_date", startOfMonth),
-    // Revenue prev month
-    sb.from("revenue_entries").select("amount").eq("company_id", companyId)
-      .gte("entry_date", prevMonthStart).lte("entry_date", prevMonthEnd),
-    // Expenses prev month
-    sb.from("expense_entries").select("amount").eq("company_id", companyId)
-      .gte("entry_date", prevMonthStart).lte("entry_date", prevMonthEnd),
-    // Top suppliers (last 90 days)
-    sb.from("invoices").select("supplier:suppliers(name), total_amount")
-      .eq("company_id", companyId).eq("status", "approved")
-      .gte("invoice_date", new Date(now.getTime() - 90 * 86400000).toISOString().split("T")[0])
-      .order("total_amount", { ascending: false }).limit(50),
-    // Overdue invoices
-    sb.from("invoices").select("invoice_number, total_amount, due_date, supplier:suppliers(name)")
-      .eq("company_id", companyId).eq("status", "approved")
-      .lt("due_date", now.toISOString().split("T")[0])
-      .order("due_date", { ascending: true }).limit(10),
-    // Recent invoices (last 30 days)
-    sb.from("invoices").select("invoice_number, total_amount, status, invoice_date, supplier:suppliers(name)")
-      .eq("company_id", companyId)
-      .gte("invoice_date", thirtyDaysAgo)
-      .order("invoice_date", { ascending: false }).limit(20),
-    // Scheduled payments
-    sb.from("scheduled_payments").select("description, amount, due_date, status")
-      .eq("company_id", companyId).eq("status", "pending")
-      .order("due_date", { ascending: true }).limit(10),
-    // Products
-    sb.from("products").select("name, category, type, selling_price_dinein, selling_price_delivery")
-      .eq("company_id", companyId).limit(50),
-    // Ingredients
-    sb.from("ingredients").select("name, category, unit, price_per_unit, supplier_name")
-      .eq("company_id", companyId).limit(50),
-    // Fixed costs (current month)
-    sb.from("fixed_costs").select("category, amount, notes")
-      .eq("company_id", companyId).eq("month", `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`),
-    // Cash position (latest)
-    sb.from("cash_positions").select("cash_on_hand, bank_balance, total_cash, recorded_date")
-      .eq("company_id", companyId).order("recorded_date", { ascending: false }).limit(1),
-    // Invoice activity stats
-    sb.from("invoices").select("status, paid_date, invoice_date, total_amount")
-      .eq("company_id", companyId).gte("invoice_date", thirtyDaysAgo),
-    // Expense breakdown by category (via RPC if available, otherwise skip)
-    sb.rpc("get_expense_category_breakdown", {
-      p_company_id: companyId,
-      p_from_date: startOfMonth,
-      p_to_date: now.toISOString().split("T")[0],
-    }).then(r => r).catch(() => ({ data: null })),
-  ]);
-
-  // Aggregate supplier spending
-  const supplierMap = new Map<string, { total: number; count: number }>();
-  if (topSuppliers.data) {
-    for (const inv of topSuppliers.data as any[]) {
-      const name = inv.supplier?.name || "Unknown";
-      const existing = supplierMap.get(name) || { total: 0, count: 0 };
-      existing.total += inv.total_amount || 0;
-      existing.count += 1;
-      supplierMap.set(name, existing);
-    }
-  }
-  const sortedSuppliers = [...supplierMap.entries()]
-    .sort((a, b) => b[1].total - a[1].total)
-    .slice(0, 10);
-
-  // Compute totals
-  const sumArr = (data: any[] | null) => (data || []).reduce((s, r) => s + (r.amount || 0), 0);
-  const revThis = sumArr(revenueThisMonth.data);
-  const expThis = sumArr(expensesThisMonth.data);
-  const revPrev = sumArr(revenuePrevMonth.data);
-  const expPrev = sumArr(expensesPrevMonth.data);
-
-  // Invoice activity
-  const invoiceData = (invoiceActivity.data || []) as any[];
-  const receivedThisMonth = invoiceData.filter((i: any) => i.invoice_date >= startOfMonth).length;
-  const paidThisMonth = invoiceData.filter((i: any) => i.paid_date && i.paid_date >= startOfMonth).length;
-  const overdueCount = (overdueInvoices.data || []).length;
-
-  const cash = (cashPosition.data || [])[0];
-
-  const fmt = (n: number) => n.toLocaleString("el-GR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  // Build context string
-  let ctx = `=== BUSINESS DATA SNAPSHOT (${now.toISOString().split("T")[0]}) ===\n\n`;
-
-  ctx += `## FINANCIAL OVERVIEW\n`;
-  ctx += `Revenue this month: €${fmt(revThis)}\n`;
-  ctx += `Expenses this month: €${fmt(expThis)}\n`;
-  ctx += `Net profit this month: €${fmt(revThis - expThis)}\n`;
-  ctx += `Profit margin: ${revThis > 0 ? ((revThis - expThis) / revThis * 100).toFixed(1) : "0"}%\n`;
-  ctx += `Revenue last month: €${fmt(revPrev)}\n`;
-  ctx += `Expenses last month: €${fmt(expPrev)}\n`;
-  ctx += `Net profit last month: €${fmt(revPrev - expPrev)}\n`;
-  if (revPrev > 0) {
-    const revChange = ((revThis - revPrev) / revPrev * 100).toFixed(1);
-    ctx += `Revenue change month-over-month: ${revChange}%\n`;
-  }
-  ctx += `\n`;
-
-  if (cash) {
-    ctx += `## CASH POSITION\n`;
-    ctx += `Cash on hand: €${fmt(cash.cash_on_hand || 0)}\n`;
-    ctx += `Bank balance: €${fmt(cash.bank_balance || 0)}\n`;
-    ctx += `Total cash: €${fmt(cash.total_cash || 0)}\n`;
-    ctx += `As of: ${cash.recorded_date}\n\n`;
-  }
-
-  ctx += `## INVOICE ACTIVITY (Last 30 days)\n`;
-  ctx += `Invoices received this month: ${receivedThisMonth}\n`;
-  ctx += `Invoices paid this month: ${paidThisMonth}\n`;
-  ctx += `Overdue invoices: ${overdueCount}\n\n`;
-
-  if ((overdueInvoices.data || []).length > 0) {
-    ctx += `## OVERDUE INVOICES\n`;
-    for (const inv of overdueInvoices.data as any[]) {
-      const daysOverdue = Math.floor((now.getTime() - new Date(inv.due_date).getTime()) / 86400000);
-      ctx += `- ${inv.invoice_number}: €${fmt(inv.total_amount)} from ${inv.supplier?.name || "Unknown"} (${daysOverdue} days overdue)\n`;
-    }
-    ctx += `\n`;
-  }
-
-  if (sortedSuppliers.length > 0) {
-    ctx += `## TOP SUPPLIERS (Last 90 days)\n`;
-    for (const [name, data] of sortedSuppliers) {
-      ctx += `- ${name}: €${fmt(data.total)} (${data.count} invoices)\n`;
-    }
-    ctx += `\n`;
-  }
-
-  if ((scheduledPayments.data || []).length > 0) {
-    ctx += `## UPCOMING PAYMENTS\n`;
-    for (const p of scheduledPayments.data as any[]) {
-      ctx += `- ${p.description}: €${fmt(p.amount)} due ${p.due_date}\n`;
-    }
-    ctx += `\n`;
-  }
-
-  if (expenseBreakdown.data && Array.isArray(expenseBreakdown.data) && expenseBreakdown.data.length > 0) {
-    ctx += `## EXPENSE BREAKDOWN (This month)\n`;
-    for (const cat of expenseBreakdown.data as any[]) {
-      ctx += `- ${cat.category || "Other"}: €${fmt(cat.total || 0)} (${(cat.percentage || 0).toFixed(1)}%)\n`;
-    }
-    ctx += `\n`;
-  }
-
-  if ((fixedCosts.data || []).length > 0) {
-    ctx += `## FIXED COSTS (This month)\n`;
-    const totalFixed = (fixedCosts.data as any[]).reduce((s: number, c: any) => s + (c.amount || 0), 0);
-    for (const c of fixedCosts.data as any[]) {
-      ctx += `- ${c.category}: €${fmt(c.amount)}${c.notes ? ` (${c.notes})` : ""}\n`;
-    }
-    ctx += `Total fixed costs: €${fmt(totalFixed)}\n\n`;
-  }
-
-  if ((products.data || []).length > 0) {
-    ctx += `## PRODUCTS (${(products.data || []).length} total)\n`;
-    for (const p of (products.data || []).slice(0, 30) as any[]) {
-      ctx += `- ${p.name} [${p.category}]: Dine-in €${fmt(p.selling_price_dinein || 0)}, Delivery €${fmt(p.selling_price_delivery || 0)}\n`;
-    }
-    if ((products.data || []).length > 30) ctx += `... and ${(products.data || []).length - 30} more products\n`;
-    ctx += `\n`;
-  }
-
-  if ((ingredients.data || []).length > 0) {
-    ctx += `## INGREDIENTS (${(ingredients.data || []).length} total)\n`;
-    for (const ing of (ingredients.data || []).slice(0, 30) as any[]) {
-      ctx += `- ${ing.name} [${ing.category}]: €${fmt(ing.price_per_unit || 0)}/${ing.unit}${ing.supplier_name ? ` from ${ing.supplier_name}` : ""}\n`;
-    }
-    if ((ingredients.data || []).length > 30) ctx += `... and ${(ingredients.data || []).length - 30} more ingredients\n`;
-    ctx += `\n`;
-  }
-
-  if ((recentInvoices.data || []).length > 0) {
-    ctx += `## RECENT INVOICES (Last 30 days)\n`;
-    for (const inv of (recentInvoices.data || []).slice(0, 15) as any[]) {
-      ctx += `- ${inv.invoice_number}: €${fmt(inv.total_amount)} from ${inv.supplier?.name || "Unknown"} [${inv.status}] (${inv.invoice_date})\n`;
-    }
-    ctx += `\n`;
-  }
-
-  return ctx;
-}
+const MODEL = "claude-sonnet-4-20250514";
+const MAX_TOKENS = 8192;
+const MAX_TOOL_ROUNDS = 8; // Safety limit on tool-use loops
 
 /* ------------------------------------------------------------------ */
 /*  System prompt                                                       */
 /* ------------------------------------------------------------------ */
 
-function buildSystemPrompt(businessContext: string, language: string): string {
+function buildSystemPrompt(language: string): string {
   const lang = language === "el" ? "Greek" : "English";
 
-  return `You are the AI financial analyst for 4Labs, a business management platform for food & beverage companies. You help business owners understand their finances, suppliers, costs, products, and make better decisions.
+  return `You are the AI financial analyst and business assistant for 4Labs, a business management platform for food & beverage companies. You help business owners understand their finances, suppliers, costs, products, and make better decisions.
 
 ## Your Personality
-- Professional yet friendly and approachable
+- Professional yet friendly and approachable — like a trusted financial advisor
 - You speak in ${lang} by default (match the user's language)
-- Concise but thorough — give actionable insights, not just numbers
-- When you spot a problem (overdue invoices, declining margins, high dependency on one supplier), flag it proactively
-- Use formatting (bold, lists, tables) when it helps clarity
-- Always base your answers on the actual business data provided below
-- If you don't have enough data to answer a question, say so honestly
-- If a question is outside your business data scope, politely explain what you CAN help with
+- Thorough and insightful — don't just recite numbers, explain what they mean
+- Proactive — when you spot problems (overdue invoices, declining margins, supplier risk), flag them even if not asked
+- Actionable — always end with practical recommendations or next steps
+
+## How You Work
+You have access to tools that let you query the business database in real time. When a user asks a question:
+1. Think about which data you need
+2. Use the appropriate tools to fetch that data
+3. Analyze the results and provide insightful commentary
+4. You can chain multiple tool calls to build a comprehensive answer
 
 ## Your Capabilities
-- Financial analysis: revenue, expenses, profit margins, cash flow, trends
-- Supplier analysis: spending patterns, dependency risk, price changes
-- Invoice management: overdue tracking, payment cycles, expense categorization
-- Product & cost analysis: product margins, ingredient costs, recipe costing
-- Business recommendations: cost-cutting suggestions, growth opportunities, risk alerts
-- General business Q&A: you can answer general business/finance questions using your knowledge
+- **Financial analysis**: revenue, expenses, profit margins, cash flow, trends, period comparisons
+- **Supplier analysis**: spending patterns, dependency risk, price changes, vendor performance
+- **Invoice management**: search, filter, track overdue, analyze payment cycles, update statuses
+- **Product & cost analysis**: product margins, ingredient costs, recipe costing, price optimization
+- **Fixed costs & overhead**: monthly recurring costs, payroll, rent analysis
+- **Alerts & monitoring**: view active alerts, create custom alert rules
+- **Cash management**: cash position, bank balance, liquidity analysis
+- **Actions**: You can update invoice statuses, create alert rules, and add fixed costs — BUT always describe what you will do and ask the user for confirmation before executing any write operation.
 
 ## Response Guidelines
-- Keep answers focused and under 400 words unless the user asks for detail
-- Use € for currency, format numbers with 2 decimal places
-- When comparing periods, show the percentage change
-- Highlight concerning trends with warnings
-- End with a practical recommendation or next step when appropriate
-- Use markdown formatting: **bold** for emphasis, bullet lists for multiple items, tables for comparisons
+- Adapt response length to the complexity of the question — brief for simple queries, detailed for analysis
+- Use € for currency, format numbers with 2 decimal places using European formatting (e.g., 1.234,56 €)
+- When comparing periods, always show the percentage change and explain its significance
+- Highlight concerning trends with ⚠️ warnings
+- Use markdown formatting: **bold** for key numbers, bullet lists for multiple items, tables for comparisons
+- When presenting financial data, use markdown tables for clarity
+- Suggest follow-up analyses the user might find useful
+- If you don't have enough data, say so honestly and suggest what data would help
 
-## Current Business Data
-${businessContext}
+## Write Operation Safety
+When asked to perform an action (update invoice, create alert, add cost), ALWAYS:
+1. Clearly state what action you will take
+2. Show the specific details (which invoice, what status, what amount)
+3. Ask "Shall I proceed?" or similar confirmation
+4. Only execute after the user confirms
 
-Use this data to answer the user's questions accurately. Reference specific numbers and dates. If the data shows a concerning trend, mention it even if not directly asked.`;
+## General Knowledge
+You also have broad business and financial knowledge. Feel free to answer general questions about accounting, business strategy, tax considerations, etc. Make it clear when you're giving general advice vs. analyzing their specific data.`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Anthropic API call (non-streaming, for tool use loop)               */
+/* ------------------------------------------------------------------ */
+
+interface AnthropicMessage {
+  role: "user" | "assistant";
+  content: string | Array<Record<string, unknown>>;
+}
+
+async function callAnthropic(
+  systemPrompt: string,
+  messages: AnthropicMessage[],
+  includeTools: boolean = true,
+): Promise<{
+  stop_reason: string;
+  content: Array<Record<string, unknown>>;
+}> {
+  const body: Record<string, unknown> = {
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    system: systemPrompt,
+    messages,
+  };
+
+  if (includeTools) {
+    body.tools = TOOL_DEFINITIONS;
+  }
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Anthropic API error:", response.status, errText);
+    throw new Error(`Anthropic API error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return {
+    stop_reason: result.stop_reason,
+    content: result.content,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Anthropic streaming call (for final text response)                  */
+/* ------------------------------------------------------------------ */
+
+async function callAnthropicStreaming(
+  systemPrompt: string,
+  messages: AnthropicMessage[],
+): Promise<ReadableStream> {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt,
+      messages,
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Anthropic streaming error:", response.status, errText);
+    throw new Error(`Anthropic API error: ${response.status}`);
+  }
+
+  return response.body!;
+}
+
+/* ------------------------------------------------------------------ */
+/*  SSE encoding helper                                                 */
+/* ------------------------------------------------------------------ */
+
+function encodeSSE(eventType: string, data: unknown): Uint8Array {
+  const encoder = new TextEncoder();
+  return encoder.encode(`event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
 /* ------------------------------------------------------------------ */
@@ -290,7 +184,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify token and get user
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await sb.auth.getUser(token);
@@ -315,42 +208,66 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch business context
-    const businessContext = await fetchBusinessContext(company_id);
+    const systemPrompt = buildSystemPrompt(language || "el");
 
-    // Build system prompt
-    const systemPrompt = buildSystemPrompt(businessContext, language || "el");
+    // Build the API messages from conversation history
+    const apiMessages: AnthropicMessage[] = messages.map((m) => ({
+      role: m.role === "user" ? "user" as const : "assistant" as const,
+      content: m.content,
+    }));
 
-    // Call Claude API with streaming
-    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2048,
-        system: systemPrompt,
-        messages: messages.map((m) => ({
-          role: m.role === "user" ? "user" : "assistant",
-          content: m.content,
-        })),
-        stream: true,
-      }),
-    });
+    // ====================================================
+    // TOOL USE LOOP: Let Claude call tools, then respond
+    // ====================================================
 
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text();
-      console.error("Anthropic API error:", anthropicResponse.status, errText);
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 502,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    let toolRounds = 0;
+    let lastResult = await callAnthropic(systemPrompt, apiMessages, true);
+
+    // Agentic loop: keep going while Claude wants to use tools
+    while (lastResult.stop_reason === "tool_use" && toolRounds < MAX_TOOL_ROUNDS) {
+      toolRounds++;
+
+      // Add assistant's tool-calling message to conversation
+      apiMessages.push({
+        role: "assistant",
+        content: lastResult.content,
       });
+
+      // Execute all tool calls in parallel
+      const toolUseBlocks = lastResult.content.filter((b: any) => b.type === "tool_use");
+      const toolResults = await Promise.all(
+        toolUseBlocks.map(async (block: any) => {
+          console.log(`Executing tool: ${block.name}`, JSON.stringify(block.input).slice(0, 200));
+          const result = await executeTool(block.name, block.input, company_id, sb);
+          return {
+            type: "tool_result",
+            tool_use_id: block.id,
+            content: result,
+          };
+        })
+      );
+
+      // Add tool results to conversation
+      apiMessages.push({
+        role: "user",
+        content: toolResults as any,
+      });
+
+      // Call Claude again with tool results
+      lastResult = await callAnthropic(systemPrompt, apiMessages, true);
     }
 
-    // Stream the response back to the client
+    // ====================================================
+    // FINAL RESPONSE: Stream Claude's text response back
+    // ====================================================
+
+    // If the last result already has text (non-streaming from tool loop), we can stream it ourselves
+    // OR do a final streaming call for the best UX
+
+    const textBlocks = lastResult.content.filter((b: any) => b.type === "text");
+    const toolCallBlocks = lastResult.content.filter((b: any) => b.type === "tool_use");
+
+    // If there are tool call results to report, include them in the stream
     const responseHeaders = {
       ...CORS_HEADERS,
       "Content-Type": "text/event-stream",
@@ -358,8 +275,57 @@ Deno.serve(async (req: Request) => {
       "Connection": "keep-alive",
     };
 
-    // Pipe the Anthropic SSE stream directly to the client
-    return new Response(anthropicResponse.body, {
+    // Create a custom readable stream that sends tool call info + the final text
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Send tool call indicators so the frontend knows what happened
+          if (toolRounds > 0) {
+            // Collect all tool calls that were made
+            const allToolCalls: Array<{ name: string; input: Record<string, unknown> }> = [];
+            for (const msg of apiMessages) {
+              if (msg.role === "assistant" && Array.isArray(msg.content)) {
+                for (const block of msg.content) {
+                  if ((block as any).type === "tool_use") {
+                    allToolCalls.push({
+                      name: (block as any).name,
+                      input: (block as any).input,
+                    });
+                  }
+                }
+              }
+            }
+            controller.enqueue(encodeSSE("tool_calls", { tools: allToolCalls }));
+          }
+
+          // Stream the final text response
+          if (textBlocks.length > 0) {
+            const fullText = textBlocks.map((b: any) => b.text).join("\n");
+            // Simulate streaming by chunking the text (for consistent UX)
+            const chunkSize = 20;
+            for (let i = 0; i < fullText.length; i += chunkSize) {
+              const chunk = fullText.slice(i, i + chunkSize);
+              controller.enqueue(
+                encodeSSE("content_block_delta", {
+                  type: "content_block_delta",
+                  delta: { type: "text_delta", text: chunk },
+                })
+              );
+              // Small delay between chunks for natural streaming feel
+              await new Promise((r) => setTimeout(r, 15));
+            }
+          }
+
+          controller.enqueue(encodeSSE("message_stop", { type: "message_stop" }));
+          controller.close();
+        } catch (err) {
+          console.error("Stream error:", err);
+          controller.error(err);
+        }
+      },
+    });
+
+    return new Response(stream, {
       status: 200,
       headers: responseHeaders,
     });
