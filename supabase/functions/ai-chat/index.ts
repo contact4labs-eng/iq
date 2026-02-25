@@ -37,10 +37,13 @@ export interface ToolResult {
 /*  System prompt                                                       */
 /* ------------------------------------------------------------------ */
 
-function buildSystemPrompt(language: string): string {
+function buildSystemPrompt(language: string, today: string): string {
   const lang = language === "el" ? "Greek" : "English";
 
   return `You are the AI financial analyst and business assistant for 4Labs, a business management platform for food & beverage companies. You help business owners understand their finances, suppliers, costs, products, and make better decisions.
+
+## Current Date
+Today's date is ${today}. Always use this as your reference point when interpreting relative dates like "last month", "this week", "yesterday", etc.
 
 ## Your Personality
 - Professional yet friendly and approachable — like a trusted financial advisor
@@ -1194,7 +1197,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const systemPrompt = buildSystemPrompt(language || "el");
+    const todayStr = new Date().toISOString().split("T")[0];
+    const systemPrompt = buildSystemPrompt(language || "el", todayStr);
 
     // Build the API messages from conversation history
     const apiMessages: AnthropicMessage[] = messages.map((m) => ({
