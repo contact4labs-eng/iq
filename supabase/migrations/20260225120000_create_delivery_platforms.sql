@@ -12,10 +12,11 @@ CREATE TABLE IF NOT EXISTS delivery_platforms (
 -- Enable RLS
 ALTER TABLE delivery_platforms ENABLE ROW LEVEL SECURITY;
 
--- RLS policy: users can manage platforms belonging to their company
-CREATE POLICY "Users can manage own company platforms"
-  ON delivery_platforms FOR ALL
-  USING (company_id IN (SELECT company_id FROM users WHERE auth_id = auth.uid()));
+-- RLS policies using the existing user_owns_company function
+CREATE POLICY "delivery_platforms_select" ON delivery_platforms FOR SELECT USING (user_owns_company(company_id));
+CREATE POLICY "delivery_platforms_insert" ON delivery_platforms FOR INSERT WITH CHECK (user_owns_company(company_id));
+CREATE POLICY "delivery_platforms_update" ON delivery_platforms FOR UPDATE USING (user_owns_company(company_id));
+CREATE POLICY "delivery_platforms_delete" ON delivery_platforms FOR DELETE USING (user_owns_company(company_id));
 
 -- Index for fast lookup by company
 CREATE INDEX idx_delivery_platforms_company_id ON delivery_platforms(company_id);
