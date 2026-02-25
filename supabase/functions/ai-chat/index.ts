@@ -59,7 +59,7 @@ You have access to tools that let you query the business database in real time. 
 ## Your Capabilities
 - **Financial analysis**: revenue, expenses, profit margins, cash flow, trends, period comparisons
 - **Supplier analysis**: spending patterns, dependency risk, price changes, vendor performance
-- **Invoice management**: search, filter, track overdue, analyze payment cycles, update statuses
+- **Invoice management**: search, filter, track overdue, analyze payment cycles, update statuses, view individual invoice line items (products, quantities, unit prices)
 - **Product & cost analysis**: product margins, ingredient costs, recipe costing, price optimization
 - **Fixed costs & overhead**: monthly recurring costs, payroll, rent analysis
 - **Alerts & monitoring**: view active alerts, create custom alert rules
@@ -372,6 +372,28 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         severity: { type: "string", enum: ["critical", "warning", "info"], description: "Filter by severity" },
         status: { type: "string", enum: ["active", "dismissed", "resolved"], description: "Filter by status (default: active)" },
         limit: { type: "number", description: "Max results (default 20)" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "query_invoice_line_items",
+    description: "Get the detailed line items (products/items) of one or more invoices. Each line item includes the product description, quantity, unit price, unit of measure, and line total. Use this when the user asks about specific products in invoices, wants to find the price of a product from an invoice, or needs to see what was purchased in a particular invoice. You can search by invoice_id, by product description, or by supplier name (which joins through the invoices table).",
+    input_schema: {
+      type: "object",
+      properties: {
+        invoice_id: { type: "string", description: "UUID of a specific invoice to get line items for" },
+        description_search: { type: "string", description: "Search line items by product description (partial match, case insensitive). E.g. 'αγκιναρα', 'μοσχαρι', 'pollock'" },
+        supplier_name: { type: "string", description: "Filter line items by supplier name (joins through invoices→suppliers)" },
+        min_unit_price: { type: "number", description: "Filter items with unit price >= this value" },
+        max_unit_price: { type: "number", description: "Filter items with unit price <= this value" },
+        limit: { type: "number", description: "Max results to return (default 50, max 200)" },
+        order_by: {
+          type: "string",
+          enum: ["description", "unit_price", "line_total", "quantity"],
+          description: "Field to sort by (default: description)",
+        },
+        ascending: { type: "boolean", description: "Sort ascending (default: true)" },
       },
       required: [],
     },
@@ -1032,6 +1054,91 @@ async function executeTool(
         return JSON.stringify({
           success: true,
           message: `Fixed cost "${data.category}" of €${fmt(data.amount)} added for ${month}`,
+        });
+      }
+
+      case "query_invoice_line_items": {
+        const lim = Math.min(Number(toolInput.limit) || 50, 200);
+        const orderBy = (toolInput.order_by as string) || "description";
+        const ascending = toolInput.ascending !== false;
+
+        // If we have a specific invoice_id, get line items directly
+        if (toolInput.invoice_id) {
+          let query = sb
+            .from("invoice_line_items")
+            .select("id, invoice_id, description, quantity, unit_of_measure, unit_price, line_total, tax_rate, discount_amount, sku")
+            .eq("invoice_id", toolInput.invoice_id as string);
+
+          if (toolInput.description_search) {
+            query = query.ilike("description", `%${toolInput.description_search}%`);
+          }
+          if (toolInput.min_unit_price) query = query.gte("unit_price", toolInput.min_unit_price);
+          if (toolInput.max_unit_price) query = query.lte("unit_price", toolInput.max_unit_price);
+
+          query = query.order(orderBy, { ascending }).limit(lim);
+
+          const { data, error } = await query;
+          if (error) return JSON.stringify({ error: error.message });
+
+          // Also get the invoice info for context
+          const { data: inv } = await sb
+            .from("invoices")
+            .select("invoice_number, invoice_date, total_amount, supplier_id, suppliers!inner(name)")
+            .eq("id", toolInput.invoice_id as string)
+            .single();
+
+          return JSON.stringify({
+            invoice_info: inv ? {
+              invoice_number: inv.invoice_number,
+              invoice_date: inv.invoice_date,
+              total_amount: inv.total_amount,
+              supplier: (inv as any).suppliers?.name,
+            } : null,
+            line_items: data,
+            count: data?.length || 0,
+          });
+        }
+
+        // Search across all invoices by description and/or supplier
+        // We need to join with invoices (and suppliers) for context
+        let query = sb
+          .from("invoice_line_items")
+          .select("id, invoice_id, description, quantity, unit_of_measure, unit_price, line_total, tax_rate, invoices!inner(id, invoice_number, invoice_date, total_amount, supplier_id, suppliers!inner(name))");
+
+        // Filter by company through invoices
+        query = query.eq("invoices.company_id", companyId);
+
+        if (toolInput.description_search) {
+          query = query.ilike("description", `%${toolInput.description_search}%`);
+        }
+        if (toolInput.supplier_name) {
+          query = query.ilike("invoices.suppliers.name", `%${toolInput.supplier_name}%`);
+        }
+        if (toolInput.min_unit_price) query = query.gte("unit_price", toolInput.min_unit_price);
+        if (toolInput.max_unit_price) query = query.lte("unit_price", toolInput.max_unit_price);
+
+        query = query.order(orderBy, { ascending }).limit(lim);
+
+        const { data, error } = await query;
+        if (error) return JSON.stringify({ error: error.message });
+
+        // Flatten the response for readability
+        const items = (data || []).map((item: any) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unit_of_measure: item.unit_of_measure,
+          unit_price: item.unit_price,
+          line_total: item.line_total,
+          tax_rate: item.tax_rate,
+          invoice_number: item.invoices?.invoice_number,
+          invoice_date: item.invoices?.invoice_date,
+          supplier: item.invoices?.suppliers?.name,
+        }));
+
+        return JSON.stringify({
+          line_items: items,
+          count: items.length,
+          note: items.length === lim ? `Results limited to ${lim}. Use a more specific search or increase limit.` : undefined,
         });
       }
 
