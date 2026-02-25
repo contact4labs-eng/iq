@@ -52,24 +52,26 @@ const SettingsPage = () => {
       return;
     }
     setLoading(true);
-    supabase
-      .from("companies")
-      .select("name, afm, email, phone, address")
-      .eq("id", companyId)
-      .maybeSingle()
-      .then(({ data, error: fetchErr }) => {
+    const fetchData = async () => {
+      try {
+        const { data, error: fetchErr } = await supabase
+          .from("companies")
+          .select("name, afm, email, phone, address")
+          .eq("id", companyId)
+          .maybeSingle();
         if (fetchErr) {
           console.error("Settings fetch error:", fetchErr.message);
           toast({ title: t("toast.error"), description: fetchErr.message, variant: "destructive" });
         } else if (data) {
           setInfo(data as CompanyInfo);
         }
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Settings fetch exception:", err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    fetchData();
   }, [companyId]);
 
   const handleSave = async () => {
