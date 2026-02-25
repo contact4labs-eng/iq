@@ -24,7 +24,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Info,
-  Grid3X3,
   Sliders,
 } from "lucide-react";
 import type { Product } from "@/hooks/useProducts";
@@ -33,11 +32,10 @@ import type { MarginThreshold } from "@/hooks/useMarginThresholds";
 import type { DeliveryPlatform } from "@/hooks/useDeliveryPlatforms";
 
 // Sub-components
-import { MenuMatrix } from "./pricing/MenuMatrix";
 import { PricingAlerts } from "./pricing/PricingAlerts";
 import { DeliverySuggestions } from "./pricing/DeliverySuggestions";
 import { PlatformOptimizer } from "./pricing/PlatformOptimizer";
-import { WhatIfBuilder, BreakEvenCalculator, FoodCostTarget } from "./pricing/PricingSimulator";
+import { WhatIfBuilder, FoodCostTarget } from "./pricing/PricingSimulator";
 import { PricingExportButton } from "./pricing/PricingExport";
 
 // ── Industry standard food margins by category ───────────────────────────
@@ -228,10 +226,10 @@ export function PricingAdvisor({
   platforms,
 }: PricingAdvisorProps) {
   const { t, language } = useLanguage();
-  const [advisorTab, setAdvisorTab] = useState<"overview" | "single" | "matrix" | "tools">("overview");
+  const [advisorTab, setAdvisorTab] = useState<"pricing" | "tools">("pricing");
   const [search, setSearch] = useState("");
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<"all" | "critical" | "warning" | "healthy">("all");
 
   const analyses = useMemo(() => {
     return products
@@ -243,20 +241,19 @@ export function PricingAdvisor({
       });
   }, [products, costMap, thresholds, platforms]);
 
-  const selectedAnalysis = useMemo(() => {
-    if (!selectedProductId) return null;
-    const p = products.find((p) => p.id === selectedProductId);
-    if (!p) return null;
-    return analyzeProduct(p, costMap.get(p.id) ?? 0, thresholds, platforms);
-  }, [selectedProductId, products, costMap, thresholds, platforms]);
-
   const filteredAnalyses = useMemo(() => {
-    if (!search) return analyses;
-    const q = search.toLowerCase();
-    return analyses.filter(
-      (a) => a.product.name.toLowerCase().includes(q) || a.product.category.toLowerCase().includes(q)
-    );
-  }, [analyses, search]);
+    let filtered = analyses;
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((a) => a.status === statusFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(
+        (a) => a.product.name.toLowerCase().includes(q) || a.product.category.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }, [analyses, search, statusFilter]);
 
   const summary = useMemo(() => {
     const critical = analyses.filter((a) => a.status === "critical").length;
@@ -268,18 +265,6 @@ export function PricingAdvisor({
 
     return { critical, warning, healthy, potentialRevenue, total: analyses.length };
   }, [analyses]);
-
-  // Matrix data
-  const matrixProducts = useMemo(() => {
-    return products
-      .filter((p) => p.selling_price_dinein > 0 && costMap.has(p.id) && (costMap.get(p.id) ?? 0) > 0)
-      .map((p) => {
-        const cost = costMap.get(p.id) || 0;
-        const margin = marginPercent(p.selling_price_dinein, cost);
-        const contribution = p.selling_price_dinein - cost;
-        return { id: p.id, name: p.name, category: p.category, marginPct: margin, contribution };
-      });
-  }, [products, costMap]);
 
   const toggleExpanded = (id: string) => {
     setExpandedProducts((prev) => {
@@ -453,44 +438,58 @@ export function PricingAdvisor({
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
-          <Tabs value={advisorTab} onValueChange={(v) => setAdvisorTab(v as any)}>
-            <TabsList className="w-full grid grid-cols-4">
-              <TabsTrigger value="overview" className="gap-1 text-[11px] px-1">
+          <Tabs value={advisorTab} onValueChange={(v) => setAdvisorTab(v as "pricing" | "tools")}>
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="pricing" className="gap-1.5 text-xs">
                 <BarChart3 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t("pricing.tab_overview")}</span>
+                {t("pricing.tab_overview")}
               </TabsTrigger>
-              <TabsTrigger value="single" className="gap-1 text-[11px] px-1">
-                <Target className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t("pricing.tab_single")}</span>
-              </TabsTrigger>
-              <TabsTrigger value="matrix" className="gap-1 text-[11px] px-1">
-                <Grid3X3 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{language === "el" ? "Μήτρα" : "Matrix"}</span>
-              </TabsTrigger>
-              <TabsTrigger value="tools" className="gap-1 text-[11px] px-1">
+              <TabsTrigger value="tools" className="gap-1.5 text-xs">
                 <Sliders className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{language === "el" ? "Εργαλεία" : "Tools"}</span>
+                {language === "el" ? "Εργαλεία" : "Tools"}
               </TabsTrigger>
             </TabsList>
 
-            {/* ─── Overview Tab ─────────────────────────────────────── */}
-            <TabsContent value="overview" className="mt-4 space-y-4">
+            {/* ─── Pricing Tab (merged overview + per product) ────── */}
+            <TabsContent value="pricing" className="mt-4 space-y-4">
               {/* Price Sensitivity Alerts */}
               <PricingAlerts products={products} costMap={costMap} platforms={platforms} />
 
+              {/* Summary cards — clickable to filter */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-lg border bg-red-50 dark:bg-red-900/20 p-2.5 text-center">
+                <button
+                  onClick={() => setStatusFilter(statusFilter === "critical" ? "all" : "critical")}
+                  className={`rounded-lg border p-2.5 text-center transition-all ${
+                    statusFilter === "critical"
+                      ? "ring-2 ring-red-400 bg-red-50 dark:bg-red-900/30"
+                      : "bg-red-50 dark:bg-red-900/20 hover:ring-1 hover:ring-red-300"
+                  }`}
+                >
                   <p className="text-lg font-bold text-red-600 dark:text-red-400">{summary.critical}</p>
                   <p className="text-[10px] text-red-600/70 dark:text-red-400/70">{t("pricing.critical")}</p>
-                </div>
-                <div className="rounded-lg border bg-yellow-50 dark:bg-yellow-900/20 p-2.5 text-center">
+                </button>
+                <button
+                  onClick={() => setStatusFilter(statusFilter === "warning" ? "all" : "warning")}
+                  className={`rounded-lg border p-2.5 text-center transition-all ${
+                    statusFilter === "warning"
+                      ? "ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/30"
+                      : "bg-yellow-50 dark:bg-yellow-900/20 hover:ring-1 hover:ring-yellow-300"
+                  }`}
+                >
                   <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{summary.warning}</p>
                   <p className="text-[10px] text-yellow-600/70 dark:text-yellow-400/70">{t("pricing.warning")}</p>
-                </div>
-                <div className="rounded-lg border bg-green-50 dark:bg-green-900/20 p-2.5 text-center">
+                </button>
+                <button
+                  onClick={() => setStatusFilter(statusFilter === "healthy" ? "all" : "healthy")}
+                  className={`rounded-lg border p-2.5 text-center transition-all ${
+                    statusFilter === "healthy"
+                      ? "ring-2 ring-green-400 bg-green-50 dark:bg-green-900/30"
+                      : "bg-green-50 dark:bg-green-900/20 hover:ring-1 hover:ring-green-300"
+                  }`}
+                >
                   <p className="text-lg font-bold text-green-600 dark:text-green-400">{summary.healthy}</p>
                   <p className="text-[10px] text-green-600/70 dark:text-green-400/70">{t("pricing.healthy")}</p>
-                </div>
+                </button>
               </div>
 
               {summary.potentialRevenue > 0 && (
@@ -505,23 +504,36 @@ export function PricingAdvisor({
                 </div>
               )}
 
-              {/* Delivery-only Menu Suggestions */}
-              <DeliverySuggestions products={products} costMap={costMap} platforms={platforms} />
-
-              {/* Platform Price Optimizer */}
-              <PlatformOptimizer products={products} costMap={costMap} platforms={platforms} />
-
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={t("pricing.search")}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9"
-                />
+              {/* Search + filter indicator */}
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t("pricing.search")}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                {statusFilter !== "all" && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-muted-foreground">
+                      {language === "el" ? "Φίλτρο:" : "Filter:"}{" "}
+                      <span className="font-medium capitalize">{statusFilter}</span>
+                      {" · "}{filteredAnalyses.length} {language === "el" ? "προϊόντα" : "products"}
+                    </p>
+                    <button
+                      onClick={() => setStatusFilter("all")}
+                      className="text-[10px] text-primary hover:underline"
+                    >
+                      {language === "el" ? "Εμφάνιση όλων" : "Show all"}
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="rounded-lg border divide-y max-h-[50vh] overflow-y-auto">
+              {/* Product list with expandable details */}
+              <div className="rounded-lg border divide-y max-h-[55vh] overflow-y-auto">
                 {filteredAnalyses.length === 0 ? (
                   <div className="p-4 text-center text-sm text-muted-foreground">
                     {t("pricing.no_products")}
@@ -566,63 +578,15 @@ export function PricingAdvisor({
                   })
                 )}
               </div>
-            </TabsContent>
 
-            {/* ─── Per Product Tab ──────────────────────────────────── */}
-            <TabsContent value="single" className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-medium">{t("pricing.select_product")}</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t("pricing.search")}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 h-9"
-                  />
-                </div>
-                <div className="rounded-lg border divide-y max-h-40 overflow-y-auto">
-                  {products
-                    .filter((p) => {
-                      if (!search) return true;
-                      const q = search.toLowerCase();
-                      return p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-                    })
-                    .map((p) => (
-                      <button
-                        key={p.id}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/40 transition-colors ${selectedProductId === p.id ? "bg-primary/10" : ""}`}
-                        onClick={() => {
-                          setSelectedProductId(p.id);
-                          setSearch("");
-                        }}
-                      >
-                        <span className="truncate">{p.name}</span>
-                        <span className="text-xs text-muted-foreground shrink-0 ml-2">{p.category}</span>
-                      </button>
-                    ))}
-                </div>
-              </div>
-
-              {selectedAnalysis ? (
-                renderProductDetail(selectedAnalysis)
-              ) : (
-                <div className="text-center py-8 text-sm text-muted-foreground">
-                  {t("pricing.select_prompt")}
-                </div>
-              )}
-            </TabsContent>
-
-            {/* ─── Matrix Tab ──────────────────────────────────────── */}
-            <TabsContent value="matrix" className="mt-4">
-              <MenuMatrix products={matrixProducts} />
+              {/* Delivery suggestions & platform optimizer */}
+              <DeliverySuggestions products={products} costMap={costMap} platforms={platforms} />
+              <PlatformOptimizer products={products} costMap={costMap} platforms={platforms} />
             </TabsContent>
 
             {/* ─── Tools Tab ───────────────────────────────────────── */}
             <TabsContent value="tools" className="mt-4 space-y-6">
               <WhatIfBuilder products={products} costMap={costMap} platforms={platforms} />
-              <div className="border-t" />
-              <BreakEvenCalculator products={products} costMap={costMap} platforms={platforms} />
               <div className="border-t" />
               <FoodCostTarget products={products} costMap={costMap} />
             </TabsContent>
